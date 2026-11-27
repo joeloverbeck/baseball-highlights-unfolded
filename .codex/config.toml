@@ -1,0 +1,19 @@
+[mcp_servers.vectorcraft-baseball-highlights]
+command = "vectorcraft-cli"
+args = ["mcp", "--headless", "--automation-read-root", ".", "--automation-write-root", "art"]
+
+[mcp_servers.effectcraft-baseball-highlights]
+command = "effectcraft-cli"
+args = ["mcp", "--automation-read-root", ".", "--automation-write-root", "art"]
+
+[mcp_servers.figcraft-baseball-highlights]
+command = "figcraft-cli"
+args = ["mcp", "--automation-read-root", ".", "--automation-write-root", "art"]
+
+[mcp_servers.blender]
+command = "uvx"
+args = ["--python", "3.11", "--from", "mcp-for-blender==2.3.1", "mcp-for-blender"]
+[mcp_servers.blender.env]
+BLENDER_HOST = "127.0.0.1"
+DISABLE_TELEMETRY = "true"
+

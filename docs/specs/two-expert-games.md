@@ -1,0 +1,16 @@
+# Play two consecutive Expert games against a talking manager
+
+Status: specified; implementation awaits the original-set artwork resolution, the accepted shared governance follow-through and applicable design selections. This session establishes the repository and requirements. Activate implementation separately.
+
+From a normal Ubuntu launch, select an original team and either Codex or Claude Code. Start game one of a legal Expert series, play a complete mini-game, use its actual revenue to conduct the Buy Round, and play game two with the resulting roster and home-field change. Stop at the recorded second result with the series able to continue. Keep one series and one rules engine throughout. All four original teams and all sixty original free agents are the admission set. Enable only base content for this slice.
+
+## Acceptance through ordinary play
+
+1. Start with shuffled starters, the real six-card market, private six-card hands and optional On Deck. Inspect real card fronts/backs, readable pile thickness, speed, threats and occupied bases from the native camera.
+2. Exercise legal card selection, target choice, PH, Save and tied extra innings using rules-derived cases. Confirm the RB 10–11 sequence independently and preserve hidden information, including simultaneous commitments.
+3. See each revenue contribution and who chooses buy order. Buy, immediately see the refill and decide again. Demote only eligible In Play cards. Verify both 15-card rosters, deck order, score and subsequent draws. Game two must demonstrate the acquisition through actual lineup state and play.
+4. Run the same two-game path with each supported provider. Test the game choices from a seat-limited observation. Talk to the opponent about a named play or purchase, get an in-character reply, mute the chat and keep playing. Confirm that typed messages alone cannot apply moves or expose private state.
+5. Quit or interrupt during a pending choice and during a buy. On restart, recover same opponent, roster, series, conversation and outstanding decision. Reject stale and duplicate submissions. Cosmetic motion can settle to the already committed board.
+6. Supply headless rule, persistence and visibility evidence plus native inspection from normal launch. Record live provider, build revision, seed or replay reference where available, and actual results separately for each path. The owner evaluates the exact combined art, readability, anticipation of consequences and manager conversation.
+
+Refresh the five-repository search in [the engineering foundation](../foundation/engineering.md) before implementation. Use the Cuba Libre pile, Arkham draw/hand, shared shuffle, asset, motion and seat paths as starting evidence. Complete any required extraction/migrations upstream before the dependent Baseball work. Use the three-alternative design workflow for new graphics and layouts. Full Standard/Beginner, later Expert games, expansions and the complete distribution package remain subsequent work. Keep the content ledger current with every delivery.
