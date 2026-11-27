@@ -82,7 +82,7 @@ fn camera(mut commands: Commands) {
     ));
 }
 
-pub fn run(game: Game, art: Art) -> Result<(), String> {
+pub fn run(game: Game, seat: Seat, art: Art) -> Result<(), String> {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
@@ -97,7 +97,8 @@ pub fn run(game: Game, art: Art) -> Result<(), String> {
         }),
         ..default()
     }));
-    install(&mut app, game, Seat::SanFrancisco, art);
+    install(&mut app, game, seat, art);
+    app.add_systems(Update, controls::refresh.before(controls::draw));
     match app.run() {
         AppExit::Success => Ok(()),
         AppExit::Error(code) => Err(format!("The tabletop closed with status {code}.")),

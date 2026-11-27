@@ -332,6 +332,21 @@ fn event_text(event: Event) -> String {
     }
 }
 
+pub fn refresh(
+    time: Res<Time>,
+    mut elapsed: Local<std::time::Duration>,
+    mut session: ResMut<Session>,
+) {
+    *elapsed += time.delta();
+    if *elapsed < std::time::Duration::from_millis(250) {
+        return;
+    }
+    *elapsed = std::time::Duration::ZERO;
+    if matches!(session.bypass_change_detection().game.refresh(), Ok(true)) {
+        session.set_changed();
+    }
+}
+
 pub fn draw(
     mut commands: Commands,
     session: Res<Session>,
