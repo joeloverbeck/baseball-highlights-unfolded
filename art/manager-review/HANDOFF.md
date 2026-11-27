@@ -1,10 +1,10 @@
 # Two manager decisions · design review
 
-Prepared for a narrower design/interaction spec under Baseball issue #3. The parent owns two complete competitive Expert games, agent seats, chat and save recovery. This round supplies design alternatives and reproducible decision examples. Owner selection belongs in the subsequent spec. The browser review is a fixture that advances between recorded states. Native play, a complete rules engine and live providers require separate evidence.
+Prepared for a narrower design/interaction spec under Baseball issue #3. The parent owns two complete competitive Expert games, agent seats, chat and save recovery. This round supplies design alternatives and reproducible decision examples. The owner selected the [combined study](COMBINED.md) for the subsequent spec. The browser review is a fixture that advances between recorded states. Native play, a complete rules engine and live providers require separate evidence.
 
 ## Review and restore
 
-On the owner machine open art/manager-review/review.html in the Baseball checkout. Press Box prioritizes the field with a persistent decision panel; Scorebook puts card evidence and projected consequences into columns; Dugout Rail gives the six-card market the most space and shows targets below a low field view. The proposed default for selection is Press Box. The comparison uses two independently selectable snapshots and supports a guided purchase, choice of demotion, game-two transition and both targets. The roster arithmetic and the example New York reply are fixed.
+On the owner machine open art/manager-review/review.html in the Baseball checkout. Press Box prioritizes the field with a persistent decision panel; Scorebook puts card evidence and projected consequences into columns; Dugout Rail gives the six-card market the most space and shows targets below a low field view. The selected study combines the high Press Box camera, the Scorebook comparison and the Dugout Rail player art. Open combined.html for its Glove, scouting and refill views. The comparison uses two independently selectable snapshots and supports a guided purchase, choice of demotion, game-two transition and both targets. The roster arithmetic and the example New York reply are fixed.
 
 The local six-frame manager-decisions.figcraft includes private card images. This branch carries the original park designs, FigCraft layer data and a local restoration recipe. With Pillow installed, run from this branch:
 
@@ -12,7 +12,7 @@ The local six-frame manager-decisions.figcraft includes private card images. Thi
 python3 art/manager-review/restore.py "$HOME/Pictures/Baseball Highlights: 2045 Resources"
 ```
 
-Open the restored file in FigCraft. Export top-level frame IDs 2/24 (Press Box), 61/85 (Scorebook) and 131/150 (Dugout Rail) to 0-glove.png/0-buy.png, 1-glove.png/1-buy.png and 2-glove.png/2-buy.png respectively, in the same directory as review.html. In each pair the first frame is the Glove scene. Rendered frames stay private. Each ballpark is also editable in the corresponding park-N.vectorcraft file.
+Open the restored file in FigCraft. Export top-level frame IDs 2/24 (Press Box), 61/85 (Scorebook) and 131/150 (Dugout Rail) to 0-glove.png/0-buy.png, 1-glove.png/1-buy.png and 2-glove.png/2-buy.png respectively, in the same directory as review.html. In each pair the first frame is the Glove scene. Rendered frames stay private. For the selected study, open combined.figcraft and export frames 2, 31 and 83 as combined-glove.png, combined-market.png and combined-refill.png respectively beside combined.html. Each ballpark is also editable in the corresponding park-N.vectorcraft file.
 
 ## Fixture and expected observations
 
@@ -38,4 +38,4 @@ Cuba Libre’s unrelated local art studies were left in place. Source review est
 
 ## To-spec handoff
 
-After owner review, record the chosen direction or hybrid, revisions and agreed testing seam. Invoke to-spec for this interaction slice, linked under [the existing first playable](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/3). The first playable continues to own both complete games and selectable providers. The design slice defines board information, player actions, visible consequences and recovery; actual ticket activation and native acceptance follow independently. Keep the image bundle owner-local. Consulted PURP-3, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, OPS-1/4/6/7, AGENT-1/2/5, GOV-1, PUB-1 and the adopted fidelity and integration boundaries.
+The layout selection is complete. Use COMBINED.md and confirm the proposed testing seam when invoking to-spec for this interaction slice, linked under [the existing first playable](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/3). The first playable continues to own both complete games and selectable providers. The design slice defines board information, player actions, visible consequences and recovery; actual ticket activation and native acceptance follow independently. Keep the image bundle owner-local. Consulted PURP-3, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, OPS-1/4/6/7, AGENT-1/2/5, GOV-1, PUB-1 and the adopted fidelity and integration boundaries.

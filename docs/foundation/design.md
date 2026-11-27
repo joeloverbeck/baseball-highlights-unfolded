@@ -8,6 +8,10 @@ For each new 2D graphic, present at least three competent, materially different 
 
 For new 3D pieces agree on the piece’s role and scale, then create consistent front, back, left and right turnaround portraits when modeling requires them. Maintain the same proportions, orientation convention, materials and base across views. Choose Blender modeling or Tripo with the owner for that asset. Tripo submission, external uploads and spend are separate from local design. Inspect the resulting piece from the game camera, alongside the other speeds and the cards, and let the owner judge the combined presentation.
 
+## Selected direction for Glove and the Buy Round
+
+The owner selected the [combined manager study](../../art/manager-review/COMBINED.md) on 2026-11-27. Use a high field camera for live decisions, warm scorecard panels for comparing consequences, and player art in six stable market slots. A low camera can follow a resolved hit before the next decision. The [review handoff](../../art/manager-review/HANDOFF.md) supplies the two positions, the editable study restoration steps and the shared-code trace. Native play will determine whether speed, revenue and pinch-hit eligibility also need to appear directly on each market offer.
+
 ## Authoring tools
 
 Start a trusted Codex session or Claude Code from the project root. The project configuration registers VectorCraft, FigCraft and EffectCraft by game name, reads the checkout and writes editable art under art/. Blender uses the shared local Blender MCP bridge (mcp-for-blender 2.3.1, uvx, Python 3.11). Enable the companion in the intended Blender session before scene work. Reopen the project client to load newly added MCP definitions. Keep private reference imports and exports under owner custody.

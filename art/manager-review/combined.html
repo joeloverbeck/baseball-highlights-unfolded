@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manager decisions · combined study</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1e27;color:#fcf8ec;font:16px system-ui,sans-serif}main{max-width:1280px;margin:auto}nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 15px}button,a{font:inherit}nav button,dialog button,.action{border:1px solid #769092;background:#193841;color:#fff8ea;padding:7px 12px;border-radius:4px;cursor:pointer}nav button[aria-pressed=true]{background:#f5eedc;color:#122b31}a{color:#b6e6cc}nav a{margin-left:auto}.scene{position:relative;container-type:inline-size}.scene>img{display:block;width:100%}.hit{position:absolute;background:transparent;border:0;cursor:pointer;border-radius:2px}.hit:hover,.hit:focus-visible,.hit[aria-pressed=true]{outline:3px solid #dba94a;outline-offset:-4px}.feedback{position:absolute;left:2%;top:78.4%;width:50.8%;height:16.5%;background:#1d3b45;padding:1.3cqw 1.7cqw;font-size:1.52cqw}.feedback strong{display:block;font-size:2cqw;color:#b6e6cc;margin-bottom:.6cqw}button:focus-visible,a:focus-visible{outline:3px solid #f7c65d;outline-offset:2px}.help{margin:8px 15px 20px;color:#c4d7d3}.roster{position:absolute;left:3.7%;right:4%;top:87.7%;background:#1d3b45;display:flex;gap:.7cqw}.roster button{flex:1;font-size:1.13cqw;padding:.55cqw .25cqw;background:#e8dfc9;color:#122b31;border:0;border-radius:2px;cursor:pointer}.roster small{display:block}dialog{border:none;background:#f5eedc;color:#122b31;max-width:min(510px,94vw);padding:22px;border-radius:5px}dialog::backdrop{background:#071b23bb}dialog img{max-width:min(180px,38vw);float:left;margin:0 20px 14px 0}dialog h2{font:700 24px Georgia,serif;margin:0 0 12px}dialog p{line-height:1.5}dialog footer{clear:both;display:flex;justify-content:flex-end;gap:8px}[hidden]{display:none!important}
+</style>
+<main>
+<nav aria-label="Design snapshots">
+<button data-view="glove">Glove decision</button><button data-view="market">Free agents</button><button data-view="refill">After signing Foxx</button><a href="review.html">Original three directions</a>
+</nav>
+<section class="scene" aria-label="Combined design"><img id="screen" alt=""><div id="controls"></div><div class="feedback" id="feedback" role="status" hidden></div></section>
+<p id="help" class="help"></p></main>
+<dialog aria-labelledby="player"><img id="face" alt=""><h2 id="player"></h2><p id="detail"></p><footer><button id="close">Close</button><button id="sign" hidden>Sign Foxx for $4</button></footer></dialog>
+<script>
+const $=id=>document.getElementById(id);
+const prospects=[
+ ['FA-061','Bucky Cano',7],['FA-062','Peewee Rizzuto',4],['FA-063','Ichiro Matsui',6],
+ ['FA-064','Brooks Nettles',6],['FA-065','Frankie Foxx',4],['FA-066','Maury Aparicio',5]
+];
+const roster=[
+ ['ST-002','Rookie Cyborg','Pick Off'],['ST-004','Rookie Natural','Single'],
+ ['ST-005','Rookie Natural','Glove'],['ST-008','Rookie Robot','Double'],
+ ['ST-011','Veteran Natural','Clutch: Double'],['ST-014','Veteran Robot','Home run']
+];
+let current;
+const dialog=document.querySelector('dialog');
+function inspect(id,name,description,sign=false){
+ $('player').textContent=name;$('detail').textContent=description;$('sign').hidden=!sign;
+ $('face').src='../../local/design-round/'+id+'.jpg';$('face').alt=name+' printed face, '+id;
+ dialog.showModal();$('close').focus();
+}
+function hotspot(label,x,y,w,h,handle){
+ const button=document.createElement('button');button.className='hit';button.setAttribute('aria-label',label);
+ Object.assign(button.style,{left:x/12.8+'%',top:y/8+'%',width:w/12.8+'%',height:h/8+'%'});
+ button.onclick=()=>handle(button);$('controls').append(button);return button;
+}
+const shots={
+ glove:['SF trails NY 2–1. Average runner on second. Maris threatens a single and a home run. SF can cancel either.','Select either target to preview its result. Select the other to compare. Both printed cards open at full size.'],
+ market:['San Francisco has $6. Six public free agents show price, remaining balance, ability and threatened hits.','Inspect any of the six cards. The signing example follows Frankie Foxx through the public refill.'],
+ refill:['Foxx has signed. Mickey Maris appears in his slot. SF has $2 left and must demote one eligible player.','Compare the market with the previous snapshot, then inspect any of the six eligible In Play cards.']
+};
+function render(view){
+ current=view;const after=view==='refill';$('controls').replaceChildren();$('feedback').hidden=true;
+ $('screen').src='combined-'+view+'.png';$('screen').alt=shots[view][0];$('help').textContent=shots[view][1];
+ document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
+ if(view==='glove'){
+  hotspot('Inspect Mickey Maris',731,171,112,157,()=>inspect('FA-067','Mickey Maris','NY at bat. His single and home run are threatened in printed order.'));
+  hotspot('Inspect SF Rookie',989,171,112,157,()=>inspect('ST-001','San Francisco Rookie','Glove can cancel one opposing hit. SF threatens its single after the NY hits resolve.'));
+  ['Cancel single','Cancel home run'].forEach((label,i)=>{
+   hotspot('Preview: '+label,730,472+120*i,502,105,b=>{
+    document.querySelectorAll('.hit[aria-pressed]').forEach(h=>h.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+    const title=document.createElement('strong');title.textContent=i?'Projected: NY 3 – SF 1':'Projected: NY 4 – SF 1';
+    $('feedback').replaceChildren(title,document.createTextNode(i?'Single scores the runner from second. Maris reaches first.':'Home run scores the runner and Maris. Bases clear.'));
+    $('feedback').hidden=false;
+   }).setAttribute('aria-pressed','false');
+  });return;
+ }
+ const board=[...prospects];if(after)board[4]=['FA-067','Mickey Maris',7];
+ board.forEach(([id,name,cost],i)=>{
+  const left=(after?2:6)-cost;
+  hotspot('Inspect '+name,26+i%3*411,203+Math.floor(i/3)*209,396,189,()=>inspect(id,name,'Costs $'+cost+'. '+(left<0?'SF is $'+(-left)+' short.':'SF would keep $'+left+'.'),!after&&id==='FA-065'));
+ });
+ if(after){
+  const rail=document.createElement('div');rail.className='roster';rail.setAttribute('role','group');rail.setAttribute('aria-label','Eligible demotions');
+  roster.forEach(([id,name,ability])=>{const b=document.createElement('button'),s=document.createElement('small');
+   b.textContent=ability;s.textContent=id;b.append(s);b.onclick=()=>inspect(id,name,'Eligible to demote from In Play. '+ability+' · '+id+'.');rail.append(b);});
+  $('controls').append(rail);
+ }
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>render(b.dataset.view));
+$('close').onclick=()=>dialog.close();$('sign').onclick=()=>{dialog.close();render('refill');document.querySelector('[data-view=refill]').focus()};render('glove');
+</script></html>

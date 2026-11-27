@@ -26,9 +26,14 @@ for serial in [1, 2, 4, 5, 8, 11, 14, *range(61, 68)]:
         thumb.save(path, quality=89)
         assets.append(path)
 by_hash = {hashlib.sha256(p.read_bytes()).hexdigest(): p for p in assets}
-layout = (here / "layout.json").read_bytes()
-images = [by_hash[item["hash"]] for item in json.loads(layout)["imageIndex"]]
-with ZipFile(here / "manager-decisions.figcraft", "w", ZIP_DEFLATED) as z:
-    z.writestr("document.json", layout)
-    for image in images:
-        z.write(image, "images/" + hashlib.sha256(image.read_bytes()).hexdigest())
+for layout_name, document_name in (
+    ("layout.json", "manager-decisions.figcraft"),
+    ("combined-layout.json", "combined.figcraft"),
+):
+    layout = (here / layout_name).read_bytes()
+    hashes = [item["hash"] for item in json.loads(layout)["imageIndex"]]
+    images = [(digest, by_hash[digest]) for digest in hashes]
+    with ZipFile(here / document_name, "w", ZIP_DEFLATED) as z:
+        z.writestr("document.json", layout)
+        for digest, image in images:
+            z.write(image, "images/" + digest)
