@@ -1,0 +1,21 @@
+name: Repository checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pillow
+        run: |
+          python3 -m venv "$RUNNER_TEMP/check-env"
+          "$RUNNER_TEMP/check-env/bin/pip" install Pillow
+      - name: Check original cards and design restore
+        run: |
+          "$RUNNER_TEMP/check-env/bin/python" -B -m unittest discover -s tests -v

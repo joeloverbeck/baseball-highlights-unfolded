@@ -1,6 +1,6 @@
 # Play two consecutive Expert games against a talking manager
 
-Status: specified; the owner has accepted the [eight original-set proxies](../foundation/content.md#starter-card-proxies). Implementation awaits the shared governance follow-through and applicable design selections. This session establishes the repository and requirements. Activate implementation separately.
+Status: specified; the owner has accepted the [eight original-set proxies](../foundation/content.md#starter-card-proxies). The shared [governance extension](https://github.com/joeloverbeck/unfolded-tabletop/pull/114) has merged. The selected Glove and Buy Round design is specified in [#4](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/4). Activate implementation separately.
 
 From a normal Ubuntu launch, select an original team and either Codex or Claude Code. Start game one of a legal Expert series, play a complete mini-game, use its actual revenue to conduct the Buy Round, and play game two with the resulting roster and home-field change. Stop at the recorded second result with the series able to continue. Keep one series and one rules engine throughout. All four original teams and all sixty original free agents are the admission set. Enable only base content for this slice.
 

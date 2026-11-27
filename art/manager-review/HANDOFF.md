@@ -12,7 +12,7 @@ The local six-frame manager-decisions.figcraft includes private card images. Thi
 python3 art/manager-review/restore.py "$HOME/Pictures/Baseball Highlights: 2045 Resources"
 ```
 
-Open the restored file in FigCraft. Export top-level frame IDs 2/24 (Press Box), 61/85 (Scorebook) and 131/150 (Dugout Rail) to 0-glove.png/0-buy.png, 1-glove.png/1-buy.png and 2-glove.png/2-buy.png respectively, in the same directory as review.html. In each pair the first frame is the Glove scene. Rendered frames stay private. For the selected study, open combined.figcraft and export frames 2, 31 and 83 as combined-glove.png, combined-market.png and combined-refill.png respectively beside combined.html. Each ballpark is also editable in the corresponding park-N.vectorcraft file.
+Restore prints the path to each rebuilt document. If the original differs, use the adjacent `.restored.figcraft` copy to inspect the rebuild. If that copy also contains edits, restore uses the next available numbered name. Identical rebuilds reuse the existing file. Open the printed path in FigCraft. Export top-level frame IDs 2/24 (Press Box), 61/85 (Scorebook) and 131/150 (Dugout Rail) to 0-glove.png/0-buy.png, 1-glove.png/1-buy.png and 2-glove.png/2-buy.png respectively, in the same directory as review.html. In each pair the first frame is the Glove scene. Rendered frames stay private. For the selected study, open combined.figcraft and export frames 2, 31 and 83 as combined-glove.png, combined-market.png and combined-refill.png respectively beside combined.html. Each ballpark is also editable in the corresponding park-N.vectorcraft file.
 
 ## Fixture and expected observations
 
@@ -34,7 +34,7 @@ Drive a single series through the same seat-relative observe/submit boundary use
 | Netrunner 5727b703 | tabletop/seat.rs uses shared start, capture and guarded seat; strips a hidden-hand diagnostic. game/turns/setup.rs implements opening draws and mulligan. | Reuse the shared seat pattern; verify both views when purchasing from a public market into a private lineup. Baseball chooses when information becomes public. |
 | Mudsong 9630c8c0 | rules seeded-randomness tests check same-seed reproducibility and historical sequence. | Consume the existing shuffle; preserve consumer-specific shuffle triggers. No migration indicated for that path. |
 
-Cuba Libre’s unrelated local art studies were left in place. Source review establishes candidate ownership. Before dependent implementation, refresh exact revisions, migrate affected siblings, run their real checks, merge required PRs and pull main. The owner-accepted governance extension is proposed in [unfolded-tabletop #114](https://github.com/joeloverbeck/unfolded-tabletop/pull/114). This design round opens no extraction.
+Cuba Libre’s unrelated local art studies were left in place. Source review establishes candidate ownership. Before dependent implementation, refresh exact revisions, migrate affected siblings, run their real checks, merge required PRs and pull main. The owner-accepted governance extension was merged and pulled at shared revision `443ffe1` in [unfolded-tabletop #114](https://github.com/joeloverbeck/unfolded-tabletop/pull/114). This design round opens no extraction.
 
 ## To-spec handoff
 
