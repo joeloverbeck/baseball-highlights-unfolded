@@ -26,7 +26,7 @@ The owner approved the following existing faces and gameplay equivalents. In the
 | Boston | ST-034 → ST-033, ST-039 → ST-040 |
 | New York | ST-048 → ST-049, ST-055 → ST-054 |
 
-San Francisco needs a composition correction. Keep one ST-008. Use ST-004’s data and face for the missing ST-003 slot, and keep ST-004 itself. Importing the Workshop deck as dealt would leave an extra ST-008 in that slot. For each team, check all fifteen distinct logical IDs and their resolved donors; check all sixty free agents once each.
+San Francisco needs a composition correction. Keep one ST-008. Use ST-004’s data and face for the missing ST-003 slot, and keep ST-004 itself. Importing the Workshop deck as dealt would leave an extra ST-008 in that slot. For each team, check all fifteen distinct logical IDs and their resolved donors; check all sixty free agents once each. When the importer lands, exercise these same identities and approved donors on its actual roster and Free Agent deck output, including all four team boundaries.
 
 Source: gkrands reported comparing the Russian TTS version on 12 March 2022. The mapping is an attributed community comparison. The local audit confirms the donor assets, deck composition and common back. Independent inspection of the eight missing originals remains open as an artwork follow-up in issue #2. [Workshop discussion](https://steamcommunity.com/sharedfiles/filedetails/?id=1803946195)
 

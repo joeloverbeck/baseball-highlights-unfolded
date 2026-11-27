@@ -4,6 +4,10 @@ An Ubuntu-first native Rust tabletop game in development. Manage a team through 
 
 This repository currently contains the requirements and [first playable specification](docs/specs/two-expert-games.md). The [original-card audit](docs/foundation/content.md#starter-card-proxies) records approved equivalents for eight starter faces. All four original teams can be represented with the available artwork.
 
+## Repository checks
+
+With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` from the repository root. CI runs the same original-set ledger and design restore checks on public inputs.
+
 ## Project documents
 
 - [Game and opponent](docs/foundation/product.md)
