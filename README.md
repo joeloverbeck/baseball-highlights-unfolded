@@ -2,11 +2,19 @@
 
 An Ubuntu-first native Rust tabletop game in development. Manage a team through a competitive series against Codex or Claude Code. Make the lineup, tactical and buying decisions, talk baseball with the opposing manager, and watch the consequences unfold in a 3D ballpark.
 
-This repository currently contains the requirements and [first playable specification](docs/specs/two-expert-games.md). The [original-card audit](docs/foundation/content.md#starter-card-proxies) records approved equivalents for eight starter faces. All four original teams can be represented with the available artwork.
+The first native increment opens the reviewed Expert Buy Round. See the [first playable specification](docs/specs/two-expert-games.md) for the full series work. The [original-card audit](docs/foundation/content.md#starter-card-proxies) records approved equivalents for eight starter faces. All four original teams can be represented with the available artwork.
+
+## Open the reviewed Buy Round
+
+On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from the checkout. The game reads the audited collection from `~/Pictures/Baseball Highlights: 2045 Resources`. Use `-- --assets DIRECTORY` for another copy of that extraction. The game reports any missing or changed required face before opening the table.
+
+In the SF manager seat, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Press Space to finish any card motion. Close and relaunch with the same save to resume a pending demotion.
+
+The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` to start a separate series in a fresh file. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output. NY observes the SF decision from the same save. The increment ends at SF’s demotion.
 
 ## Repository checks
 
-With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` from the repository root. CI runs the same original-set ledger and design restore checks on public inputs.
+Run `cargo test --locked` for the Buy Round checks. With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` from the repository root. CI runs the same original-set ledger and design restore checks on public inputs.
 
 ## Project documents
 
