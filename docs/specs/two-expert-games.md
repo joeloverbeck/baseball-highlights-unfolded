@@ -1,12 +1,12 @@
 # Play two consecutive Expert games against a talking manager
 
-Status: specified; implementation awaits the original-set artwork resolution, the accepted shared governance follow-through and applicable design selections. This session establishes the repository and requirements. Activate implementation separately.
+Status: specified; the owner has accepted the [eight original-set proxies](../foundation/content.md#starter-card-proxies). Implementation awaits the shared governance follow-through and applicable design selections. This session establishes the repository and requirements. Activate implementation separately.
 
 From a normal Ubuntu launch, select an original team and either Codex or Claude Code. Start game one of a legal Expert series, play a complete mini-game, use its actual revenue to conduct the Buy Round, and play game two with the resulting roster and home-field change. Stop at the recorded second result with the series able to continue. Keep one series and one rules engine throughout. All four original teams and all sixty original free agents are the admission set. Enable only base content for this slice.
 
 ## Acceptance through ordinary play
 
-1. Start with shuffled starters, the real six-card market, private six-card hands and optional On Deck. Inspect real card fronts/backs, readable pile thickness, speed, threats and occupied bases from the native camera.
+1. Start with shuffled starters, the real six-card market, private six-card hands and optional On Deck. Verify all four fifteen-card rosters, including ST-003 using ST-004 in San Francisco. Inspect the approved fronts and common back, readable pile thickness, speed, threats and occupied bases from the native camera.
 2. Exercise legal card selection, target choice, PH, Save and tied extra innings using rules-derived cases. Confirm the RB 10–11 sequence independently and preserve hidden information, including simultaneous commitments.
 3. See each revenue contribution and who chooses buy order. Buy, immediately see the refill and decide again. Demote only eligible In Play cards. Verify both 15-card rosters, deck order, score and subsequent draws. Game two must demonstrate the acquisition through actual lineup state and play.
 4. Run the same two-game path with each supported provider. Test the game choices from a seat-limited observation. Talk to the opponent about a named play or purchase, get an in-character reply, mute the chat and keep playing. Confirm that typed messages alone cannot apply moves or expose private state.

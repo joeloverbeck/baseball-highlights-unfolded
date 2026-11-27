@@ -13,7 +13,22 @@ On 2026-11-27 inspection of the printed ID fields, deck instances and relevant s
 | Boston | ST-034, ST-039 | ST-033, ST-040 |
 | New York | ST-048, ST-055 | ST-049, ST-054 |
 
-The 60-card free-agent deck contains FA-061 through FA-120, once each. All 536 catalogued faces exist and use the same present back. The two missing URLs in the extraction report refer to a custom surface and its placeholder. Counts and hashes alone cannot detect a deck assembled with duplicate artwork. The owner will resolve the eight original faces before implementation. Preserve both the original extraction and any later corrections with provenance; verify the corrected four team manifests and free-agent deck against their printed IDs.
+The 60-card free-agent deck contains FA-061 through FA-120, once each. All 536 catalogued faces exist and use the same present back. The two missing URLs in the extraction report refer to a custom surface and its placeholder. Counts and hashes alone cannot detect a deck assembled with duplicate artwork. Preserve the original extraction. Construct each logical team from its fifteen consecutive starter identities, one of each. Use the following eight exceptions when resolving a logical identity to card data and an English face.
+
+### Starter-card proxies
+
+The owner approved the following existing faces and gameplay equivalents. In the ledger, `proxy:ST-nnn` identifies the donor of the printed stats and displayed face. The blank Workshop ID and instance count on the recipient mean its exact scan is absent. Keep its own ST identity in the roster, save, logs and inspection UI. If exact English art becomes available, verify it and replace the proxy for that identity. Gameplay implementation and verification are still pending for all eight.
+
+| Team | Logical identity → approved donor |
+|---|---|
+| San Francisco | ST-003 → ST-004, ST-009 → ST-010 |
+| Los Angeles | ST-019 → ST-018, ST-024 → ST-025 |
+| Boston | ST-034 → ST-033, ST-039 → ST-040 |
+| New York | ST-048 → ST-049, ST-055 → ST-054 |
+
+San Francisco needs a composition correction. Keep one ST-008. Use ST-004’s data and face for the missing ST-003 slot, and keep ST-004 itself. Importing the Workshop deck as dealt would leave an extra ST-008 in that slot. For each team, check all fifteen distinct logical IDs and their resolved donors; check all sixty free agents once each.
+
+Source: gkrands reported comparing the Russian TTS version on 12 March 2022. The mapping is an attributed community comparison. The local audit confirms the donor assets, deck composition and common back. Independent inspection of the eight missing originals remains open as an artwork follow-up in issue #2. [Workshop discussion](https://steamcommunity.com/sharedfiles/filedetails/?id=1803946195)
 
 ## Remaining content
 
