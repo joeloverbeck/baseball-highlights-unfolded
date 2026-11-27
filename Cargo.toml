@@ -1,0 +1,39 @@
+[package]
+name = "baseball-highlights-unfolded"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100.0"
+publish = false
+license = "MIT"
+
+[features]
+default = ["tabletop"]
+tabletop = ["dep:bevy", "dep:unfolded-tabletop"]
+
+[dependencies]
+getrandom = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
+unfolded-assets = { git = "https://github.com/joeloverbeck/unfolded-tabletop", rev = "1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a" }
+unfolded-random = { git = "https://github.com/joeloverbeck/unfolded-tabletop", rev = "1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a" }
+unfolded-record-replacement = { git = "https://github.com/joeloverbeck/unfolded-tabletop", rev = "1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a" }
+unfolded-tabletop = { git = "https://github.com/joeloverbeck/unfolded-tabletop", rev = "1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a", features = ["seat"], optional = true }
+bevy = { version = "=0.20.0", optional = true, default-features = false, features = [
+    "std", "3d_bevy_render", "ui_bevy_render", "bevy_winit",
+    "bevy_picking", "ui_picking", "default_font", "x11",
+] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "baseball-highlights-unfolded"
+path = "src/main.rs"
+required-features = ["tabletop"]
+
+[profile.dev]
+debug = 0
+
+[patch.crates-io]
+wgpu-hal = { git = "https://github.com/joeloverbeck/unfolded-tabletop", rev = "1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a" }
