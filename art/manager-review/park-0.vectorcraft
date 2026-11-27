@@ -1,0 +1,3040 @@
+{
+  "format": "vectorcraft",
+  "version": 4,
+  "generator": "VectorCraft 0.24.1",
+  "pdfCompatible": true,
+  "pdf": {
+    "mime": "application/pdf",
+    "data": "JVBERi0xLjcKJYCAgIAKCjEgMCBvYmoKPDwvVHlwZS9QYWdlcy9Db3VudCAxL0tpZHNbMyAwIFJdPj4KZW5kb2JqCjIgMCBvYmoKPDwvUHJvY1NldFsvUERGL1RleHQvSW1hZ2VDL0ltYWdlQl0+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUmVzb3VyY2VzIDIgMCBSL01lZGlhQm94WzAgMCA3MjAgNDIwXS9CbGVlZEJveFswIDAgNzIwIDQyMF0vVHJpbUJveFswIDAgNzIwIDQyMF0vUGFyZW50IDEgMCBSL0NvbnRlbnRzIDQgMCBSPj4KZW5kb2JqCjQgMCBvYmoKPDwvTGVuZ3RoIDExNTQvRmlsdGVyL0ZsYXRlRGVjb2RlPj4Kc3RyZWFtCnic1VjNciQ3CL77KXgBU/wJ0BPknPgRXJXkMD5sLvv6KVB3z8xW1vaWpw8pH0ZCjfj4QCD5GzAQEDzXjwnB6xsQ0qCZpFOBkJ0iTaWGw9MlBvzzVyu9QUj9Xvq3tC9w/SW4PP399OfT70/f/tvIJJ5OCYSiQ6Zx2ZC2xlY21AnUJ7zBs6MKcDD6hAuIBuZUVXgWxZzuHmApyOTut8KQW83XY8v3oam0qwaEFlZk1Gi5n/DHb2cje3mHtIqLNFPZtI0adrx+5IxQHTgMF7CJmfDMgQMsCVm2ScjNh2cw9HUcLw9JooG1eyJz4TDG7EA8MyOTVsysVnt0Iww2tF3xBH4eD+sh6cOMI4CTUbWBKeZoYIbBYOHIpmrbPCjRdP/+BJoeiOcx6VRJWwYMhzWggdkAGL1C6A4WVkXT80YWJGix651B1ONxPSShRNEmcAbGaFyBqZBIuSW5IMd17tNx8P79CTw9EM9jEkommgNPwukNaGIK1DFPsCDk3CY+qWK0fXkGNY9A8pCk0YEmwNMqFheQwZhUp14IM1Z39UTulnuVeWVx7nonMHQCrp/z1QfUo8AM64QqsBxuQXHPl9flDTgTo6tkzbmOt2ZdM2xMnFnFYM295sf3n+UpV/pW0FKn8ChoUcnNTZPA93Mg/ZyiOmQFqgPWzNzG846iZGQHzokkjSeQRtkfA6s2DsFphW/NXRPT9u8/S5E0Lz47ZllJXtB0RU9+AOQYdYYEfQFKnNXuwRmnrII9GCk7gw6Zq6L4rvdZYL9AFJOVASHF2ZELwxgFLBldijKzgWKF6xA5j3Jn0zqDLxbGmCA8ULpyJ+GY3c2IUSu3HEwnGmndsK/CMROFd80zKNNZl3oRx9GVMx3NGjFVSAuX1tKNZCSh565zCmHDMcd6m3S1moJSXQ3YqC9PEhhcYdwEwxX50DiDqDDU6M7C2ZASWTpcTmj9WDLhrpt5Ixs20HXXO4WsyTi7SlVuaaVxF1+utwoYO67795oPSeTt68+i+YVyLuoY2Rnu9TxQzj7+ASJVnfqiQowU3WeuslQU2fUeGz9rYGlICTIVK3y1INUT4QKmA6fcLZXO11oKY8J3mIRuwF6zt6tT4DL76dgLl3faxMdm4q53mfUjXUnQDzcdu0yH1rG9Xfq4Tc0j+a5U50qCFfmhGL7fMXpLa2vqjmKbu70QG71XjfcZ/sh09UGzzZ+33T2Z0WYkZgV19/ZwPjrkd7pfg2FGlVg7jC0AO4xqzsMPGEd4Fow73a/B2GhdwV6hEOW2soViz4Nesj6ctzpfLQGDQIn7pkkgc6L2g0GHoUWwVcVctueqgwOHSPqSx51OrL1et5Gg14m+0VGq1Kq1fvkdNlo+7nQ2XK8f/GvvesFv77g83Q5ceWfVWyqz39ZYBk4eoaCDMXokPFGWhz0qHxMlTWJfizvN2PcsPweICVp/faNnx549er21t9bsTvPA+b6/y12uIE7qBlNDdwkb3A+Hqir/S6dffuI0919d9rsy6yhYtVllbG1H2+mwq7zGS17b/gu3JXRDCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PC9UaXRsZShQcmVzcyBCb3gpL0NyZWF0b3IoVmVjdG9yQ3JhZnQpL1Byb2R1Y2VyKFZlY3RvckNyYWZ0KS9Nb2REYXRlKEQ6MjAyNjExMjcyMTIwMjVaKS9DcmVhdGlvbkRhdGUoRDoyMDI2MTEyNzIxMjAyNVopPj4KZW5kb2JqCjYgMCBvYmoKPDwvTGVuZ3RoIDExMjcvVHlwZS9NZXRhZGF0YS9TdWJ0eXBlL1hNTD4+CnN0cmVhbQo8P3hwYWNrZXQgYmVnaW49Iu+7vyIgaWQ9Ilc1TTBNcENlaGlIenJlU3pOVGN6a2M5ZCI/Pjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9InhtcC13cml0ZXIiPjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIiAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiAgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iICB4bWxuczp4bXBUUGc9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC90L3BnLyIgIHhtbG5zOnBkZj0iaHR0cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyIgPjxkYzp0aXRsZT48cmRmOkFsdD48cmRmOmxpIHhtbDpsYW5nPSJ4LWRlZmF1bHQiPlByZXNzIEJveDwvcmRmOmxpPjwvcmRmOkFsdD48L2RjOnRpdGxlPjx4bXA6Q3JlYXRvclRvb2w+VmVjdG9yQ3JhZnQ8L3htcDpDcmVhdG9yVG9vbD48cGRmOlByb2R1Y2VyPlZlY3RvckNyYWZ0PC9wZGY6UHJvZHVjZXI+PGRjOmxhbmd1YWdlPjxyZGY6QmFnPjxyZGY6bGk+ZW4tVVM8L3JkZjpsaT48L3JkZjpCYWc+PC9kYzpsYW5ndWFnZT48eG1wOk1vZGlmeURhdGU+MjAyNi0xMS0yN1QyMToyMDoyNSswMDowMDwveG1wOk1vZGlmeURhdGU+PHhtcDpDcmVhdGVEYXRlPjIwMjYtMTEtMjdUMjE6MjA6MjUrMDA6MDA8L3htcDpDcmVhdGVEYXRlPjx4bXBUUGc6TlBhZ2VzPjE8L3htcFRQZzpOUGFnZXM+PGRjOmZvcm1hdD5hcHBsaWNhdGlvbi9wZGY8L2RjOmZvcm1hdD48eG1wTU06SW5zdGFuY2VJRD43RG9KaC9TSklsQi9tL1grQVlYREt3PT08L3htcE1NOkluc3RhbmNlSUQ+PHhtcE1NOkRvY3VtZW50SUQ+N0RvSmgvU0pJbEIvbS9YK0FZWERLdz09PC94bXBNTTpEb2N1bWVudElEPjx4bXBNTTpSZW5kaXRpb25DbGFzcz5kZWZhdWx0PC94bXBNTTpSZW5kaXRpb25DbGFzcz48cGRmOlBERlZlcnNpb24+MS43PC9wZGY6UERGVmVyc2lvbj48L3JkZjpEZXNjcmlwdGlvbj48L3JkZjpSREY+PC94OnhtcG1ldGE+PD94cGFja2V0IGVuZD0iciI/PgplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwvVmlld2VyUHJlZmVyZW5jZXM8PC9EaXNwbGF5RG9jVGl0bGUgdHJ1ZT4+L1R5cGUvQ2F0YWxvZy9QYWdlcyAxIDAgUi9NZXRhZGF0YSA2IDAgUi9MYW5nKGVuLVVTKT4+CmVuZG9iagp4cmVmCjAgOAowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDAwMTYgMDAwMDAgbg0KMDAwMDAwMDA2NyAwMDAwMCBuDQowMDAwMDAwMTIwIDAwMDAwIG4NCjAwMDAwMDAyNTkgMDAwMDAgbg0KMDAwMDAwMTQ4MiAwMDAwMCBuDQowMDAwMDAxNjIxIDAwMDAwIG4NCjAwMDAwMDI4MjQgMDAwMDAgbg0KdHJhaWxlcgo8PC9TaXplIDgvUm9vdCA3IDAgUi9JbmZvIDUgMCBSL0lEWyg3RG9KaC9TSklsQi9tL1grQVlYREt3PT0pKDdEb0poL1NKSWxCL20vWCtBWVhES3c9PSldPj4Kc3RhcnR4cmVmCjI5MzkKJSVFT0Y="
+  },
+  "document": {
+    "version": 3,
+    "title": "Press Box",
+    "units": "Pixels",
+    "rulers": "artboard",
+    "color_mode": "Rgb",
+    "artboards": [
+      {
+        "id": 1,
+        "name": "Artboard 1",
+        "rect": {
+          "x0": 0.0,
+          "y0": 0.0,
+          "x1": 720.0,
+          "y1": 420.0
+        },
+        "show_center_mark": false,
+        "show_cross_hairs": false
+      }
+    ],
+    "layers": [
+      {
+        "id": 1,
+        "name": "Layer 1",
+        "kind": {
+          "type": "layer",
+          "color": {
+            "Preset": 0
+          },
+          "template": false,
+          "printable": true,
+          "children": [
+            {
+              "id": 2,
+              "name": "Ballpark ground",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.050980393,
+                        "g": 0.16078432,
+                        "b": 0.15686275
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 0.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            720.0,
+                            0.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            720.0,
+                            420.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            0.0,
+                            420.0
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                },
+                "live": {
+                  "shape": "rectangle",
+                  "w": 720.0,
+                  "h": 420.0,
+                  "radii": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "xf": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0
+                  ]
+                }
+              }
+            },
+            {
+              "id": 3,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09019608,
+                        "g": 0.23529412,
+                        "b": 0.20784314
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            -6.32,
+                            171.69
+                          ],
+                          "out": [
+                            237.89333333333332,
+                            -23.896666666666647
+                          ]
+                        },
+                        {
+                          "p": [
+                            726.32,
+                            171.69
+                          ],
+                          "in": [
+                            482.1066666666667,
+                            -23.896666666666647
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 4,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09803922,
+                        "g": 0.28235295,
+                        "b": 0.2509804
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            -0.36,
+                            174.9
+                          ],
+                          "out": [
+                            239.88,
+                            -17.5
+                          ]
+                        },
+                        {
+                          "p": [
+                            720.36,
+                            174.9
+                          ],
+                          "in": [
+                            480.12,
+                            -17.5
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 5,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09019608,
+                        "g": 0.23529412,
+                        "b": 0.20784314
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            5.6,
+                            178.11
+                          ],
+                          "out": [
+                            241.86666666666665,
+                            -11.103333333333296
+                          ]
+                        },
+                        {
+                          "p": [
+                            714.4,
+                            178.11
+                          ],
+                          "in": [
+                            478.1333333333333,
+                            -11.103333333333296
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 6,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09803922,
+                        "g": 0.28235295,
+                        "b": 0.2509804
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            11.57,
+                            181.33
+                          ],
+                          "out": [
+                            243.85666666666665,
+                            -4.7099999999999795
+                          ]
+                        },
+                        {
+                          "p": [
+                            708.43,
+                            181.33
+                          ],
+                          "in": [
+                            476.1433333333333,
+                            -4.7099999999999795
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 7,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09019608,
+                        "g": 0.23529412,
+                        "b": 0.20784314
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            17.53,
+                            184.54
+                          ],
+                          "out": [
+                            245.84333333333333,
+                            1.6866666666666958
+                          ]
+                        },
+                        {
+                          "p": [
+                            702.47,
+                            184.54
+                          ],
+                          "in": [
+                            474.1566666666667,
+                            1.6866666666666958
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 8,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09803922,
+                        "g": 0.28235295,
+                        "b": 0.2509804
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            23.49,
+                            187.75
+                          ],
+                          "out": [
+                            247.82999999999998,
+                            8.083333333333343
+                          ]
+                        },
+                        {
+                          "p": [
+                            696.51,
+                            187.75
+                          ],
+                          "in": [
+                            472.17,
+                            8.083333333333343
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 9,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09019608,
+                        "g": 0.23529412,
+                        "b": 0.20784314
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            29.46,
+                            190.96
+                          ],
+                          "out": [
+                            249.82000000000002,
+                            14.47999999999999
+                          ]
+                        },
+                        {
+                          "p": [
+                            690.54,
+                            190.96
+                          ],
+                          "in": [
+                            470.18,
+                            14.47999999999999
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 10,
+              "name": "Grandstand terrace",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09803922,
+                        "g": 0.28235295,
+                        "b": 0.2509804
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.32156864,
+                        "g": 0.4745098,
+                        "b": 0.41568628
+                      }
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            35.42,
+                            194.17
+                          ],
+                          "out": [
+                            251.80666666666667,
+                            20.876666666666665
+                          ]
+                        },
+                        {
+                          "p": [
+                            684.58,
+                            194.17
+                          ],
+                          "in": [
+                            468.1933333333334,
+                            20.876666666666665
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 11,
+              "name": "Outfield wall",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.6666667,
+                        "g": 0.45490196,
+                        "b": 0.31764707
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.80784315,
+                        "g": 0.8392157,
+                        "b": 0.7294118
+                      }
+                    },
+                    "width": 2.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            60.05,
+                            188.73
+                          ],
+                          "out": [
+                            260.01666666666665,
+                            38.69
+                          ]
+                        },
+                        {
+                          "p": [
+                            659.95,
+                            188.73
+                          ],
+                          "in": [
+                            459.98333333333335,
+                            38.69
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 12,
+              "name": "Warning track / grass",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.19607843,
+                        "g": 0.4117647,
+                        "b": 0.32156864
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            81.16,
+                            189.02
+                          ],
+                          "out": [
+                            267.05333333333334,
+                            55.66
+                          ]
+                        },
+                        {
+                          "p": [
+                            638.84,
+                            189.02
+                          ],
+                          "in": [
+                            452.9466666666667,
+                            55.66
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 13,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.23921569,
+                        "g": 0.45882353,
+                        "b": 0.34901962
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            86.74,
+                            192.62
+                          ],
+                          "out": [
+                            268.9133333333333,
+                            61.92666666666668
+                          ]
+                        },
+                        {
+                          "p": [
+                            633.26,
+                            192.62
+                          ],
+                          "in": [
+                            451.0866666666667,
+                            61.92666666666668
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 14,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.19607843,
+                        "g": 0.4117647,
+                        "b": 0.32156864
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            104.26,
+                            203.93
+                          ],
+                          "out": [
+                            274.75333333333333,
+                            81.62333333333333
+                          ]
+                        },
+                        {
+                          "p": [
+                            615.74,
+                            203.93
+                          ],
+                          "in": [
+                            445.24666666666667,
+                            81.62333333333333
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 15,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.23921569,
+                        "g": 0.45882353,
+                        "b": 0.34901962
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            121.79,
+                            215.25
+                          ],
+                          "out": [
+                            280.59666666666664,
+                            101.31666666666666
+                          ]
+                        },
+                        {
+                          "p": [
+                            598.21,
+                            215.25
+                          ],
+                          "in": [
+                            439.40333333333336,
+                            101.31666666666666
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 16,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.19607843,
+                        "g": 0.4117647,
+                        "b": 0.32156864
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            139.32,
+                            226.56
+                          ],
+                          "out": [
+                            286.44,
+                            121.01333333333335
+                          ]
+                        },
+                        {
+                          "p": [
+                            580.68,
+                            226.56
+                          ],
+                          "in": [
+                            433.56,
+                            121.01333333333335
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 17,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.23921569,
+                        "g": 0.45882353,
+                        "b": 0.34901962
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            156.85,
+                            237.87
+                          ],
+                          "out": [
+                            292.2833333333333,
+                            140.71
+                          ]
+                        },
+                        {
+                          "p": [
+                            563.15,
+                            237.87
+                          ],
+                          "in": [
+                            427.7166666666667,
+                            140.71
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 18,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.19607843,
+                        "g": 0.4117647,
+                        "b": 0.32156864
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            174.37,
+                            249.18
+                          ],
+                          "out": [
+                            298.12333333333333,
+                            160.40666666666667
+                          ]
+                        },
+                        {
+                          "p": [
+                            545.63,
+                            249.18
+                          ],
+                          "in": [
+                            421.87666666666667,
+                            160.40666666666667
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 19,
+              "name": "Mown outfield band",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.23921569,
+                        "g": 0.45882353,
+                        "b": 0.34901962
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            191.9,
+                            260.5
+                          ],
+                          "out": [
+                            303.9666666666667,
+                            180.10000000000002
+                          ]
+                        },
+                        {
+                          "p": [
+                            528.1,
+                            260.5
+                          ],
+                          "in": [
+                            416.03333333333336,
+                            180.10000000000002
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 20,
+              "name": "Infield dirt",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.6666667,
+                        "g": 0.45490196,
+                        "b": 0.31764707
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            236.78,
+                            280.61
+                          ],
+                          "out": [
+                            318.9266666666667,
+                            225.66333333333336
+                          ]
+                        },
+                        {
+                          "p": [
+                            483.22,
+                            280.61
+                          ],
+                          "in": [
+                            401.0733333333334,
+                            225.66333333333336
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 21,
+              "name": "Infield grass",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.19607843,
+                        "g": 0.4117647,
+                        "b": 0.32156864
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            349.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            284.08,
+                            293.8
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            235.4
+                          ]
+                        },
+                        {
+                          "p": [
+                            435.92,
+                            293.8
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 22,
+              "name": "Foul lines",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "none"
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.80784315,
+                        "g": 0.8392157,
+                        "b": 0.7294118
+                      }
+                    },
+                    "width": 1.8
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            90.64,
+                            161.8
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            629.36,
+                            161.8
+                          ]
+                        }
+                      ],
+                      "closed": false
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 23,
+              "name": "Base paths",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "none"
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.80784315,
+                        "g": 0.8392157,
+                        "b": 0.7294118
+                      }
+                    },
+                    "width": 1.7
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            360.0,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            446.32,
+                            302.6
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            236.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            273.68,
+                            302.6
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 24,
+              "name": "Base",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.9882353,
+                        "g": 0.9607843,
+                        "b": 0.85490197
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            353.76,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            364.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            366.24,
+                            369.0
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            373.8
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 25,
+              "name": "Base",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.9882353,
+                        "g": 0.9607843,
+                        "b": 0.85490197
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            267.44,
+                            302.6
+                          ]
+                        },
+                        {
+                          "p": [
+                            273.68,
+                            297.8
+                          ]
+                        },
+                        {
+                          "p": [
+                            279.92,
+                            302.6
+                          ]
+                        },
+                        {
+                          "p": [
+                            273.68,
+                            307.4
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 26,
+              "name": "Base",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.9882353,
+                        "g": 0.9607843,
+                        "b": 0.85490197
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            440.08,
+                            302.6
+                          ]
+                        },
+                        {
+                          "p": [
+                            446.32,
+                            297.8
+                          ]
+                        },
+                        {
+                          "p": [
+                            452.56,
+                            302.6
+                          ]
+                        },
+                        {
+                          "p": [
+                            446.32,
+                            307.4
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 27,
+              "name": "Base",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.9882353,
+                        "g": 0.9607843,
+                        "b": 0.85490197
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            353.76,
+                            236.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            231.4
+                          ]
+                        },
+                        {
+                          "p": [
+                            366.24,
+                            236.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            241.0
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 28,
+              "name": "Mound",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.6666667,
+                        "g": 0.45490196,
+                        "b": 0.31764707
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 1.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            350.0,
+                            301.0
+                          ],
+                          "in": [
+                            350.0,
+                            302.65685424949237
+                          ],
+                          "out": [
+                            350.0,
+                            299.34314575050763
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            298.0
+                          ],
+                          "in": [
+                            354.47715250169205,
+                            298.0
+                          ],
+                          "out": [
+                            365.52284749830795,
+                            298.0
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            370.0,
+                            301.0
+                          ],
+                          "in": [
+                            370.0,
+                            299.34314575050763
+                          ],
+                          "out": [
+                            370.0,
+                            302.65685424949237
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            304.0
+                          ],
+                          "in": [
+                            365.52284749830795,
+                            304.0
+                          ],
+                          "out": [
+                            354.47715250169205,
+                            304.0
+                          ],
+                          "kind": "Smooth"
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                },
+                "live": {
+                  "shape": "ellipse",
+                  "w": 20.0,
+                  "h": 6.0,
+                  "pie": [
+                    0.0,
+                    360.0
+                  ],
+                  "xf": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    350.0,
+                    298.0
+                  ]
+                }
+              }
+            },
+            {
+              "id": 29,
+              "name": "Average runner ring",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.09803922,
+                        "g": 0.2901961,
+                        "b": 0.4392157
+                      }
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 0.98039216,
+                        "g": 0.90588236,
+                        "b": 0.6627451
+                      }
+                    },
+                    "width": 3.0
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            345.0,
+                            234.2
+                          ],
+                          "in": [
+                            345.0,
+                            242.4842712474619
+                          ],
+                          "out": [
+                            345.0,
+                            225.9157287525381
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            219.2
+                          ],
+                          "in": [
+                            351.7157287525381,
+                            219.2
+                          ],
+                          "out": [
+                            368.2842712474619,
+                            219.2
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            375.0,
+                            234.2
+                          ],
+                          "in": [
+                            375.0,
+                            225.9157287525381
+                          ],
+                          "out": [
+                            375.0,
+                            242.4842712474619
+                          ],
+                          "kind": "Smooth"
+                        },
+                        {
+                          "p": [
+                            360.0,
+                            249.2
+                          ],
+                          "in": [
+                            368.2842712474619,
+                            249.2
+                          ],
+                          "out": [
+                            351.7157287525381,
+                            249.2
+                          ],
+                          "kind": "Smooth"
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                },
+                "live": {
+                  "shape": "ellipse",
+                  "w": 30.0,
+                  "h": 30.0,
+                  "pie": [
+                    0.0,
+                    360.0
+                  ],
+                  "xf": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    345.0,
+                    219.2
+                  ]
+                }
+              }
+            },
+            {
+              "id": 30,
+              "name": "Average speed double bar",
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "none"
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "solid",
+                      "color": {
+                        "model": "rgb",
+                        "r": 1.0,
+                        "g": 1.0,
+                        "b": 1.0
+                      }
+                    },
+                    "width": 2.8
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            355.0,
+                            229.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            355.0,
+                            240.2
+                          ]
+                        }
+                      ],
+                      "closed": false
+                    },
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            364.0,
+                            229.2
+                          ]
+                        },
+                        {
+                          "p": [
+                            364.0,
+                            240.2
+                          ]
+                        }
+                      ],
+                      "closed": false
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "swatches": [
+      {
+        "name": "[None]",
+        "paint": {
+          "type": "none"
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "White",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Black",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Red",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.92941177,
+            "g": 0.10980392,
+            "b": 0.14117648
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Orange Red",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.94509804,
+            "g": 0.3529412,
+            "b": 0.14117648
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Orange",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.96862745,
+            "g": 0.5764706,
+            "b": 0.11764706
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Amber",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.9843137,
+            "g": 0.6901961,
+            "b": 0.23137255
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Yellow",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.9882353,
+            "g": 0.93333334,
+            "b": 0.12941177
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Yellow Green",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.8509804,
+            "g": 0.8784314,
+            "b": 0.12941177
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Lime",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.54901963,
+            "g": 0.7764706,
+            "b": 0.24705882
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Green",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.22352941,
+            "g": 0.70980394,
+            "b": 0.2901961
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Emerald",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.57254905,
+            "b": 0.27058825
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Teal",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.40784314,
+            "b": 0.21568628
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Aqua",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.13333334,
+            "g": 0.70980394,
+            "b": 0.4509804
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Cyan Green",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.6627451,
+            "b": 0.6156863
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Cyan",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.16078432,
+            "g": 0.67058825,
+            "b": 0.8862745
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Azure",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.0,
+            "g": 0.44313726,
+            "b": 0.7372549
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Blue",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.18039216,
+            "g": 0.19215687,
+            "b": 0.57254905
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Indigo",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.105882354,
+            "g": 0.078431375,
+            "b": 0.39215687
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Violet",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.4,
+            "g": 0.1764706,
+            "b": 0.5686275
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Purple",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.5764706,
+            "g": 0.15294118,
+            "b": 0.56078434
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Magenta",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.61960787,
+            "g": 0.0,
+            "b": 0.3647059
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Rose",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.83137256,
+            "g": 0.078431375,
+            "b": 0.3529412
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Pink",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.92941177,
+            "g": 0.11764706,
+            "b": 0.4745098
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Brown",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.78039217,
+            "g": 0.69803923,
+            "b": 0.6
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Tan",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.6,
+            "g": 0.5254902,
+            "b": 0.45882353
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Coffee",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.4509804,
+            "g": 0.3882353,
+            "b": 0.34117648
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Chocolate",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.3254902,
+            "g": 0.2784314,
+            "b": 0.25490198
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Sand",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.7764706,
+            "g": 0.6117647,
+            "b": 0.42745098
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Copper",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.6509804,
+            "g": 0.4862745,
+            "b": 0.32156864
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Rust",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.54901963,
+            "g": 0.38431373,
+            "b": 0.22352941
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Walnut",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.45882353,
+            "g": 0.29803923,
+            "b": 0.14117648
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Espresso",
+        "paint": {
+          "type": "solid",
+          "color": {
+            "model": "rgb",
+            "r": 0.3764706,
+            "g": 0.21960784,
+            "b": 0.07450981
+          }
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "White, Black",
+        "paint": {
+          "type": "gradient",
+          "gradient": {
+            "kind": "Linear",
+            "stops": [
+              {
+                "offset": 0.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 1.0,
+                  "g": 1.0,
+                  "b": 1.0
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              },
+              {
+                "offset": 1.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.0,
+                  "g": 0.0,
+                  "b": 0.0
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              }
+            ]
+          },
+          "angle": 0.0
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Radial White, Black",
+        "paint": {
+          "type": "gradient",
+          "gradient": {
+            "kind": "Radial",
+            "stops": [
+              {
+                "offset": 0.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 1.0,
+                  "g": 1.0,
+                  "b": 1.0
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              },
+              {
+                "offset": 1.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.0,
+                  "g": 0.0,
+                  "b": 0.0
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              }
+            ]
+          },
+          "angle": 0.0
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Sunset",
+        "paint": {
+          "type": "gradient",
+          "gradient": {
+            "kind": "Linear",
+            "stops": [
+              {
+                "offset": 0.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.9843137,
+                  "g": 0.6901961,
+                  "b": 0.23137255
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              },
+              {
+                "offset": 1.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.83137256,
+                  "g": 0.078431375,
+                  "b": 0.3529412
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              }
+            ]
+          },
+          "angle": 0.0
+        },
+        "global": false,
+        "spot": false
+      },
+      {
+        "name": "Ocean",
+        "paint": {
+          "type": "gradient",
+          "gradient": {
+            "kind": "Linear",
+            "stops": [
+              {
+                "offset": 0.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.16078432,
+                  "g": 0.67058825,
+                  "b": 0.8862745
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              },
+              {
+                "offset": 1.0,
+                "color": {
+                  "model": "rgb",
+                  "r": 0.18039216,
+                  "g": 0.19215687,
+                  "b": 0.57254905
+                },
+                "opacity": 1.0,
+                "midpoint": 0.5
+              }
+            ]
+          },
+          "angle": 0.0
+        },
+        "global": false,
+        "spot": false
+      }
+    ],
+    "swatch_groups": [
+      {
+        "name": "Grays",
+        "swatches": [
+          {
+            "name": "K=90",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.9
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=80",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.8
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=70",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.7
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=60",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.6
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=50",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.5
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=40",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.4
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=30",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.3
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=20",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.2
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "K=10",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "gray",
+                "k": 0.1
+              }
+            },
+            "global": false,
+            "spot": false
+          }
+        ]
+      },
+      {
+        "name": "Brights",
+        "swatches": [
+          {
+            "name": "Bright Red",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.11372549,
+                "b": 0.14509805
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "Bright Yellow",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.9019608,
+                "b": 0.0
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "Bright Green",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.9019608,
+                "b": 0.4627451
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "Bright Blue",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.16078432,
+                "g": 0.4745098,
+                "b": 1.0
+              }
+            },
+            "global": false,
+            "spot": false
+          },
+          {
+            "name": "Bright Violet",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.8352941,
+                "g": 0.0,
+                "b": 0.9764706
+              }
+            },
+            "global": false,
+            "spot": false
+          }
+        ]
+      }
+    ],
+    "graphic_styles": [
+      {
+        "name": "Default Graphic Style",
+        "appearance": {
+          "items": [
+            {
+              "kind": "fill",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 1.0,
+                  "g": 1.0,
+                  "b": 1.0
+                }
+              }
+            },
+            {
+              "kind": "stroke",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.0,
+                  "g": 0.0,
+                  "b": 0.0
+                }
+              },
+              "width": 1.0
+            }
+          ]
+        },
+        "id": 1,
+        "unit_box": true
+      },
+      {
+        "name": "Black Outline",
+        "appearance": {
+          "items": [
+            {
+              "kind": "fill",
+              "paint": {
+                "type": "none"
+              }
+            },
+            {
+              "kind": "stroke",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.0,
+                  "g": 0.0,
+                  "b": 0.0
+                }
+              },
+              "width": 1.0
+            }
+          ]
+        },
+        "id": 2,
+        "unit_box": true
+      },
+      {
+        "name": "Heavy Ink",
+        "appearance": {
+          "items": [
+            {
+              "kind": "fill",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.105882354,
+                  "g": 0.078431375,
+                  "b": 0.39215687
+                }
+              }
+            },
+            {
+              "kind": "stroke",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.0,
+                  "g": 0.0,
+                  "b": 0.0
+                }
+              },
+              "width": 4.0
+            }
+          ]
+        },
+        "id": 3,
+        "unit_box": true
+      },
+      {
+        "name": "Sunshine",
+        "appearance": {
+          "items": [
+            {
+              "kind": "fill",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.9843137,
+                  "g": 0.6901961,
+                  "b": 0.23137255
+                }
+              }
+            },
+            {
+              "kind": "stroke",
+              "paint": {
+                "type": "solid",
+                "color": {
+                  "model": "rgb",
+                  "r": 0.94509804,
+                  "g": 0.3529412,
+                  "b": 0.14117648
+                }
+              },
+              "width": 2.0
+            }
+          ]
+        },
+        "id": 4,
+        "unit_box": true
+      }
+    ],
+    "symbols": [],
+    "guides": [],
+    "grid": {
+      "spacing": 72.0,
+      "subdivisions": 8
+    },
+    "raster_effects_ppi": 72.0,
+    "images": {},
+    "next_id": 31,
+    "metadata": {
+      "author": "",
+      "authorTitle": "",
+      "description": "",
+      "keywords": [],
+      "rating": 0,
+      "copyrightStatus": "unknown",
+      "copyrightNotice": "",
+      "copyrightUrl": "",
+      "created": 1795814425,
+      "modified": null
+    }
+  },
+  "images": {}
+}

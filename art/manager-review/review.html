@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baseball Highlights · Manager decision studies</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#161b20;color:#f7f3e7;font:16px system-ui,sans-serif}header,footer,main{max-width:1280px;margin:auto}header,footer{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 14px}header{justify-content:space-between}h1{font-size:17px;margin:0}button,select{font:inherit;color:inherit;background:#25313c;border:1px solid #64717b;border-radius:5px;padding:7px 12px;cursor:pointer}button[aria-pressed=true]{background:#e8d69f;color:#19232b;border-color:#e8d69f}button:focus-visible,select:focus-visible{outline:3px solid #fc9}#stage{position:relative;margin:auto;width:min(100%, calc((100vh - 108px) * 1.6));min-width:min(100%,640px)}#scene{width:100%;display:block}button.hit{position:absolute;opacity:0;border-radius:0}button.hit:focus-visible,button.hit:hover{opacity:1;background:transparent;outline:3px solid #fff;outline-offset:-3px}footer{justify-content:center}#detail{border:1px solid #85909a;background:#18232d;color:#fff;width:min(790px,95vw);border-radius:8px}#detail::backdrop{background:#0009}#detail h2{margin:3px 0 8px}#detail p{line-height:1.6}#choices{display:flex;gap:10px;flex-wrap:wrap}#choices button{display:flex;gap:4px;align-items:center;flex-direction:column}#choices img{width:70px}#close{float:right}#detail:focus{outline:none}.row{display:flex;gap:6px;flex-wrap:wrap}small{color:#c3d4de}
+</style>
+<header><h1>Baseball Highlights · Design review</h1><div class="row" id="variants" aria-label="Design direction"></div></header>
+<main><div id="stage"><img id="scene" alt=""><div id="targets"></div></div></main>
+<footer><button id="buy">Game 1 · Buy Round</button><button id="glove">Game 2 · Glove</button><small>Choose a highlighted action on the study.</small></footer>
+<dialog id="detail"><button id="close" aria-label="Return to study">Close</button><h2 id="title"></h2><p id="desc"></p><div id="choices"></div></dialog>
+<script>
+const directions=['Press Box','Scorebook','Dugout Rail'], market=[
+[876,545,335,48],[746,586,475,48],[729,609,482,48]],
+defense=[[[800,363,410,48],[800,494,410,48]],[[41,587,340,48],[41,660,340,48]],[[38,642,552,48],[630,642,612,48]]];
+const url=new URL(location.href);let variant=Number(url.searchParams.get('variant')||0),phase=url.searchParams.get('scene')==='glove'?'glove':'buy';
+if(!Number.isInteger(variant)||variant<0||variant>2)variant=0;
+const $=id=>document.getElementById(id);
+function button(text,fn){const b=document.createElement('button');b.textContent=text;b.onclick=fn;return b}
+function render(){
+ url.searchParams.set('variant',variant);url.searchParams.set('scene',phase);history.replaceState(null,'',url);
+ $('scene').src=variant+'-'+phase+'.png';$('scene').alt=directions[variant]+(phase==='buy'?' Buy Round. SF has six revenue. Frankie Foxx costs four.':' Glove. NY leads two to one with an average runner on second. Maris threatens a single and home run.');
+ for(const [i,b] of [...$('variants').children].entries())b.setAttribute('aria-pressed',variant===i);
+ for(const s of ['buy','glove'])$(s).setAttribute('aria-pressed',phase===s);
+ $('targets').replaceChildren();(phase==='buy'?[market[variant]]:defense[variant]).forEach(([x,y,w,h],i)=>{
+ const b=button('',()=>phase==='buy'?sign():resolveHit(i));b.className='hit';b.setAttribute('aria-label',phase==='buy'?'Sign Frankie Foxx':i?'Cancel home run':'Cancel single');
+ Object.assign(b.style,{left:x/12.8+'%',top:y/8+'%',width:w/12.8+'%',height:h/8+'%'});$('targets').append(b)})
+}
+function show(title,text){$('title').textContent=title;$('desc').textContent=text;$('choices').replaceChildren();if(!$('detail').open)$('detail').showModal()}
+function resolveHit(i){show(i?'Home run cancelled':'Single cancelled',i?'The single scores the average runner from second. Maris puts a batter on first. New York leads 3–1. San Francisco now places its rookie’s single threat.':'The home run scores the runner and batter. New York leads 4–1 with empty bases. San Francisco now places its rookie’s single threat.');$('choices').append(button('Compare the other choice',()=>$('detail').close()))}
+function sign(){
+ show('Foxx signs. Maris enters the Buy Row.','SF spent $4 of $6. The six visible players are Cano ($7), Rizzuto ($4), Matsui ($6), Nettles ($6), Maris ($7) and Aparicio ($5). With $2 left, SF has finished buying. Choose one of your six In Play cards for the Minor Leagues.');
+ for(const id of ['002','004','005','008','011','014']){
+ const b=button('Demote ST-'+id,()=>finish(id));const im=document.createElement('img');im.src='../../local/design-round/ST-'+id+'.jpg';im.alt='';b.prepend(im);$('choices').append(b)}
+}
+function finish(id){show('Two rosters of fifteen','ST-'+id+' goes to the Minors. Foxx is on top of the SF Lineup. In this example NY spends its $7 on the newly revealed Maris, refills with Babe Bench and demotes one of its own In Play cards. Both signings enter the next opening draws. Game 2 switches home field to New York.');$('choices').append(button('Go to the Game 2 Glove decision',()=>{$('detail').close();phase='glove';render()}))}
+directions.forEach((n,i)=>$('variants').append(button(n,()=>{variant=i;render()})));
+for(const s of ['buy','glove'])$(s).onclick=()=>{phase=s;render()};$('close').onclick=()=>$('detail').close();render();
+</script></html>
