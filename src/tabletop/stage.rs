@@ -4,6 +4,7 @@ use baseball_highlights_unfolded::{CardId, Event};
 use bevy::{
     camera::{ScalingMode, Viewport},
     prelude::*,
+    render::view::NoIndirectDrawing,
     window::PrimaryWindow,
 };
 use std::{
@@ -73,6 +74,9 @@ pub fn setup(
     commands.spawn((
         StageCamera,
         Camera3d::default(),
+        // The small tray shares meshes and materials across piles. Draw them directly
+        // so duplicate face-down piles remain visible on the Vulkan desktop path.
+        NoIndirectDrawing,
         OnSurface,
         Camera {
             clear_color: ClearColorConfig::Custom(Color::srgb(0.08, 0.18, 0.12)),

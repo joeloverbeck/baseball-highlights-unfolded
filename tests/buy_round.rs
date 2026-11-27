@@ -196,3 +196,75 @@ fn a_second_writer_cannot_replace_the_first_signing() {
         first.observe(Seat::SanFrancisco)
     );
 }
+
+#[test]
+fn fresh_series_have_private_orders_and_the_same_reviewed_offers() {
+    let temporary = tempfile::tempdir().unwrap();
+    let series = |name| {
+        let path = temporary.path().join(name);
+        let game = Game::open(&path).unwrap();
+        let view = game.observe(Seat::SanFrancisco);
+        let (_, payload) =
+            unfolded_record_replacement::save::unseal(&fs::read(path).unwrap()).unwrap();
+        (view, payload)
+    };
+    let (first, first_record) = series("first.json");
+    let (second, second_record) = series("second.json");
+    assert_ne!(first_record["private_seed"], second_record["private_seed"]);
+    let order = |position: &serde_json::Value| {
+        position["free_agent_deck"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|card| card["identity"].as_str().unwrap().to_owned())
+            .collect::<Vec<_>>()
+    };
+    assert_ne!(order(&first_record), order(&second_record));
+    for (left, right) in first.offers.iter().zip(&second.offers) {
+        assert_eq!(left.player.card.identity, right.player.card.identity);
+        assert_eq!(left.cost, right.cost);
+    }
+    let visible = serde_json::to_value(first).unwrap();
+    assert!(visible.get("private_seed").is_none());
+    assert_eq!(visible["free_agent_deck"], 54);
+}
+
+#[test]
+fn starter_proxies_keep_distinct_logical_and_physical_identities() {
+    use baseball_highlights_unfolded::{Card, CardId, Player};
+
+    for (id, face) in [
+        (3, 4),
+        (9, 10),
+        (19, 18),
+        (24, 25),
+        (34, 33),
+        (39, 40),
+        (48, 49),
+        (55, 54),
+    ] {
+        let starter = |number| format!("ST-{number:03}").parse::<CardId>().unwrap();
+        let logical = starter(id);
+        let printed = starter(face);
+        assert_ne!(logical, printed);
+        assert_eq!(logical.printed_face(), printed);
+        assert_eq!(
+            serde_json::to_value(logical).unwrap(),
+            format!("ST-{id:03}")
+        );
+    }
+
+    let proxy = Player::describe(Card {
+        identity: "ST-003".parse().unwrap(),
+        instance: 1,
+    })
+    .unwrap();
+    let donor = Player::describe(Card {
+        identity: "ST-004".parse().unwrap(),
+        instance: 2,
+    })
+    .unwrap();
+    assert_eq!(proxy.printed_face, donor.printed_face);
+    assert_eq!(proxy.revenue, donor.revenue);
+    assert_ne!(proxy.card, donor.card);
+}

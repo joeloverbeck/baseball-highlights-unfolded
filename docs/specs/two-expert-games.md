@@ -18,7 +18,7 @@ Refresh the five-repository search in [the engineering foundation](../foundation
 
 ## Issue #5 implementation
 
-[Sign a Free Agent, reveal the replacement, and demote a player](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/5) exercises the reviewed SF decision after mini-game cleanup. SF has the six reviewed In Play cards, $6 and first choice. NY has six public In Play cards worth $7. The fixture’s lineup and remaining market decks have reproducible order from the shared generator. In the reviewed state, hands and On Deck are empty under RB 8. Observations expose the viewer’s empty hand and public pile counts. Deck order and the other seat’s hand field stay outside the seat response.
+[Sign a Free Agent, reveal the replacement, and demote a player](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/5) exercises the reviewed SF decision after mini-game cleanup. SF has the six reviewed In Play cards, $6 and shops first. NY has six public In Play cards worth $7. Each new series shuffles its hidden Lineups and remaining market tail using a private seed. The save preserves the exact order through restart. In the reviewed state, hands and On Deck are empty under RB 8. Observations expose the viewer’s empty hand and public pile counts. Deck order and the other seat’s hand field stay outside the seat response.
 
 The normal Ubuntu build opens at this decision. The public Buy Row changes as part of the same save transaction as the charge and the face-down Lineup insertion. The manager’s demotion remains pending across restart. The next ticket owns shopping order, additional purchases and round cleanup.
 
@@ -32,6 +32,6 @@ The normal Ubuntu build opens at this decision. The public Buy Row changes as pa
 
 The pinned facilities cover the required pile geometry and transfer poses. Issue #5 required no extraction or sibling migration. Baseball owns legal decisions, six stable slots, zones and public disclosure.
 
-The Rust checks exercise the charge, placement, same-slot reveal, second-seat refresh, all six demotion choices, save continuation and unchanged bytes after a refusal. A windowless Ubuntu Vulkan run exercised the actual visible controls to inspect Cano, Rizzuto and Foxx, sign Foxx, observe Maris from NY, and resume and demote ST-004 from SF. The native owner check covers physical input and readability at the intended desktop size.
+The Rust checks exercise the charge, placement, same-slot reveal, second-seat refresh, all six demotion choices, save continuation, private shuffle order and unchanged bytes after a refusal. The windowless Ubuntu Vulkan run activated all six offer inspections and all six demotion inspections through shared pointer controls. It signed Foxx, showed Maris to the already-open NY seat and resumed SF’s pending demotion. The ordinary Ubuntu window rendered the face-down piles on NVIDIA Vulkan, ignored a secondary click on the signing control, accepted a primary click, closed through X11, reopened the same position and demoted ST-004. The owner check covers physical input and readability on the owner’s display.
 
 Consulted PURP-3/5, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, PUB-1, FID-1–4, SIM-4, INT-1/2/4 and LONG-1.

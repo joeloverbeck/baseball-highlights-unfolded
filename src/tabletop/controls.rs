@@ -3,9 +3,8 @@ use baseball_highlights_unfolded::{
     Action, Card, Decision, Event, Observation, Offer, Player, Submission,
 };
 use bevy::{
-    picking::{hover::Hovered, prelude::Pickable},
+    picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
     prelude::*,
-    ui_widgets::{Activate, Button},
     window::PrimaryWindow,
 };
 use serde_json::json;
@@ -51,12 +50,15 @@ pub struct Board {
     revision: u64,
 }
 
-fn press(
-    event: On<Activate>,
+fn click(
+    event: On<PointerClick>,
     controls: Query<&Control>,
     mut session: ResMut<Session>,
     mut ui: ResMut<Interface>,
 ) {
+    if event.button != PointerButton::Primary {
+        return;
+    }
     let Ok(control) = controls.get(event.entity) else {
         return;
     };
@@ -138,7 +140,7 @@ fn button(
 ) -> Entity {
     parent
         .spawn((
-            Button,
+            Pickable::default(),
             Node {
                 border_radius: BorderRadius::all(px(5.)),
                 ..node
@@ -152,7 +154,7 @@ fn button(
                 color,
             },
         ))
-        .observe(press)
+        .observe(click)
         .id()
 }
 

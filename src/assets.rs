@@ -5,7 +5,6 @@ use crate::{
 };
 use image::DynamicImage;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -29,20 +28,16 @@ pub struct Collection {
     faces: HashMap<CardId, CatalogEntry>,
 }
 
-fn hex_digest(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
-}
-
 impl Collection {
     pub fn open(root: &Path) -> Result<Self, String> {
         let manifest = regular_file(root, "SHA256SUMS").map_err(|error| error.to_string())?;
         let bytes = read_bounded(&manifest, 160_000).map_err(|error| error.to_string())?;
-        if hex_digest(&bytes) != MANIFEST_HASH {
-            return Err(format!(
+        verify_bytes(&bytes, bytes.len() as u64, MANIFEST_HASH).map_err(|_| {
+            format!(
                 "{} differs from the audited original collection.",
                 manifest.display()
-            ));
-        }
+            )
+        })?;
         let text = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
         let hashes = text
             .lines()
@@ -69,14 +64,27 @@ impl Collection {
             let identity = fields.next().and_then(|cell| cell.parse::<CardId>().ok());
             let tts_id = fields.next().and_then(|cell| cell.parse::<u32>().ok());
             if let (Some(identity), Some(tts_id)) = (identity, tts_id) {
+                // Pin the original roster scans where the ledger has several TTS faces.
+                let selected = match identity.serial() {
+                    8 => Some(1804),
+                    10 => Some(1810),
+                    49 => Some(1901),
+                    _ => None,
+                };
+                if selected.is_some_and(|preferred| preferred != tts_id) {
+                    continue;
+                }
                 let entry = entries
                     .remove(&tts_id)
                     .ok_or_else(|| format!("Missing catalog entry for {identity}."))?;
                 if entry.back != BACK {
                     return Err(format!("{identity} lacks the original common back."));
                 }
-                // Match the reviewed study when more than one catalog face has this ID.
-                collection.faces.insert(identity, entry);
+                if collection.faces.insert(identity, entry).is_some() {
+                    return Err(format!(
+                        "{identity} has multiple catalog faces and needs an explicit source."
+                    ));
+                }
             }
         }
         Ok(collection)
@@ -100,6 +108,7 @@ impl Collection {
             .get(&printed)
             .ok_or_else(|| format!("Missing card face for {identity} ({printed})."))?;
         self.decode(&entry.face)
+            .map_err(|error| format!("{identity} ({printed}): {error}"))
     }
 
     pub fn back(&self) -> Result<DynamicImage, String> {
@@ -116,8 +125,10 @@ impl Collection {
             .hashes
             .get(asset)
             .ok_or_else(|| format!("{asset} lacks an audited digest."))?;
-        let path = regular_file(&self.root, asset).map_err(|error| error.to_string())?;
-        let bytes = read_bounded(&path, limit).map_err(|error| error.to_string())?;
+        let path = regular_file(&self.root, asset)
+            .map_err(|error| format!("{}: {error}", self.root.join(asset).display()))?;
+        let bytes =
+            read_bounded(&path, limit).map_err(|error| format!("{}: {error}", path.display()))?;
         verify_bytes(&bytes, bytes.len() as u64, hash)
             .map_err(|error| format!("{}: {error}", path.display()))?;
         Ok(bytes)

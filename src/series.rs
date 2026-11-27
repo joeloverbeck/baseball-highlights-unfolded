@@ -181,6 +181,7 @@ enum Phase {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct Position {
     series: String,
+    private_seed: u64,
     phase: Phase,
     balance: u8,
     row: [Card; 6],
@@ -190,8 +191,8 @@ struct Position {
 }
 
 impl Position {
-    fn reviewed(series: String) -> Self {
-        let mut random = SeededRandom::new(2045);
+    fn reviewed(series: String, private_seed: u64) -> Self {
+        let mut random = SeededRandom::new(private_seed);
         let mut instances: Vec<u8> = (1..=120).collect();
         random.shuffle(&mut instances);
         let physical = |serial| Card {
@@ -216,6 +217,7 @@ impl Position {
         free_agent_deck.push(physical(FIRST_REFILL));
         Self {
             series,
+            private_seed,
             phase: Phase::Shopping,
             balance: clubs[SHOPPER.index()]
                 .in_play
@@ -353,7 +355,7 @@ impl save::Format for SeriesFormat {
             return Err("Invalid series identity".into());
         }
         // Verify the zones, event sequence and deck order against the admitted position.
-        let mut expected = Position::reviewed(stored.series.clone());
+        let mut expected = Position::reviewed(stored.series.clone(), stored.private_seed);
         for event in &stored.events {
             let action = match *event {
                 Event::Signed { slot, card, .. } => Action::Sign { slot, card },
@@ -381,7 +383,8 @@ impl Game {
             Some(record) => record,
             None => {
                 let seed = || getrandom::u64().map_err(|error| Refusal::Save(error.to_string()));
-                let position = Position::reviewed(format!("{:016x}{:016x}", seed()?, seed()?));
+                let position =
+                    Position::reviewed(format!("{:016x}{:016x}", seed()?, seed()?), seed()?);
                 let mut baseline = save::Baseline::default();
                 save::write(
                     &SeriesFormat,

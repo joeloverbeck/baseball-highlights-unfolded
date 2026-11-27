@@ -12,13 +12,13 @@ ST-047,1719,1,present,pending,pending,
 ST-060,1720,1,present,pending,pending,
 ST-010,1723,1,present,pending,pending,
 ST-008,1724,1,present,pending,pending,
-ST-011,1726,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+ST-011,1726,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-015,1800,1,present,pending,pending,
-ST-002,1801,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
-ST-014,1802,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
-ST-004,1803,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
-ST-008,1804,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
-ST-005,1805,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+ST-002,1801,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+ST-014,1802,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+ST-004,1803,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+ST-008,1804,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+ST-005,1805,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-013,1806,1,present,pending,pending,
 ST-012,1807,1,present,pending,pending,
 ST-001,1808,1,present,pending,pending,
@@ -76,7 +76,7 @@ RC-138,2103,1,present,pending,pending,
 RC-142,2104,1,present,pending,pending,
 RC-141,2105,1,present,pending,pending,
 FA-071,2106,1,present,pending,pending,
-FA-066,2107,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-066,2107,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 FA-087,2108,1,present,pending,pending,
 FA-103,2109,1,present,pending,pending,
 RC-147,2110,1,present,pending,pending,
@@ -92,7 +92,7 @@ FA-110,2119,1,present,pending,pending,
 FA-076,2120,1,present,pending,pending,
 FA-088,2121,1,present,pending,pending,
 FA-106,2122,1,present,pending,pending,
-FA-065,2123,1,present,buy-round-inspection-and-signing,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-065,2123,1,present,buy-round-inspection-and-signing,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 FA-111,2124,1,present,pending,pending,
 FA-112,2125,1,present,pending,pending,
 FA-109,2126,1,present,pending,pending,
@@ -101,14 +101,14 @@ FA-082,2300,1,present,pending,pending,
 FA-068,2301,1,present,pending,pending,
 FA-077,2302,1,present,pending,pending,
 FA-107,2303,1,present,pending,pending,
-FA-067,2304,1,present,buy-round-refill-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-067,2304,1,present,buy-round-refill-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 FA-120,2305,1,present,pending,pending,
 HC-564,2306,1,present,pending,pending,
 FA-086,2307,1,present,pending,pending,
 FA-092,2308,1,present,pending,pending,
 FA-079,2309,1,present,pending,pending,
 FA-070,2310,1,present,pending,pending,
-FA-061,2311,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-061,2311,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 HC-563,2312,1,present,pending,pending,
 HC-565,2313,1,present,pending,pending,
 HC-568,2314,1,present,pending,pending,
@@ -142,8 +142,8 @@ FA-083,2415,1,present,pending,pending,
 FA-113,2416,1,present,pending,pending,
 FA-080,2417,1,present,pending,pending,
 FA-119,2418,1,present,pending,pending,
-FA-064,2419,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
-FA-063,2420,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-064,2419,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+FA-063,2420,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 FA-104,2421,1,present,pending,pending,
 FA-115,2422,1,present,pending,pending,
 FA-114,2423,1,present,pending,pending,
@@ -196,7 +196,7 @@ RH-167,2624,1,present,pending,pending,
 RH-165,2625,1,present,pending,pending,
 RH-170,2626,1,present,pending,pending,
 RH-161,2627,1,present,pending,pending,
-FA-062,2700,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5; RB 9; tests/buy_round.rs
+FA-062,2700,1,present,buy-round-offer-and-inspection,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 HC-575,2701,1,present,pending,pending,
 HC-566,2702,1,present,pending,pending,
 HC-567,2703,1,present,pending,pending,
