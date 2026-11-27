@@ -19,3 +19,16 @@ jobs:
       - name: Check original cards and design restore
         run: |
           "$RUNNER_TEMP/check-env/bin/python" -B -m unittest discover -s tests -v
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust 1.100.0
+        run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt
+      - name: Check formatting
+        run: cargo +1.100.0 fmt --check
+      - name: Test Buy Round rules and saves
+        run: cargo +1.100.0 test --locked --no-default-features
+      - name: Typecheck the Ubuntu app
+        run: cargo +1.100.0 check --locked --all-targets
