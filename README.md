@@ -10,7 +10,7 @@ On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from th
 
 In the SF manager seat, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Press Space to finish any card motion. Close and relaunch with the same save to resume a pending demotion.
 
-The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` to start a separate series in a fresh file. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output. NY observes the SF decision from the same save. The increment ends at SF’s demotion.
+The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` to start a separate series in a fresh file. Add `--seat ny` after `--` to open the NY desktop view. Two desktop windows can follow the same series when they use the same save. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output. NY observes the SF decision from the same save. The increment ends at SF’s demotion.
 
 ## Repository checks
 

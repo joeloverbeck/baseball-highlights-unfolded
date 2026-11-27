@@ -3,26 +3,32 @@ mod tabletop;
 use baseball_highlights_unfolded::{Game, Seat, assets::Collection};
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
-const USAGE: &str =
-    "Usage: baseball-highlights-unfolded [--assets DIRECTORY] [--save FILE] [--agent-seat sf|ny]";
+const USAGE: &str = "Usage: baseball-highlights-unfolded [--assets DIRECTORY] [--save FILE] [--seat sf|ny | --agent-seat sf|ny]";
 
 fn run() -> Result<(), String> {
     let mut assets = None;
     let mut save = None;
     let mut agent = None;
+    let mut desktop_seat = None;
     let mut args = env::args_os().skip(1);
     while let Some(arg) = args.next() {
         match arg.to_str() {
             Some("--assets") => assets = Some(PathBuf::from(args.next().ok_or(USAGE)?)),
             Some("--save") => save = Some(PathBuf::from(args.next().ok_or(USAGE)?)),
-            Some("--agent-seat") => {
-                agent = Some(
-                    match args.next().as_deref().and_then(|seat| seat.to_str()) {
-                        Some("sf") => Seat::SanFrancisco,
-                        Some("ny") => Seat::NewYork,
-                        _ => return Err(USAGE.into()),
-                    },
-                );
+            Some("--seat" | "--agent-seat") => {
+                if desktop_seat.is_some() || agent.is_some() {
+                    return Err(USAGE.into());
+                }
+                let seat = match args.next().as_deref().and_then(|seat| seat.to_str()) {
+                    Some("sf") => Seat::SanFrancisco,
+                    Some("ny") => Seat::NewYork,
+                    _ => return Err(USAGE.into()),
+                };
+                if arg == "--seat" {
+                    desktop_seat = Some(seat);
+                } else {
+                    agent = Some(seat);
+                }
             }
             Some("--help" | "-h") => {
                 println!("{USAGE}");
@@ -62,7 +68,7 @@ fn run() -> Result<(), String> {
     if let Some(seat) = agent {
         tabletop::serve(game, seat, art)
     } else {
-        tabletop::run(game, art)
+        tabletop::run(game, desktop_seat.unwrap_or(Seat::SanFrancisco), art)
     }
 }
 
