@@ -14,7 +14,9 @@ The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `
 
 ## Repository checks
 
-Run `cargo test --locked` for the Buy Round checks. With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` from the repository root. CI runs the same original-set ledger and design restore checks on public inputs.
+CI runs `cargo fmt --check`, the Buy Round rules and save tests with `cargo test --locked --no-default-features`, and `cargo check --locked --all-targets` for the Ubuntu app. With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` for the original-set ledger and design restore checks.
+
+Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with X11 capture support, and the audited owner-local card collection. It uses the normal desktop binary on an isolated display to exercise primary and secondary clicks, the public refill, close and resume, and the visible face-down piles. It prints the adapter and the temporary directory containing captures, logs, and the scratch save. Use `--assets DIRECTORY` for another copy of the collection or set `WGPU_ADAPTER_NAME` to select an available Vulkan adapter.
 
 ## Project documents
 
