@@ -43,8 +43,8 @@ def file_digest(path):
 
 
 @contextmanager
-def manager(executable, save, assets, evidence, transcript, seat):
-    command = [executable, "--save", str(save), "--agent-seat", seat]
+def manager(executable, save, assets, evidence, transcript, seat, *, args=()):
+    command = [executable, "--save", str(save), "--agent-seat", seat, *args]
     if assets:
         command += ["--assets", str(assets)]
     env = os.environ.copy()
