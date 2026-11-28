@@ -1,5 +1,10 @@
+#[path = "support/reviewed_game_two.rs"]
+mod reviewed_game_two;
+
 use baseball_highlights_unfolded::{Action, Card, Decision, Event, Game, Hit, Refusal, Seat};
-use std::fs;
+use reviewed_game_two::{card as reviewed_card, hands as reviewed_hands};
+use std::{fs, path::Path};
+use unfolded_record_replacement::save;
 
 const SF: Seat = Seat::SanFrancisco;
 const NY: Seat = Seat::NewYork;
@@ -32,29 +37,33 @@ fn buy(game: &mut Game, seat: Seat, serial: u8, demotion: u8) -> (Card, Card) {
     (signed, demoted)
 }
 
+fn saved_lineups(path: &Path) -> [Vec<Card>; 2] {
+    let (_, payload) = save::unseal(&fs::read(path).unwrap()).unwrap();
+    [0, 1].map(|index| {
+        serde_json::from_value(payload["position"]["clubs"][index]["lineup"].clone()).unwrap()
+    })
+}
+
 #[test]
 fn game_two_draws_the_actual_lineups_after_both_purchases() {
     let temporary = tempfile::tempdir().unwrap();
     let path = temporary.path().join("series.json");
     fs::write(&path, include_bytes!("fixtures/expert-game-two-start.json")).unwrap();
     let mut game = Game::open(&path).unwrap();
-    // Known seed and reviewed signings put these physical cards on top in draw order.
-    let expected = [
+    let expected_hands = reviewed_hands();
+    // The four bottom cards retain their stored order from the issue #8 fixture.
+    let expected_remaining = [
         [
-            ("FA-065", 28),
-            ("ST-013", 98),
-            ("ST-009", 104),
-            ("ST-003", 91),
-            ("ST-012", 14),
-            ("ST-006", 19),
+            reviewed_card("ST-007", 42),
+            reviewed_card("ST-015", 27),
+            reviewed_card("ST-001", 90),
+            reviewed_card("ST-010", 64),
         ],
         [
-            ("FA-067", 5),
-            ("ST-054", 53),
-            ("ST-049", 20),
-            ("ST-048", 18),
-            ("ST-046", 25),
-            ("ST-052", 12),
+            reviewed_card("ST-051", 112),
+            reviewed_card("ST-055", 49),
+            reviewed_card("ST-053", 63),
+            reviewed_card("ST-047", 119),
         ],
     ];
 
@@ -74,6 +83,19 @@ fn game_two_draws_the_actual_lineups_after_both_purchases() {
             card: demoted,
         }));
     }
+    // Cards are drawn from the end of the stored Lineup.
+    let expected_before_draw: [Vec<Card>; 2] = std::array::from_fn(|index| {
+        expected_remaining[index]
+            .iter()
+            .chain(expected_hands[index].iter().rev())
+            .copied()
+            .collect()
+    });
+    assert_eq!(
+        saved_lineups(&path),
+        expected_before_draw,
+        "Lineup order after both purchases"
+    );
 
     let ny_closed = game.observe(NY);
     drop(game);
@@ -95,13 +117,14 @@ fn game_two_draws_the_actual_lineups_after_both_purchases() {
     assert_eq!(ny.standing, sf.standing);
     assert_eq!(sf.field, ny.field);
     assert_eq!(sf.acting_manager, Some(SF));
+    assert_eq!(
+        saved_lineups(&path),
+        expected_remaining.map(Vec::from),
+        "remaining Lineup order after the game-two draws"
+    );
     for (index, view) in [sf, ny].into_iter().enumerate() {
         let hand = view.rosters[index].hand.as_ref().unwrap();
-        let expected_hand = expected[index].map(|(identity, instance)| Card {
-            identity: identity.parse().unwrap(),
-            instance,
-        });
-        assert_eq!(hand, &expected_hand);
+        assert_eq!(hand, &expected_hands[index]);
         assert_eq!(view.rosters[1 - index].hand, None);
         assert_eq!(view.rosters[index].active, 15);
         assert_eq!(view.rosters[index].lineup, 4);

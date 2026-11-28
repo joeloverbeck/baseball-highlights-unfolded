@@ -1,6 +1,10 @@
+#[path = "support/reviewed_game_two.rs"]
+mod reviewed_game_two;
+
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, Game, GloveReview, Observation, Refusal, Seat, Submission,
+    Action, Decision, Event, Game, GloveReview, Observation, Refusal, Seat, Submission,
 };
+use reviewed_game_two::{card as reviewed_card, hands as reviewed_hands};
 use std::{fs, path::Path};
 use unfolded_record_replacement::save;
 
@@ -146,15 +150,9 @@ fn pending_foxx_demotion(path: &Path) -> (Game, [Observation; 2], Submission) {
     (game, pending, choice)
 }
 
-fn reviewed_card(identity: &str, instance: u8) -> Card {
-    Card {
-        identity: identity.parse().unwrap(),
-        instance,
-    }
-}
-
 #[test]
 fn recovery_restores_both_seats_at_foxxs_demotion_and_continues_independently() {
+    let [sf_hand, ny_hand] = reviewed_hands();
     for active_bytes in [Some(b"damaged series record".as_slice()), None] {
         let temporary = tempfile::tempdir().unwrap();
         let original = temporary.path().join("original.json");
@@ -208,34 +206,8 @@ fn recovery_restores_both_seats_at_foxxs_demotion_and_continues_independently() 
         assert_eq!(sf.series, pending[0].series);
         assert_eq!(sf, continued.observe(SF));
         assert_eq!(ny, continued.observe(NY));
-        assert_eq!(
-            sf.rosters[0].hand.as_deref(),
-            Some(
-                [
-                    reviewed_card("FA-065", 28),
-                    reviewed_card("ST-013", 98),
-                    reviewed_card("ST-009", 104),
-                    reviewed_card("ST-003", 91),
-                    reviewed_card("ST-012", 14),
-                    reviewed_card("ST-006", 19),
-                ]
-                .as_slice()
-            ),
-        );
-        assert_eq!(
-            ny.rosters[1].hand.as_deref(),
-            Some(
-                [
-                    reviewed_card("FA-067", 5),
-                    reviewed_card("ST-054", 53),
-                    reviewed_card("ST-049", 20),
-                    reviewed_card("ST-048", 18),
-                    reviewed_card("ST-046", 25),
-                    reviewed_card("ST-052", 12),
-                ]
-                .as_slice()
-            ),
-        );
+        assert_eq!(sf.rosters[0].hand.as_deref(), Some(sf_hand.as_slice()));
+        assert_eq!(ny.rosters[1].hand.as_deref(), Some(ny_hand.as_slice()));
         assert_eq!(sf.rosters[1].hand, None);
         assert_eq!(ny.rosters[0].hand, None);
         assert_eq!(fs::read(&original_previous).unwrap(), pending_bytes);
