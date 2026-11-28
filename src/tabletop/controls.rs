@@ -253,12 +253,7 @@ fn offer_tile(
         },
     );
     parent.commands().entity(id).with_children(|tile| {
-        picture(
-            tile,
-            prints.faces[&offer.player.printed_face].clone(),
-            61.,
-            84.,
-        );
+        picture(tile, prints.front(offer.player.card.identity), 61., 84.);
         tile.spawn(col(3.)).with_children(|info| {
             text(info, offer.player.name, 19., INK);
             text(info, offer.player.immediate_action, 14., MUTED);
@@ -293,7 +288,7 @@ pub(super) fn card_rail(
                 },
             );
             rail.commands().entity(id).with_children(|tile| {
-                picture(tile, prints.faces[&player.printed_face].clone(), 28., 39.);
+                picture(tile, prints.front(player.card.identity), 28., 39.);
                 tile.spawn(col(2.)).with_children(|label| {
                     text(label, player.card.identity.to_string(), 14., INK);
                     text(label, player.name, 13., MUTED);
@@ -347,7 +342,7 @@ fn inspector(
         text(panel, player.name, 20., INK);
         let pinch = if player.pinch_hitter { " / PH" } else { "" };
         text(panel, format!("{} / {} / ${} revenue{pinch}", player.card.identity, player.speed, player.revenue), 14., MUTED);
-        picture(panel, prints.faces[&player.printed_face].clone(), 232., 322.);
+        picture(panel, prints.front(player.card.identity), 232., 322.);
         if let Some((label, action)) = action {
             let name = match action {
                 Action::Sign { slot, card } => format!("sign-{slot}-{}", card.instance),

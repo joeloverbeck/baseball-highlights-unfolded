@@ -537,39 +537,39 @@ ST-420,5314,1,present,pending,pending,
 PR-517,5400,1,present,pending,pending,
 ST-003,,,proxy:ST-004,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-009,,,proxy:ST-010,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
-ST-019,,,proxy:ST-018,pending,pending,content.md#starter-card-proxies
-ST-024,,,proxy:ST-025,pending,pending,content.md#starter-card-proxies
-ST-034,,,proxy:ST-033,pending,pending,content.md#starter-card-proxies
-ST-039,,,proxy:ST-040,pending,pending,content.md#starter-card-proxies
-ST-048,,,proxy:ST-049,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
-ST-055,,,proxy:ST-054,game-two-opening-card-data,printed-face-audited,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
-AS-591,,,unlocated,pending,pending,
-AS-592,,,unlocated,pending,pending,
-AS-593,,,unlocated,pending,pending,
-AS-594,,,unlocated,pending,pending,
-AS-595,,,unlocated,pending,pending,
-AS-596,,,unlocated,pending,pending,
-AS-597,,,unlocated,pending,pending,
-AS-598,,,unlocated,pending,pending,
-AS-599,,,unlocated,pending,pending,
-AS-600,,,unlocated,pending,pending,
-AS-601,,,unlocated,pending,pending,
-AS-602,,,unlocated,pending,pending,
-AS-603,,,unlocated,pending,pending,
-AS-604,,,unlocated,pending,pending,
-AS-605,,,unlocated,pending,pending,
-PR-513,,,unlocated,pending,pending,
-PR-514,,,unlocated,pending,pending,
-PR-515,,,unlocated,pending,pending,
-PR-518,,,unlocated,pending,pending,
-PR-519,,,unlocated,pending,pending,
-PR-520,,,unlocated,pending,pending,
-PR-606,,,unlocated,pending,pending,
-PR-607,,,unlocated,pending,pending,
-PR-608,,,unlocated,pending,pending,
-PR-609,,,unlocated,pending,pending,
-PR-610,,,unlocated,pending,pending,
-PR-611,,,unlocated,pending,pending,
-PR-612,,,unlocated,pending,pending,
-PR-613,,,unlocated,pending,pending,
-PR-614,,,unlocated,pending,pending,
+ST-019,,,present:photograph,pending,pending,content.md#starter-card-proxies + content.md#recovered-card-artwork
+ST-024,,,present:photograph,pending,pending,content.md#starter-card-proxies + content.md#recovered-card-artwork
+ST-034,,,present:photograph,pending,pending,content.md#starter-card-proxies + content.md#recovered-card-artwork
+ST-039,,,present:photograph,pending,pending,content.md#starter-card-proxies + content.md#recovered-card-artwork
+ST-048,,,proxy:ST-049,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation + content.md#recovered-card-artwork
+ST-055,,,present:licensed-app,game-two-opening-card-data,printed-face-audited,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation + content.md#recovered-card-artwork
+AS-591,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-592,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-593,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-594,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-595,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-596,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-597,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-598,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-599,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-600,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-601,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-602,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-603,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-604,,,present:private,pending,pending,content.md#recovered-card-artwork
+AS-605,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-513,,,evidence:foil,pending,pending,content.md#recovered-card-artwork
+PR-514,,,evidence:foil,pending,pending,content.md#recovered-card-artwork
+PR-515,,,present:components,pending,pending,content.md#recovered-card-artwork
+PR-518,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-519,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-520,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-606,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-607,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-608,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-609,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-610,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-611,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-612,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-613,,,present:private,pending,pending,content.md#recovered-card-artwork
+PR-614,,,present:private,pending,pending,content.md#recovered-card-artwork

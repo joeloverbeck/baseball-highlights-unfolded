@@ -1,6 +1,8 @@
 //! Textured solids present the committed zones. Transfers are cosmetic playback.
 use super::{FIELD, HEADER, Prints, Session, field};
-use baseball_highlights_unfolded::{CardId, Event, FieldView, RunnerSpeed};
+use baseball_highlights_unfolded::{
+    CardId, Event, FieldView, RunnerSpeed, assets::display_face_id,
+};
 use bevy::{
     camera::{ScalingMode, Viewport},
     prelude::*,
@@ -55,7 +57,7 @@ pub struct Stock {
 
 impl Stock {
     fn front(&self, identity: CardId) -> Handle<StandardMaterial> {
-        self.fronts[&identity.printed_face()].clone()
+        self.fronts[&display_face_id(&self.fronts, identity)].clone()
     }
 }
 
@@ -398,7 +400,7 @@ pub fn draw(
             &mut commands,
             &stock,
             active,
-            stock.front(offer.player.printed_face),
+            stock.front(offer.player.card.identity),
         );
         if let Some(path) = moving {
             commands.entity(entity).insert(Motion {
@@ -440,7 +442,7 @@ pub fn draw(
             &stock,
             IN_PLAY,
             roster.in_play.len(),
-            stock.front(top.printed_face),
+            stock.front(top.card.identity),
         );
     }
     for (pile_roster, x) in view.rosters.iter().zip([IN_PLAY, OTHER_DUGOUT]) {
@@ -451,7 +453,7 @@ pub fn draw(
                 &stock,
                 x,
                 pile_roster.dugout.len(),
-                stock.front(top.printed_face),
+                stock.front(top.card.identity),
             );
         }
     }

@@ -4,7 +4,7 @@ Owner-local root on Ubuntu: `~/Pictures/Baseball Highlights: 2045 Resources/`. T
 
 ## Extract card artwork in PhotoCraft
 
-The approved pack for the current Expert and Glove paths contains 35 PhotoCraft fronts and the original shared back. The desktop and agent seats load it by default from `~/Pictures/Baseball Highlights: 2045 PhotoCraft/`. Keep the original Workshop extraction in its Resources directory for source inspection and explicit launches.
+The desktop and agent seats load the [recovered artwork collection](#recovered-card-artwork) by default from `~/Pictures/Baseball Highlights: 2045 Recovered/`. Its base is the approved 35 PhotoCraft fronts and the original shared back. The base PhotoCraft pack and the original Workshop extraction can also be opened with `--assets`.
 
 Use the project's PhotoCraft MCP to crop and export each card extracted from a sheet. The Workshop catalog locates the source sheet and cell. Measure the actual card bounds in the source pixels because the nominal grid can cut into a card or include its neighbor. Inspect all four edges and corners, confirm the printed identity and orientation against the ledger, and preserve the illustration, text and game symbols. Inspect the full bounds of standalone fronts or backs in PhotoCraft and keep the original file when its bounds are correct. Flag source damage that would require clipping the print or reconstructing it.
 
@@ -25,11 +25,11 @@ On 2026-11-27 inspection of the printed ID fields, deck instances and relevant s
 | Boston | ST-034, ST-039 | ST-033, ST-040 |
 | New York | ST-048, ST-055 | ST-049, ST-054 |
 
-The 60-card free-agent deck contains FA-061 through FA-120, once each. All 536 catalogued faces exist and use the same present back. The two missing URLs in the extraction report refer to a custom surface and its placeholder. Counts and hashes alone cannot detect a deck assembled with duplicate artwork. Preserve the original extraction. Construct each logical team from its fifteen consecutive starter identities, one of each. Use the following eight exceptions when resolving a logical identity to card data and an English face.
+The 60-card free-agent deck contains FA-061 through FA-120, once each. All 536 catalogued faces exist and use the same present back. The two missing URLs in the extraction report refer to a custom surface and its placeholder. Counts and hashes alone cannot detect a deck assembled with duplicate artwork. Preserve the original extraction. Construct each logical team from its fifteen consecutive starter identities, one of each. Use the following eight equivalents for gameplay data and for artwork whenever the collection uses the Workshop donor.
 
 ### Starter-card proxies
 
-The owner approved the following existing faces and gameplay equivalents. In the ledger, `proxy:ST-nnn` identifies the donor of the printed stats and displayed face. The blank Workshop ID and instance count on the recipient mean its exact scan is absent. Preserve each logical identity in the roster, save and technical records. Across the app, identify players by card name in labels, actions, history and inspection. Keep collector numbers printed on the original artwork intact. If exact English art becomes available, verify it and replace the proxy for that identity. Gameplay implementation and verification are still pending for all eight.
+The owner approved the following gameplay equivalents. In the ledger, `proxy:ST-nnn` identifies the artwork donor when the exact face is missing or the donor is clearer at desktop size. Blank Workshop IDs and instance counts on these eight records indicate gaps in the original extraction. Preserve each logical identity in the roster, save and technical records. Across the app, identify players by card name in labels, actions, history and inspection. Keep collector numbers printed on the original artwork intact. Verify independently sourced faces against their identity and gameplay fields and review them alongside the donor before adopting them. The ledger records gameplay implementation and verification for each card.
 
 | Team | Logical identity → approved donor |
 |---|---|
@@ -40,13 +40,31 @@ The owner approved the following existing faces and gameplay equivalents. In the
 
 San Francisco needs a composition correction. Keep one ST-008. Use ST-004’s data and face for the missing ST-003 slot, and keep ST-004 itself. Importing the Workshop deck as dealt would leave an extra ST-008 in that slot. For each team, check all fifteen distinct logical IDs and their resolved donors; check all sixty free agents once each. When the importer lands, exercise these same identities and approved donors on its actual roster and Free Agent deck output, including all four team boundaries.
 
-Source: gkrands reported comparing the Russian TTS version on 12 March 2022. The mapping is an attributed community comparison. The local audit confirms the donor assets, deck composition and common back. Independent inspection of the eight missing originals remains open as an artwork follow-up in issue #2. [Workshop discussion](https://steamcommunity.com/sharedfiles/filedetails/?id=1803946195)
+On 12 March 2022 gkrands reported comparing the Russian TTS version. The local audit confirms the donor assets, deck composition and common back. [Workshop discussion](https://steamcommunity.com/sharedfiles/filedetails/?id=1803946195)
+
+### Recovered card artwork
+
+The November 28 research pack matches 38 ledger identities. Its source archive, checklist, crops and PhotoCraft review are owner-local. The reviewed collection at `local/card-crop-review/face-pack-2026-11-28/assets-corrected` was installed as the default in `~/Pictures/Baseball Highlights: 2045 Recovered/` with its checksum manifest and audited `catalog/recovered-starters.json` mapping. The current Expert path can display ST-055 in New York's game-two hand. The corrected Los Angeles and Boston fronts are available to the loader and await gameplay for those teams. The Workshop and earlier PhotoCraft collections use donor art. The eight approved gameplay equivalents apply in all collections.
+
+| Identity | Artwork in the recovered collection or research |
+| --- | --- |
+| ST-019 | Rectified LA paper card from BGG image 2845196. PhotoCraft curves bring its tones closer to ST-018 and preserve a clear face at inspection size. |
+| ST-024 | Rectified LA paper card from BGG image 2591141. PhotoCraft curves and sharpening improve readability. The artwork still has softer fine detail than ST-025. |
+| ST-034, ST-039 | Rectified Boston paper cards from BGG images 2907228 and 2907226. PhotoCraft curves and detail filters improve readability. Grain remains visible at inspection size. |
+| ST-048 | Retain ST-049. PhotoCraft reduces the warm cast, and the photo retains visible curvature and uneven edges. |
+| ST-055 | Crop of the Buy Round in Peter Kossits’s licensed iPad adaptation. The visible footer reads ST-055. The numbered paper face remains unlocated. |
+| ST-003, ST-009 | Retain ST-004 and ST-010. Exact English faces remain unlocated. |
+| AS-591–605, PR-518–520, PR-606–614 | English faces available in the private collection. PR-518 uses the Minnesota version reproduced in the publisher’s update. |
+| PR-513, PR-514 | Foil printing evidence for PR-511 and PR-512 respectively. The photographed footers show those base numbers. The reflective, incomplete photographs serve as printing evidence. |
+| PR-515 | Shared reference for Visitor travel stadium (Workshop 2704) and Home travel stadium (2705). Each existing source keeps its four Workshop instances. |
+
+The ledger’s `present:photograph`, `present:licensed-app` and `present:private` entries record artwork in the private collection. `evidence:foil` records a photographed printing, and `present:components` points to the existing component records. The CSV and per-face provenance in the private collection record the source image, crop and digest. Issue #2 tracks coverage. [ST-019 source photo](https://boardgamegeek.com/image/2845196/baseball-highlights-2045) · [ST-055 iPad screenshot gallery](https://appshunter.io/ios/app/baseball-highlights-2045/id1003138996)
 
 ## Remaining content
 
 [Card content](card-content.csv) tracks every local Workshop card ID, including alternative starter teams, parks and travel stadium cards. Multiple source images or repeated game instances may refer to the same printed identity. Named park records accommodate landscape faces. The final columns track implementation, verification and evidence independently from artwork availability. Filter on pending/blocked to see outstanding work. Update affected records in the implementing PR with the rules reference, evidence and issue/commit. Verify playable identities through real deals/choices, applicable rules, artwork and persisted state. Keep duplicate sources traceable while counting a single rules implementation per equivalent behavior.
 
-The ledger also lists the absent original cards, the unlocated AS-591–605 range and unmatched promo numbers listed by the reference booklet. Its promo ranges, component count and actual promo types need edition reconciliation; never infer a missing player solely from a gap in numbering. Reconcile additional published starter variants and promos against the publisher inventory after owned coverage. Booklet Ref 7 calls for 15 Coaches and prints an inclusive range ending in 136; local Coach faces run CO-121–135. Record contradictions where discovered. Keep later gaps visible without blocking the owned collection.
+The ledger also lists original starter gaps, the researched All-Star and promo cards, and unmatched promo numbers from the reference booklet. Its promo ranges, component count and actual promo types need edition reconciliation; never infer a missing player solely from a gap in numbering. Reconcile additional published starter variants and promos against the publisher inventory after owned coverage. Booklet Ref 7 calls for 15 Coaches and prints an inclusive range ending in 136; local Coach faces run CO-121–135. Record contradictions where discovered. Keep later gaps visible without blocking the owned collection.
 
 ## Physical components and digital obligations
 

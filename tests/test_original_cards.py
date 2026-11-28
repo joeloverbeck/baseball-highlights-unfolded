@@ -5,12 +5,19 @@ from collections import defaultdict
 from pathlib import Path
 
 LEDGER = Path(__file__).resolve().parents[1] / "docs/foundation/card-content.csv"
-# Owner-approved display and gameplay equivalents, in original team order.
+# Owner-approved gameplay equivalents and artwork donors, in original team order.
 PROXIES = {
     "ST-003": "ST-004", "ST-009": "ST-010",
     "ST-019": "ST-018", "ST-024": "ST-025",
     "ST-034": "ST-033", "ST-039": "ST-040",
     "ST-048": "ST-049", "ST-055": "ST-054",
+}
+RECOVERED_ART = {
+    "ST-019": "present:photograph",
+    "ST-024": "present:photograph",
+    "ST-034": "present:photograph",
+    "ST-039": "present:photograph",
+    "ST-055": "present:licensed-app",
 }
 
 
@@ -39,7 +46,8 @@ class OriginalCardLedger(unittest.TestCase):
                     rows = self.sources[identity]
                     if identity in PROXIES:
                         donor = PROXIES[identity]
-                        self.assertEqual([r["art"] for r in rows], [f"proxy:{donor}"])
+                        art = RECOVERED_ART.get(identity, f"proxy:{donor}")
+                        self.assertEqual([r["art"] for r in rows], [art])
                         self.assertEqual((rows[0]["tts_id"], rows[0]["instances"]), ("", ""))
                         self.check_present(self.sources[donor])
                     else:
