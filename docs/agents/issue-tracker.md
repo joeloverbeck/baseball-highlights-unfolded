@@ -2,9 +2,13 @@
 
 Use GitHub Issues and PRs in `joeloverbeck/baseball-highlights-unfolded`. Publish specs and tickets as issues. Link each spec, its source audit, blockers, evidence, owner decisions and merged revisions. Keep per-card coverage in [the card ledger](../foundation/card-content.csv). Keep private artwork outside issue and PR attachments. The owner separately activates implementation after readiness.
 
-When pausing work in a local checkout, record its path, branch, base SHA, and whether it has uncommitted edits in the existing handoff. Include the owning clone when the worktree belongs to another clone. Check that location and its Git status when resuming.
+When pausing work in a local checkout, record its path, branch, base and current commit SHAs, and whether it has uncommitted edits in the existing handoff. Include the owning clone when the worktree belongs to another clone. If a subagent choice is pending, repeat the proposed job, recommended model and effort, and the decision needed. Check the location and Git status when resuming.
 
 For a checkpoint bundle, add its path, SHA-256 digest, and inventory of modified and untracked files to the same handoff. Account for ignored files separately. Before removing a source checkout, compare its current changes and local-only files with the retained bundle or backup.
+
+## Draft publication
+
+When a spec will use a draft PR, check publication authority at activation. If it is missing, ask for permission to push the named integration branch and open a draft in the target GitHub repository. Local implementation can continue while permission is pending. Before merging, check that the owner's authorization covers the reviewed commit, evidence, and target branch. Use existing authorization when it covers the action.
 
 ## GitHub CLI
 

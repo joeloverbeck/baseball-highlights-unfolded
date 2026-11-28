@@ -16,7 +16,7 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/check-env"
           "$RUNNER_TEMP/check-env/bin/pip" install Pillow
-      - name: Check original cards and design restore
+      - name: Check original cards, design restore, and game-two fixture
         run: |
           "$RUNNER_TEMP/check-env/bin/python" -B -m unittest discover -s tests -v
 
