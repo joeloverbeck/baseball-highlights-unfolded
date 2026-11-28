@@ -4,6 +4,16 @@ Before drafting or implementing **every spec**, inspect the current shared repos
 
 If the library already provides the behavior, consume its immutable revision. If a sibling holds needed common code, extract it into unfolded-tabletop, migrate every affected existing consumer and exercise its real path. Merge the required producer and consumer PRs, pull their main branches, and record merged/pulled revisions and verification before beginning dependent Baseball work. Shared library tests alone cannot demonstrate that the sibling still works. Preserve independent builds, game policy in adapters, and a rollback path. Ordinary builds must not rely on sibling checkouts. Implement genuinely new local behavior only after this search. Shared applicability is established per behavior.
 
+## Series saves during development
+
+Choose the clearest save structure for the rules Baseball implements today. On ordinary reopen, restore the last committed decision boundary. Explicit recovery restores the previous committed boundary into a fresh path. Both must reproduce the selected record's series, card order and pending choice. See the [exact-replay decision](../adr/0001-admit-series-saves-by-exact-replay.md).
+
+Saves from other builds are disposable. Spend no implementation or test effort on compatibility readers, migrations, or retaining obsolete fields. An earlier save may open if it passes the current format and exact-replay checks. If it fails, explain the refusal and preserve the file. The player can explicitly start a series at a fresh path.
+
+The owner will first review this policy when the original competitive two-team rules for Beginner, Standard and Expert and all 60 original starter and 60 original free-agent cards are implemented. The policy continues until the owner changes it. At that review the owner may extend the disposable period through all published expansion cards, including cards acquired later.
+
+The [Buy Round v1 migration](../specs/two-expert-games.md) records an earlier delivery. Its pending-demotion test required new code to reconstruct an obsolete round and reorder a hidden refill. That historical promise is superseded by this policy. Keep the pending demotion reproducible in the current build.
+
 ## First-spec source trace, 2026-11-27
 
 | Repository and inspected local revision | Implementation evidence and disposition |
