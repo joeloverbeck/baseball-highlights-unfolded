@@ -46,7 +46,7 @@ fn run() -> Result<(), String> {
     };
     let assets = match assets {
         Some(path) => path,
-        None => home()?.join("Pictures/Baseball Highlights: 2045 Resources"),
+        None => home()?.join("Pictures/Baseball Highlights: 2045 PhotoCraft"),
     };
     let save = match save {
         Some(path) => path,

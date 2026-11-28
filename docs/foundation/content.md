@@ -4,6 +4,8 @@ Owner-local root on Ubuntu: `~/Pictures/Baseball Highlights: 2045 Resources/`. T
 
 ## Extract card artwork in PhotoCraft
 
+The approved pack for the current Expert and Glove paths contains 35 PhotoCraft fronts and the original shared back. The desktop and agent seats load it by default from `~/Pictures/Baseball Highlights: 2045 PhotoCraft/`. Keep the original Workshop extraction in its Resources directory for source inspection and explicit launches.
+
 Use the project's PhotoCraft MCP to crop and export each card extracted from a sheet. The Workshop catalog locates the source sheet and cell. Measure the actual card bounds in the source pixels because the nominal grid can cut into a card or include its neighbor. Inspect all four edges and corners, confirm the printed identity and orientation against the ledger, and preserve the illustration, text and game symbols. Inspect the full bounds of standalone fronts or backs in PhotoCraft and keep the original file when its bounds are correct. Flag source damage that would require clipping the print or reconstructing it.
 
 PhotoCraft reads from the checkout and exports under `art/`. Copy verified sources to a Git-ignored working directory under `art/` and export the crops there. Record the PhotoCraft version, source digest, source card and printing identity, reviewed pixel rectangle and export digest in the owner-local collection. Keep source files, crops and proofs private. Stage the exported PNGs with their catalog and SHA-256 manifest, then inspect the staged collection through the ordinary desktop launch with `--assets` and a scratch save before changing the default. The runtime consumes verified image files.
