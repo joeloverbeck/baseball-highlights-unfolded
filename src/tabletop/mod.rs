@@ -3,6 +3,7 @@ mod card_help;
 mod controls;
 mod field;
 mod market;
+mod market_transfer;
 mod revenue;
 mod stage;
 
@@ -37,6 +38,7 @@ pub struct Art {
     pennant: image::DynamicImage,
     card_symbols: [image::DynamicImage; 4],
     autograph: image::DynamicImage,
+    transfer_card: image::DynamicImage,
 }
 
 impl Art {
@@ -71,6 +73,9 @@ impl Art {
             autograph: park(include_bytes!(
                 "../../art/manager-review/signing/autograph.png"
             ))?,
+            transfer_card: park(include_bytes!(
+                "../../art/manager-review/between-games/transfer-card.png"
+            ))?,
         })
     }
 }
@@ -84,6 +89,7 @@ struct Prints {
     pennant: Handle<Image>,
     card_symbols: [Handle<Image>; 4],
     autograph: Handle<Image>,
+    transfer_card: Handle<Image>,
 }
 
 impl Prints {
@@ -103,6 +109,7 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         pennant: texture(art.pennant),
         card_symbols: art.card_symbols.map(&mut texture),
         autograph: texture(art.autograph),
+        transfer_card: texture(art.transfer_card),
         faces: art
             .faces
             .into_iter()
@@ -113,6 +120,7 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         .insert_resource(Session { game, seat })
         .init_resource::<controls::Interface>()
         .init_resource::<market::Interaction>()
+        .init_resource::<market_transfer::Playback>()
         .add_systems(Startup, (camera, stage::setup))
         .add_systems(
             Update,
@@ -120,8 +128,9 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
                 controls::draw,
                 market::interact,
                 market::present,
+                market_transfer::draw,
+                market_transfer::animate,
                 stage::draw,
-                stage::animate,
                 controls::hover,
             )
                 .chain(),

@@ -2,11 +2,13 @@
 use super::{
     Prints, Session, card_help,
     controls::{
-        self, CREAM, DARK, FIELD_LABEL, GOLD, INK, Input, Interface, PAPER, Selection, col,
-        picture, row, text,
+        self, CREAM, DARK, FIELD_LABEL, GOLD, INK, Input, Interface, PAPER, Selection, picture,
+        row, text,
     },
 };
-use baseball_highlights_unfolded::{Action, Card, Decision, Observation, Offer, Roster, Seat};
+use baseball_highlights_unfolded::{
+    Action, Card, Decision, Observation, Offer, Player, Roster, Seat,
+};
 use bevy::{
     input::keyboard::{Key, KeyboardFocusLost, KeyboardInput},
     picking::{hover::Hovered, prelude::Pickable},
@@ -25,26 +27,54 @@ const FOCUS: Color = Color::srgb_u8(255, 242, 205);
 const DWELL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Source {
+    InPlay(u8, Card),
+    Offer(u8, Card),
+    Finish,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct Target {
     revision: u64,
     seat: Seat,
-    slot: u8,
-    card: Card,
+    source: Source,
 }
 
 impl Target {
-    fn new(view: &Observation, offer: &Offer) -> Self {
+    fn new(view: &Observation, source: Source) -> Self {
         Self {
             revision: view.revision,
             seat: view.seat,
-            slot: offer.slot,
-            card: offer.player.card,
+            source,
         }
     }
 
+    fn matches(self, view: &Observation) -> bool {
+        self == Self::new(view, self.source)
+    }
+
     fn offer(self, view: &Observation) -> Option<&Offer> {
-        let offer = &view.offers[usize::from(self.slot - 1)];
-        (self == Self::new(view, offer)).then_some(offer)
+        let Source::Offer(slot, card) = self.source else {
+            return None;
+        };
+        let offer = &view.offers[usize::from(slot - 1)];
+        (self.matches(view) && card == offer.player.card).then_some(offer)
+    }
+
+    fn in_play(self, view: &Observation) -> Option<Player> {
+        let Source::InPlay(index, card) = self.source else {
+            return None;
+        };
+        let player = buying_roster(view)?.in_play.get(usize::from(index))?;
+        (self.matches(view) && view.demotion_pending && card == player.card).then_some(*player)
+    }
+
+    fn order(self) -> (u8, u8) {
+        match self.source {
+            Source::InPlay(index, _) => (0, index),
+            Source::Offer(slot, _) => (1, slot),
+            Source::Finish => (2, 0),
+        }
     }
 }
 
@@ -52,7 +82,7 @@ impl Target {
 pub(super) enum Part {
     Face,
     Help,
-    Sign,
+    Action,
     Gap,
 }
 
@@ -67,6 +97,7 @@ pub(super) struct Interaction {
     hover: Hover<Target>,
     focus: Option<Region>,
     cursor: Option<Vec2>,
+    pointer_ready: bool,
     keyboard: bool,
     clicked: Option<Region>,
     revision: Option<u64>,
@@ -86,12 +117,20 @@ impl Interaction {
     }
 
     pub(super) fn reading(&self, view: &Observation) -> Option<Value> {
-        let offer = self.hover.visible()?.offer(view)?;
+        let target = *self.hover.visible()?;
+        if let Some(offer) = target.offer(view) {
+            return Some(json!({
+                "slot": offer.slot,
+                "name": offer.player.name,
+                "symbols": card_help::symbols(offer.player).collect::<Vec<_>>(),
+                "budget": budget(offer, view.balance),
+            }));
+        }
+        let player = target.in_play(view)?;
         Some(json!({
-            "slot": offer.slot,
-            "name": offer.player.name,
-            "symbols": card_help::symbols(offer.player).collect::<Vec<_>>(),
-            "budget": budget(offer, view.balance),
+            "name": player.name,
+            "symbols": card_help::symbols(player).collect::<Vec<_>>(),
+            "zone": "In Play",
         }))
     }
 }
@@ -117,24 +156,25 @@ const fn key(name: &'static str, code: KeyCode, logical: Key, commits: bool) -> 
 
 #[derive(Clone, Copy, Component)]
 pub(super) struct Layout {
-    width: f32,
-    height: f32,
-    scale: f32,
+    pub(super) width: f32,
+    pub(super) height: f32,
+    pub(super) scale: f32,
     margin: f32,
     deck_width: f32,
     slot_width: f32,
     card_width: f32,
-    card_height: f32,
+    market_y: f32,
+    demotion: bool,
 }
 
 impl Layout {
-    pub(super) fn new(size: Vec2) -> Self {
+    pub(super) fn new(size: Vec2, demotion: bool) -> Self {
         let scale = (size.x / 1080.).min(size.y / 720.);
         let margin = 23. * scale;
-        let deck_width = 88. * scale;
+        let deck_width = if demotion { 113. } else { 88. } * scale;
         let slot_width = (size.x - 2. * margin - deck_width) / 6.;
         let card_width = (slot_width - 19. * scale).min(166. * scale);
-        Self {
+        let mut layout = Self {
             width: size.x,
             height: size.y,
             scale,
@@ -142,26 +182,73 @@ impl Layout {
             deck_width,
             slot_width,
             card_width,
-            card_height: card_width * 1.393,
+            market_y: 123. * scale,
+            demotion,
+        };
+        if demotion {
+            layout.card_width = (slot_width - 22. * scale).min(167. * scale) * 0.64;
+            layout.market_y = layout.in_play_face(0).max.y + 65. * scale;
         }
+        layout
     }
 
-    fn face(self, slot: u8) -> Rect {
+    pub(super) fn face(self, slot: u8) -> Rect {
         let x = self.margin + self.deck_width + (f32::from(slot) - 0.5) * self.slot_width
             - self.card_width / 2.;
-        let y = 123. * self.scale;
-        Rect::from_corners(
-            Vec2::new(x, y),
-            Vec2::new(x + self.card_width, y + self.card_height),
+        face_rect(x, self.market_y, self.card_width)
+    }
+
+    pub(super) fn in_play_face(self, index: u8) -> Rect {
+        let stride = (self.width - 2. * self.margin) / 6.;
+        let width = (stride - 21. * self.scale).min(166. * self.scale);
+        let x = self.margin + (f32::from(index) + 0.5) * stride - width / 2.;
+        face_rect(x, 117. * self.scale, width)
+    }
+
+    pub(super) fn deck_top(self) -> Rect {
+        let height = if self.demotion { 69. } else { 91. } * self.scale;
+        let width = height / 1.393;
+        face_rect(
+            self.margin + (self.deck_width - width - 5. * self.scale) / 2.,
+            self.face(1).max.y - height - 24. * self.scale,
+            width,
         )
     }
 
     fn club_top(self) -> f32 {
-        self.face(1).max.y + 95. * self.scale
+        self.face(1).max.y + if self.demotion { 35. } else { 95. } * self.scale
+    }
+
+    fn pile_height(self) -> f32 {
+        (if self.demotion { 38. } else { 95. }) * self.scale
+    }
+
+    pub(super) fn club_pile(self, seat: Seat, pile: u8) -> Rect {
+        let club_width = (self.width - 2. * self.margin - 14. * self.scale) / 2.;
+        let club_x = self.margin
+            + if seat == Seat::NewYork {
+                club_width + 14. * self.scale
+            } else {
+                0.
+            };
+        let padding = if self.demotion { 5. } else { 11. } * self.scale;
+        let gap = 5. * self.scale;
+        let cell = (club_width - 2. * padding - 3. * gap) / 4.;
+        let width = self.pile_height() / 1.393;
+        let x = club_x
+            + padding
+            + (cell + gap) * f32::from(pile)
+            + (cell - width - 5. * self.scale) / 2.;
+        let y = self.club_top() + padding + if self.demotion { 20. } else { 31. } * self.scale;
+        face_rect(x, y, width)
     }
 }
 
-fn place(x: f32, y: f32, width: f32, height: f32) -> Node {
+fn face_rect(x: f32, y: f32, width: f32) -> Rect {
+    Rect::from_corners(Vec2::new(x, y), Vec2::new(x + width, y + width * 1.393))
+}
+
+pub(super) fn place(x: f32, y: f32, width: f32, height: f32) -> Node {
     Node {
         position_type: PositionType::Absolute,
         left: px(x),
@@ -170,6 +257,12 @@ fn place(x: f32, y: f32, width: f32, height: f32) -> Node {
         height: px(height),
         ..default()
     }
+}
+
+fn buying_roster(view: &Observation) -> Option<&Roster> {
+    view.rosters
+        .iter()
+        .find(|roster| view.buyer == Some(roster.seat))
 }
 
 fn panel(parent: &mut ChildSpawnerCommands, node: Node, color: Color) -> Entity {
@@ -197,6 +290,9 @@ fn can_sign(view: &Observation, offer: &Offer) -> bool {
     matches!(&view.decision, Some(Decision::Sign { affordable }) if affordable.contains(&offer.player.card))
 }
 
+#[derive(Component)]
+pub(super) struct OfferFace(pub(super) Card);
+
 fn offer_card(
     root: &mut ChildSpawnerCommands,
     view: &Observation,
@@ -207,7 +303,7 @@ fn offer_card(
     let s = layout.scale;
     let face = layout.face(offer.slot);
     let region = Region {
-        target: Target::new(view, offer),
+        target: Target::new(view, Source::Offer(offer.slot, offer.player.card)),
         part: Part::Face,
     };
     let card = controls::button(
@@ -225,7 +321,11 @@ fn offer_card(
     );
     root.commands()
         .entity(card)
-        .insert((region, BorderColor::all(CARD_FRAME)))
+        .insert((
+            region,
+            BorderColor::all(CARD_FRAME),
+            OfferFace(offer.player.card),
+        ))
         .with_children(|image| {
             picture(
                 image,
@@ -249,51 +349,63 @@ fn pile(
     name: &str,
     count: usize,
     face: Option<Handle<Image>>,
+    rect: Rect,
     scale: f32,
-    height: f32,
+    concealed: Option<super::market_transfer::Zone>,
 ) {
-    let width = height / 1.393;
+    let width = rect.width();
+    let height = rect.height();
+    parent
+        .spawn((
+            place(
+                rect.min.x,
+                rect.min.y,
+                width + 5. * scale,
+                height + 5. * scale,
+            ),
+            Pickable::IGNORE,
+        ))
+        .with_children(|stack| {
+            if let Some(face) = face {
+                let layers = count.saturating_sub(1).min(3);
+                for layer in (1..=layers).rev() {
+                    let offset = layer as f32 * 1.7 * scale;
+                    panel(stack, place(offset, offset, width, height), CARD_FRAME);
+                }
+                let mut top = stack.spawn((
+                    place(0., 0., width, height),
+                    ImageNode::new(face),
+                    Pickable::IGNORE,
+                ));
+                if let Some(zone) = concealed {
+                    top.insert(super::market_transfer::PileTop { zone, count });
+                }
+            } else {
+                stack.spawn((
+                    Node {
+                        border: UiRect::all(px(scale)),
+                        border_radius: BorderRadius::all(px(4. * scale)),
+                        ..place(0., 0., width, height)
+                    },
+                    BorderColor::all(CARD_FRAME),
+                    Pickable::IGNORE,
+                ));
+            }
+        });
     parent
         .spawn((
             Node {
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Start,
-                flex_grow: 1.,
-                ..col(5. * scale)
+                justify_content: JustifyContent::Center,
+                ..place(
+                    rect.center().x - 60. * scale,
+                    rect.max.y + 4. * scale,
+                    120. * scale,
+                    18. * scale,
+                )
             },
             Pickable::IGNORE,
         ))
-        .with_children(|pile| {
-            pile.spawn((
-                Node {
-                    width: px(width + 5. * scale),
-                    height: px(height + 5. * scale),
-                    ..default()
-                },
-                Pickable::IGNORE,
-            ))
-            .with_children(|stack| {
-                if let Some(face) = face {
-                    let layers = count.saturating_sub(1).min(3);
-                    for layer in (1..=layers).rev() {
-                        let offset = layer as f32 * 1.7 * scale;
-                        panel(stack, place(offset, offset, width, height), CARD_FRAME);
-                    }
-                    picture(stack, face, width, height);
-                } else {
-                    stack.spawn((
-                        Node {
-                            border: UiRect::all(px(scale)),
-                            border_radius: BorderRadius::all(px(4. * scale)),
-                            ..place(0., 0., width, height)
-                        },
-                        BorderColor::all(CARD_FRAME),
-                        Pickable::IGNORE,
-                    ));
-                }
-            });
-            text(pile, format!("{name}  {count}"), 14. * scale, CREAM);
-        });
+        .with_children(|label| text(label, format!("{name}  {count}"), 13. * scale, CREAM));
 }
 
 fn club(
@@ -304,18 +416,17 @@ fn club(
     prints: &Prints,
     x: f32,
     width: f32,
-    selection: Option<Selection>,
 ) {
+    use super::market_transfer::Zone;
+
     let s = layout.scale;
     let top = layout.club_top();
-    let height = layout.height - top - 49. * s;
-    let card_height = if view.demotion_pending { 63. } else { 95. } * s;
+    let height = layout.height - top - 41. * s;
+    let compact = layout.demotion;
     let club = panel(
         root,
         Node {
-            padding: UiRect::all(px(11. * s)),
-            row_gap: px(7. * s),
-            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(px(if compact { 5. * s } else { 11. * s })),
             border_radius: BorderRadius::all(px(6. * s)),
             ..place(x, top, width, height)
         },
@@ -323,77 +434,112 @@ fn club(
     );
     root.commands().entity(club).with_children(|club| {
         club.spawn(Node {
+            flex_grow: 1.,
             justify_content: JustifyContent::SpaceBetween,
             ..row(5. * s)
         })
         .with_children(|head| {
-            text(head, club_name(roster.seat), 19. * s, CREAM);
+            text(
+                head,
+                club_name(roster.seat),
+                if compact { 15. } else { 19. } * s,
+                CREAM,
+            );
             text(
                 head,
                 format!(
-                    "{} active  /  ${} left",
+                    "{} active   ·   ${} left",
                     roster.active,
                     view.balances[usize::from(roster.seat == Seat::NewYork)]
                 ),
-                16. * s,
+                if compact { 14. } else { 16. } * s,
                 FIELD_LABEL,
             );
         });
-        club.spawn(row(5. * s)).with_children(|piles| {
-            pile(
-                piles,
-                "Lineup",
-                roster.lineup,
-                (roster.lineup > 0).then(|| prints.back.clone()),
-                s,
-                card_height,
-            );
-            pile(
-                piles,
-                "In Play",
-                roster.in_play.len(),
-                roster
-                    .in_play
-                    .last()
-                    .map(|player| prints.front(player.card.identity)),
-                s,
-                card_height,
-            );
-            pile(
-                piles,
-                "Dugout",
-                roster.dugout.len(),
-                roster
-                    .dugout
-                    .last()
-                    .map(|player| prints.front(player.card.identity)),
-                s,
-                card_height,
-            );
-            pile(
-                piles,
-                "Minor Leagues",
-                roster.minor_leagues,
-                (roster.minor_leagues > 0).then(|| prints.back.clone()),
-                s,
-                card_height,
+    });
+    let piles = [
+        (
+            "Lineup",
+            roster.lineup,
+            (roster.lineup > 0).then(|| prints.back.clone()),
+            Some(Zone::Lineup(roster.seat)),
+        ),
+        (
+            "In Play",
+            roster.in_play.len(),
+            roster
+                .in_play
+                .last()
+                .map(|player| prints.front(player.card.identity)),
+            None,
+        ),
+        (
+            "Dugout",
+            roster.dugout.len(),
+            roster
+                .dugout
+                .last()
+                .map(|player| prints.front(player.card.identity)),
+            None,
+        ),
+        (
+            "Minor Leagues",
+            roster.minor_leagues,
+            (roster.minor_leagues > 0).then(|| prints.back.clone()),
+            Some(Zone::Minors(roster.seat)),
+        ),
+    ];
+    for (index, (name, count, face, concealed)) in piles.into_iter().enumerate() {
+        pile(
+            root,
+            name,
+            count,
+            face,
+            layout.club_pile(roster.seat, index as u8),
+            s,
+            concealed,
+        );
+    }
+}
+
+fn in_play_card(
+    root: &mut ChildSpawnerCommands,
+    view: &Observation,
+    layout: Layout,
+    index: u8,
+    player: Player,
+    prints: &Prints,
+) {
+    let s = layout.scale;
+    let face = layout.in_play_face(index);
+    let region = Region {
+        target: Target::new(view, Source::InPlay(index, player.card)),
+        part: Part::Face,
+    };
+    let card = controls::button(
+        root,
+        SeatName::Component(format!("inspect-{}", player.card.identity)),
+        format!("Inspect {}", player.name),
+        Input::ReadOffer(region),
+        BACKGROUND,
+        Node {
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            border: UiRect::all(px(2. * s)),
+            ..place(face.min.x, face.min.y, face.width(), face.height())
+        },
+    );
+    root.commands()
+        .entity(card)
+        .insert((region, BorderColor::all(CARD_FRAME)))
+        .with_children(|image| {
+            picture(
+                image,
+                prints.front(player.card.identity),
+                face.width() - 6. * s,
+                face.height() - 6. * s,
             );
         });
-        // The current demotion route remains available while the dedicated In Play
-        // layout is developed. The market slots do not move when a demotion is due.
-        if view.buyer == Some(roster.seat) && view.demotion_pending {
-            for (row, players) in roster.in_play.chunks(3).enumerate() {
-                controls::card_rail(
-                    club,
-                    players,
-                    prints,
-                    selection,
-                    Selection::PublicCard,
-                    1 + 3 * row,
-                );
-            }
-        }
-    });
 }
 
 pub(super) fn draw(
@@ -440,28 +586,46 @@ pub(super) fn draw(
                 ..row(20. * s)
             })
             .with_children(|title| {
-                text(title, "Buy Row", 25. * s, CREAM);
-                let decision = if view.demotion_pending {
-                    "chooses a demotion"
-                } else {
-                    "is buying"
+                let prompt = match (view.seat == buyer, view.demotion_pending) {
+                    (true, true) => "Choose a player to send to the Minor Leagues".to_owned(),
+                    (true, false) => "Buy Row".to_owned(),
+                    (false, true) => {
+                        format!("Waiting for {} to choose a demotion", club_name(buyer))
+                    }
+                    (false, false) => format!("Waiting for {} to buy", club_name(buyer)),
                 };
                 text(
                     title,
-                    format!("{} {decision}   ${} left", club_name(buyer), view.balance),
-                    21. * s,
-                    GOLD,
+                    prompt,
+                    if view.demotion_pending { 21. } else { 25. } * s,
+                    CREAM,
                 );
+                let funds = format!("{}   ${} left", buyer.abbreviation(), view.balance);
+                text(title, funds, 20. * s, GOLD);
             });
         heading.spawn(row(9. * s)).with_children(|options| {
             if matches!(view.decision, Some(Decision::Sign { .. })) {
-                action_button(
+                let region = Region {
+                    target: Target::new(view, Source::Finish),
+                    part: Part::Action,
+                };
+                let pass = action_button(
                     options,
                     SeatName::Choice("pass".into()),
                     "Finish buying",
                     Input::Submit(view.submission(Action::Pass)),
                     s,
                 );
+                options.commands().entity(pass).insert((
+                    region,
+                    BorderColor::all(PAPER),
+                    Node {
+                        padding: UiRect::axes(px(12. * s), px(6. * s)),
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(px(s)),
+                        ..default()
+                    },
+                ));
             }
             action_button(
                 options,
@@ -473,45 +637,34 @@ pub(super) fn draw(
         });
     });
 
-    root.spawn((
-        Node {
-            flex_direction: FlexDirection::Column,
-            justify_content: JustifyContent::End,
-            ..place(
-                layout.margin,
-                123. * s,
-                layout.deck_width,
-                layout.card_height,
-            )
-        },
-        Pickable::IGNORE,
-    ))
-    .with_children(|deck| {
-        pile(
-            deck,
-            "Free Agent Deck",
-            view.free_agent_deck,
-            (view.free_agent_deck > 0).then(|| prints.back.clone()),
-            s,
-            91. * s,
-        );
-    });
+    if view.demotion_pending
+        && let Some(roster) = buying_roster(view)
+    {
+        for (index, &player) in roster.in_play.iter().enumerate() {
+            in_play_card(root, view, layout, index as u8, player, prints);
+        }
+        root.spawn((
+            place(layout.margin, layout.market_y - 25. * s, 110. * s, 21. * s),
+            Pickable::IGNORE,
+        ))
+        .with_children(|heading| text(heading, "Buy Row", 17. * s, CREAM));
+    }
+    pile(
+        root,
+        "Free Agent Deck",
+        view.free_agent_deck,
+        (view.free_agent_deck > 0).then(|| prints.back.clone()),
+        layout.deck_top(),
+        s,
+        None,
+    );
     for offer in &view.offers {
         offer_card(root, view, layout, offer, prints);
     }
     let club_width = (outer_width - 14. * s) / 2.;
     for (index, roster) in view.rosters.iter().enumerate() {
         let x = layout.margin + index as f32 * (club_width + 14. * s);
-        club(
-            root,
-            view,
-            roster,
-            layout,
-            prints,
-            x,
-            club_width,
-            ui.selection,
-        );
+        club(root, view, roster, layout, prints, x, club_width);
     }
     root.spawn((
         place(layout.margin, layout.height - 34. * s, outer_width, 26. * s),
@@ -522,6 +675,16 @@ pub(super) fn draw(
             text(status, error, 16. * s, GOLD);
         } else if let Some(&event) = view.events.last() {
             text(status, controls::event_text(event), 15. * s, FIELD_LABEL);
+            if matches!(view.decision, Some(Decision::Sign { ref affordable }) if affordable.is_empty())
+                && let Some(cheapest) = view.offers.iter().map(|offer| offer.cost).min()
+            {
+                text(
+                    status,
+                    format!("   Lowest price ${cheapest}   ·   ${} left", view.balance),
+                    15. * s,
+                    GOLD,
+                );
+            }
         }
     });
     if let Some(selection) = ui.selection {
@@ -551,7 +714,7 @@ fn action_button(
     label: &str,
     input: Input,
     s: f32,
-) {
+) -> Entity {
     let button = controls::button(
         parent,
         name,
@@ -568,6 +731,7 @@ fn action_button(
         .commands()
         .entity(button)
         .with_children(|button| text(button, label, 15. * s, INK));
+    button
 }
 
 fn move_focus(
@@ -579,7 +743,7 @@ fn move_focus(
         .iter()
         .filter_map(|(region, _, control)| control.is_some().then_some(*region))
         .collect();
-    order.sort_by_key(|region| (region.target.slot, region.part));
+    order.sort_by_key(|region| (region.target.order(), region.part));
     if reverse {
         order.reverse();
     }
@@ -610,6 +774,7 @@ pub(super) fn interact(
     if interaction.revision != shown_revision {
         *interaction = Interaction {
             cursor: window.cursor_position(),
+            pointer_ready: interaction.revision.is_none(),
             revision: shown_revision,
             ..default()
         };
@@ -622,18 +787,24 @@ pub(super) fn interact(
     let cursor = window.cursor_position();
     if cursor != interaction.cursor {
         interaction.cursor = cursor;
+        interaction.pointer_ready = true;
         interaction.keyboard = false;
     }
     let pointed = regions
         .iter()
         .filter(|(region, hovered, _)| {
-            region.target.revision == revision && hovered.get() && cursor.is_some()
+            region.target.revision == revision
+                && hovered.get()
+                && cursor.is_some()
+                && interaction.pointer_ready
+                && region.target.source != Source::Finish
         })
         .max_by_key(|(region, _, _)| region.part != Part::Gap)
         .map(|(region, _, _)| *region);
     let clicked = interaction.clicked.take();
     if let Some(region) = clicked {
         interaction.focus = Some(region);
+        interaction.pointer_ready = true;
         interaction.keyboard = false;
     }
     let mut escape = false;
@@ -654,7 +825,9 @@ pub(super) fn interact(
             }
             KeyCode::Escape => {
                 escape = true;
-                if let Some(focus) = &mut interaction.focus {
+                if let Some(focus) = &mut interaction.focus
+                    && focus.target.source != Source::Finish
+                {
                     focus.part = Part::Face;
                 }
             }
@@ -682,7 +855,9 @@ pub(super) fn interact(
         return;
     }
     let target = if interaction.keyboard {
-        interaction.focus
+        interaction
+            .focus
+            .filter(|region| region.target.source != Source::Finish)
     } else {
         clicked.or(pointed)
     };
@@ -721,12 +896,24 @@ fn disclosure(
     root: &mut ChildSpawnerCommands,
     view: &Observation,
     target: Target,
-    offer: &Offer,
     layout: Layout,
     prints: &Prints,
 ) {
     let s = layout.scale;
-    let face = layout.face(target.slot);
+    let offer = target.offer(view);
+    let (face, player, help_id) = match (target.source, offer, target.in_play(view)) {
+        (Source::Offer(slot, _), Some(offer), _) => (
+            layout.face(slot),
+            offer.player,
+            format!("offer-help-{slot}"),
+        ),
+        (Source::InPlay(index, card), _, Some(player)) => (
+            layout.in_play_face(index),
+            player,
+            format!("in-play-help-{}", card.identity),
+        ),
+        _ => return,
+    };
     let help_width = 334. * s;
     let gap = 12. * s;
     let help_right = face.max.x + gap + help_width <= layout.width - layout.margin;
@@ -735,16 +922,18 @@ fn disclosure(
     } else {
         face.min.x - gap - help_width
     };
-    let help_y = face.max.y + 29. * s;
-    let help_height = if offer.player.pinch_hitter { 153. } else { 83. } * s;
+    let action_y = face.max.y + if offer.is_some() { 53. } else { 14. } * s;
+    let help_height = if player.pinch_hitter { 153. } else { 83. } * s;
+    let help_y = (face.max.y + if offer.is_some() { 29. } else { 14. } * s)
+        .min(layout.height - help_height - 20. * s);
     let region = Region {
         target,
         part: Part::Help,
     };
     let help = controls::button(
         root,
-        SeatName::Component(format!("offer-help-{}", offer.slot)),
-        format!("{}'s card symbols", offer.player.name),
+        SeatName::Component(help_id),
+        format!("{}'s card symbols", player.name),
         Input::ReadOffer(region),
         CREAM,
         Node {
@@ -759,12 +948,8 @@ fn disclosure(
     root.commands()
         .entity(help)
         .insert((region, BorderColor::all(CREAM)))
-        .with_children(|panel| {
-            card_help::draw(panel, prints, offer.player, s);
-        });
+        .with_children(|panel| card_help::draw(panel, prints, player, s));
 
-    // The face, its explanation and its action share hover identity. These
-    // transparent regions carry pointer travel and never submit a choice.
     let edge = if help_right {
         face.max.x
     } else {
@@ -774,52 +959,71 @@ fn disclosure(
     bridge(
         root,
         target,
-        place(face.min.x, face.max.y, face.width(), 53. * s),
+        place(face.min.x, face.max.y, face.width(), action_y - face.max.y),
     );
 
-    root.spawn((
-        Node {
-            justify_content: JustifyContent::Center,
-            ..place(face.min.x, face.max.y + 26. * s, face.width(), 26. * s)
-        },
-        Pickable::IGNORE,
-    ))
-    .with_children(|amount| {
-        text(
-            amount,
-            budget(offer, view.balance).replace('−', "-"),
-            13. * s,
-            GOLD,
-        )
-    });
-    if can_sign(view, offer) {
+    let action = if let Some(offer) = offer {
+        root.spawn((
+            Node {
+                justify_content: JustifyContent::Center,
+                ..place(face.min.x, face.max.y + 26. * s, face.width(), 26. * s)
+            },
+            Pickable::IGNORE,
+        ))
+        .with_children(|amount| text(amount, budget(offer, view.balance), 13. * s, GOLD));
+        can_sign(view, offer).then(|| {
+            (
+                format!("sign-{}-{}", offer.slot, player.card.instance),
+                format!("Sign {} for ${}", player.name, offer.cost),
+                Action::Sign {
+                    slot: offer.slot,
+                    card: player.card,
+                },
+                "Sign",
+                prints.autograph.clone(),
+                18. * s,
+            )
+        })
+    } else {
+        let card = player.card;
+        matches!(&view.decision, Some(Decision::Demote { eligible }) if eligible.contains(&card))
+            .then(|| {
+                (
+                    format!("demote-{}-{}", card.identity, card.instance),
+                    format!("Send {} to Minors", player.name),
+                    Action::Demote { card },
+                    "Send to Minors",
+                    prints.transfer_card.clone(),
+                    13. * s,
+                )
+            })
+    };
+
+    if let Some((choice, label, action, words, icon, text_size)) = action {
         let region = Region {
             target,
-            part: Part::Sign,
+            part: Part::Action,
         };
-        let sign = controls::button(
+        let button = controls::button(
             root,
-            SeatName::Choice(format!("sign-{}-{}", target.slot, target.card.instance)),
-            format!("Sign {} for ${}", offer.player.name, offer.cost),
-            Input::Submit(view.submission(Action::Sign {
-                slot: target.slot,
-                card: target.card,
-            })),
+            SeatName::Choice(choice),
+            label,
+            Input::Submit(view.submission(action)),
             GOLD,
             Node {
                 border: UiRect::all(px(2. * s)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 column_gap: px(6. * s),
-                ..place(face.min.x, face.max.y + 53. * s, face.width(), 34. * s)
+                ..place(face.min.x, action_y, face.width(), 34. * s)
             },
         );
         root.commands()
-            .entity(sign)
+            .entity(button)
             .insert((region, BorderColor::all(GOLD)))
             .with_children(|action| {
-                picture(action, prints.autograph.clone(), 27. * s, 27. * s);
-                text(action, "Sign", 18. * s, INK);
+                picture(action, icon, 27. * s, 27. * s);
+                text(action, words, text_size, INK);
             });
     }
 }
@@ -851,19 +1055,15 @@ pub(super) fn present(
             && let Ok((_, layout)) = layout.get(root)
         {
             let view = session.game.observe(session.seat);
-            if let Some(offer) = target.offer(&view) {
-                commands.entity(root).with_children(|root| {
-                    root.spawn((
-                        Disclosure,
-                        place(0., 0., layout.width, layout.height),
-                        ZIndex(2),
-                        Pickable::IGNORE,
-                    ))
-                    .with_children(|layer| {
-                        disclosure(layer, &view, target, offer, *layout, &prints)
-                    });
-                });
-            }
+            commands.entity(root).with_children(|root| {
+                root.spawn((
+                    Disclosure,
+                    place(0., 0., layout.width, layout.height),
+                    ZIndex(2),
+                    Pickable::IGNORE,
+                ))
+                .with_children(|layer| disclosure(layer, &view, target, *layout, &prints));
+            });
         }
     }
 
@@ -874,7 +1074,8 @@ pub(super) fn present(
             match region.part {
                 Part::Face if Some(region.target) == visible => GOLD,
                 Part::Face => CARD_FRAME,
-                Part::Sign => GOLD,
+                Part::Action if region.target.source == Source::Finish => PAPER,
+                Part::Action => GOLD,
                 Part::Help => CREAM,
                 Part::Gap => continue,
             }

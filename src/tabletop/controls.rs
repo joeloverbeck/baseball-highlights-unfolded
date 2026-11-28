@@ -1,4 +1,4 @@
-use super::{Prints, Session, between_games, field, market, revenue};
+use super::{Prints, Session, between_games, field, market, market_transfer, revenue};
 use baseball_highlights_unfolded::{
     Action, Card, Decision, Event, HitBox, Observation, Player, Seat, Submission,
 };
@@ -441,7 +441,7 @@ pub fn draw(
             revenue::draw(root, &view, &prints, ui.selection, ui.error.as_deref())
         });
     } else {
-        let layout = market::Layout::new(size);
+        let layout = market::Layout::new(size, view.demotion_pending);
         board.insert((layout, market::background()));
         board.with_children(|root| market::draw(root, layout, &view, &prints, &ui));
     }
@@ -482,6 +482,7 @@ impl seat::Game for AgentTable {
         let interaction = world.resource::<market::Interaction>();
         let market_inspection = interaction.reading(&view);
         let focus = interaction.focus();
+        let cards_in_motion = world.resource::<market_transfer::Playback>().moving();
         let observation = serde_json::to_value(&view).expect("public observation serializes");
         let viewport = viewport(world);
         let mut focused = None;
@@ -502,7 +503,7 @@ impl seat::Game for AgentTable {
             table: json!({
                 "controls": controls, "focus": focused,
                 "supported_keys": market::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
-                "market_inspection": market_inspection,
+                "market_inspection": market_inspection, "cards_in_motion": cards_in_motion,
                 "refresh_error": refresh_error, "revenue_inspection": revenue_inspection,
                 "dugout_inspection": dugout_inspection,
             }),
@@ -559,6 +560,9 @@ impl seat::Game for AgentTable {
         }
         if world.resource::<market::Interaction>().waiting() {
             return vec!["Card help".into()];
+        }
+        if world.resource::<market_transfer::Playback>().moving() {
+            return vec!["Card transfer".into()];
         }
         Vec::new()
     }
