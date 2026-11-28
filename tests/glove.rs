@@ -48,6 +48,26 @@ fn both_maris_glove_outcomes_are_visible_before_committing() {
         let bases = targets[1].diamonds[1].bases;
         assert_eq!(bases[0].unwrap().card.identity.to_string(), "FA-067");
         assert_eq!(&bases[1..], [None; 2]);
+
+        let movement = |target: usize| {
+            serde_json::to_value(&targets[target]).unwrap()["runner_advances"].clone()
+        };
+        let second = field.diamonds[1].bases[1].unwrap();
+        let maris = bases[0].unwrap();
+        assert_eq!(
+            movement(0),
+            serde_json::json!([
+                {"runner": second, "from_base": 2, "to_base": null},
+                {"runner": maris, "from_base": null, "to_base": null}
+            ])
+        );
+        assert_eq!(
+            movement(1),
+            serde_json::json!([
+                {"runner": second, "from_base": 2, "to_base": null},
+                {"runner": maris, "from_base": null, "to_base": 1}
+            ])
+        );
         assert_eq!(game.observe(Seat::SanFrancisco), sf);
         assert_eq!(game.observe(Seat::NewYork), ny);
         assert_eq!(std::fs::read(&path).unwrap(), initial_bytes);

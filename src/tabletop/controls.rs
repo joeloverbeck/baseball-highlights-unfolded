@@ -1,6 +1,6 @@
 use super::{Prints, Session, between_games, card_focus, field, market, market_transfer, revenue};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, HitBox, Observation, Player, Seat, Submission,
+    Action, Card, Decision, Event, Observation, Player, Seat, Submission,
 };
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
@@ -26,13 +26,20 @@ pub(super) enum Selection {
     Dugout(Seat),
     DugoutCard { seat: Seat, card: Card },
     History,
-    Glove(HitBox),
+    Glove(card_focus::Target),
 }
 
 #[derive(Resource, Default)]
 pub struct Interface {
     pub(super) selection: Option<Selection>,
     pub(super) error: Option<String>,
+}
+
+impl Interface {
+    pub(super) fn inspect(&mut self, selection: Selection) {
+        self.selection = Some(selection);
+        self.error = None;
+    }
 }
 
 #[derive(Clone)]
@@ -58,7 +65,7 @@ pub struct Board {
 
 fn click(
     event: On<PointerClick>,
-    controls: Query<&Control>,
+    controls: Query<(&Control, Option<&card_focus::Region>)>,
     mut session: ResMut<Session>,
     mut ui: ResMut<Interface>,
     mut card_focus: ResMut<card_focus::Interaction>,
@@ -66,13 +73,15 @@ fn click(
     if event.button != PointerButton::Primary {
         return;
     }
-    let Ok(control) = controls.get(event.entity) else {
+    let Ok((control, region)) = controls.get(event.entity) else {
         return;
     };
     match &control.input {
         Input::Inspect(selection) => {
-            ui.selection = Some(*selection);
-            ui.error = None;
+            ui.inspect(*selection);
+            if let Some(region) = region {
+                card_focus.click(*region);
+            }
         }
         Input::ReadCard(region) => card_focus.click(*region),
         Input::Close => {
@@ -448,6 +457,7 @@ impl seat::Game for AgentTable {
         let interaction = world.resource::<card_focus::Interaction>();
         let market_inspection = market::reading(&view, interaction.visible());
         let hand_inspection = field::hand::reading(&view, interaction.visible());
+        let glove_inspection = field::glove::reading(&view, interaction.visible());
         let focus = interaction.focus();
         let cards_in_motion = world.resource::<market_transfer::Playback>().moving();
         let observation = serde_json::to_value(&view).expect("public observation serializes");
@@ -458,6 +468,7 @@ impl seat::Game for AgentTable {
                 "viewport": [rect.min.x, rect.min.y, rect.width(), rect.height()],
                 "prompt": field::prompt(&view, game),
                 "threat": field::threat_summary(game),
+                "recent_plays": field::recent_plays(&view),
             })
         });
         let mut focused = None;
@@ -480,6 +491,7 @@ impl seat::Game for AgentTable {
                 "supported_keys": card_focus::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
                 "market_inspection": market_inspection, "cards_in_motion": cards_in_motion,
                 "stadium": stadium, "hand_inspection": hand_inspection,
+                "glove_inspection": glove_inspection,
                 "round_history": round_history,
                 "refresh_error": refresh_error, "revenue_inspection": revenue_inspection,
                 "dugout_inspection": dugout_inspection,

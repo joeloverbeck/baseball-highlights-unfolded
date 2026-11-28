@@ -1,10 +1,10 @@
 //! Joint pointer and keyboard focus for an actionable face and its disclosure.
 use super::{
     Session,
-    controls::{self, Input, Interface},
+    controls::{self, Input, Interface, Selection},
     field, market,
 };
-use baseball_highlights_unfolded::{Card, Observation, Seat};
+use baseball_highlights_unfolded::{Card, HitBox, Observation, Seat};
 use bevy::{
     input::keyboard::{Key, KeyboardFocusLost, KeyboardInput},
     picking::{hover::Hovered, prelude::Pickable},
@@ -21,6 +21,9 @@ const DWELL: Duration = Duration::from_millis(250);
 pub(super) enum Source {
     Hand(u8, Card),
     InPlay(u8, Card),
+    GloveFace(u8, Card),
+    GloveBox(HitBox),
+    UseGlove,
     Offer(u8, Card),
     Finish,
 }
@@ -47,10 +50,20 @@ impl Target {
 
     fn order(self) -> (u8, u8) {
         match self.source {
-            Source::Hand(index, _) | Source::InPlay(index, _) => (0, index),
+            Source::Hand(index, _) | Source::InPlay(index, _) | Source::GloveFace(index, _) => {
+                (0, index)
+            }
             Source::Offer(slot, _) => (1, slot),
-            Source::Finish => (2, 0),
+            Source::GloveBox(hit_box) => (1, hit_box.number),
+            Source::Finish | Source::UseGlove => (2, 0),
         }
+    }
+
+    fn has_help(self) -> bool {
+        !matches!(
+            self.source,
+            Source::Finish | Source::GloveBox(_) | Source::UseGlove
+        )
     }
 }
 
@@ -154,7 +167,8 @@ pub(super) fn interact(
     regions: Query<(&Region, &Hovered, Option<&controls::Control>)>,
 ) {
     let mut session = session;
-    let active = layout.single().is_ok() && ui.selection.is_none();
+    let active =
+        layout.single().is_ok() && matches!(ui.selection, None | Some(Selection::Glove(_)));
     let revision = session.game.revision();
     let shown_revision = active.then_some(revision);
     if interaction.revision != shown_revision {
@@ -183,7 +197,7 @@ pub(super) fn interact(
                 && hovered.get()
                 && cursor.is_some()
                 && interaction.pointer_ready
-                && region.target.source != Source::Finish
+                && region.target.has_help()
         })
         .max_by_key(|(region, _, _)| region.part != Part::Gap)
         .map(|(region, _, _)| *region);
@@ -212,26 +226,27 @@ pub(super) fn interact(
             KeyCode::Escape => {
                 escape = true;
                 if let Some(focus) = &mut interaction.focus
-                    && focus.target.source != Source::Finish
+                    && focus.target.has_help()
                 {
                     focus.part = Part::Face;
                 }
             }
             KeyCode::Enter | KeyCode::NumpadEnter => {
                 interaction.keyboard = true;
-                if let Some(action) = regions.iter().find_map(|(region, _, control)| {
-                    if Some(*region) == interaction.focus
-                        && let Some(controls::Control {
-                            input: Input::Submit(action),
-                            ..
-                        }) = control
-                    {
-                        return Some(action.clone());
+                let focused_input = regions.iter().find_map(|(region, _, control)| {
+                    (Some(*region) == interaction.focus)
+                        .then(|| control.map(|control| &control.input))
+                        .flatten()
+                });
+                match focused_input {
+                    Some(Input::Submit(action)) => {
+                        controls::submit(&mut session, &mut ui, action.clone());
+                        return;
                     }
-                    None
-                }) {
-                    controls::submit(&mut session, &mut ui, action);
-                    return;
+                    Some(Input::Inspect(selection @ Selection::Glove(_))) => {
+                        ui.inspect(*selection);
+                    }
+                    _ => {}
                 }
             }
             _ => {}
@@ -241,11 +256,11 @@ pub(super) fn interact(
         return;
     }
     let target = if interaction.keyboard {
-        interaction
-            .focus
-            .filter(|region| region.target.source != Source::Finish)
+        interaction.focus.filter(|region| region.target.has_help())
     } else {
-        clicked.or(pointed)
+        clicked
+            .filter(|region| region.target.has_help())
+            .or(pointed)
     };
     let dwell = if interaction.keyboard || clicked.is_some() {
         Duration::ZERO

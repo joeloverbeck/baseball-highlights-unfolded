@@ -132,6 +132,7 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
                 market_transfer::draw,
                 market_transfer::animate,
                 field::hand::present,
+                field::glove::present,
                 stage::draw,
                 controls::hover,
             )

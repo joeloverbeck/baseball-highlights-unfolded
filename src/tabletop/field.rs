@@ -1,17 +1,14 @@
+pub(super) mod glove;
 pub(super) mod hand;
 
 use super::{
     Prints,
-    controls::{
-        Board, CREAM, DARK, FIELD_LABEL, GOLD, INK, Input, MUTED, PAPER, Selection, col, picture,
-        row, short_button, text,
-    },
+    controls::{Board, CREAM, DARK, FIELD_LABEL, GOLD, INK, Selection, col, picture, row, text},
 };
 use baseball_highlights_unfolded::{
-    Action, Decision, Diamond, Event, FieldView, GlovePreview, Observation, Player, Seat,
+    Decision, Diamond, Event, FieldView, Observation, Player, Seat,
 };
 use bevy::{picking::prelude::Pickable, prelude::*};
-use unfolded_tabletop::seat::Name;
 
 const BACKGROUND: Color = Color::srgb_u8(21, 40, 47);
 const DIVIDER: Color = Color::srgb_u8(61, 84, 87);
@@ -83,10 +80,6 @@ fn index(seat: Seat) -> usize {
     }
 }
 
-fn score(diamonds: &[Diamond; 2]) -> String {
-    format!("NY {}  -  SF {}", diamonds[1].score, diamonds[0].score)
-}
-
 fn runners(diamond: &Diamond) -> Vec<String> {
     BASES
         .iter()
@@ -97,100 +90,6 @@ fn runners(diamond: &Diamond) -> Vec<String> {
             Some(format!("{base} / {name} ({})", runner.speed.label()))
         })
         .collect()
-}
-
-fn face(
-    spawner: &mut ChildSpawnerCommands,
-    prints: &Prints,
-    player: Player,
-    caption: &str,
-    scale: f32,
-) {
-    spawner.spawn(col(5. * scale)).with_children(|card| {
-        text(card, caption, 22. * scale, FIELD_LABEL);
-        picture(
-            card,
-            prints.front(player.card.identity),
-            202. * scale,
-            281. * scale,
-        );
-        text(card, player.name, 25. * scale, CREAM);
-    });
-}
-
-fn compare(
-    panel: &mut ChildSpawnerCommands,
-    view: &Observation,
-    field: &FieldView,
-    targets: &[GlovePreview],
-    selection: Option<Selection>,
-    scale: f32,
-) {
-    text(panel, "Glove target", 26. * scale, CREAM);
-    panel.spawn(row(12. * scale)).with_children(|choices| {
-        for preview in targets {
-            let target = preview.target;
-            let selected = selection == Some(Selection::Glove(target));
-            choices
-                .spawn((
-                    Node {
-                        flex_grow: 1.,
-                        flex_basis: px(0.),
-                        min_width: px(0.),
-                        padding: UiRect::all(px(11. * scale)),
-                        ..col(7. * scale)
-                    },
-                    BackgroundColor(Color::srgb(0.97, 0.91, 0.80)),
-                ))
-                .with_children(|choice| {
-                    short_button(
-                        choice,
-                        Name::Component(format!("glove-hit-box-{}", target.number)),
-                        format!(
-                            "Preview box {} / {}",
-                            target.number,
-                            preview.cancelled.label()
-                        ),
-                        Input::Inspect(Selection::Glove(target)),
-                        if selected { GOLD } else { PAPER },
-                    );
-                    let hits = preview
-                        .surviving
-                        .iter()
-                        .map(|threat| threat.hit.label())
-                        .collect::<Vec<_>>()
-                        .join(" then ");
-                    text(choice, format!("Survives   {hits}"), 23. * scale, INK);
-                    text(
-                        choice,
-                        format!("Projected   {}", score(&preview.diamonds)),
-                        23. * scale,
-                        INK,
-                    );
-                    let positions = runners(&preview.diamonds[index(field.batting)]);
-                    if positions.is_empty() {
-                        text(choice, "Bases empty", 22. * scale, MUTED);
-                    }
-                    for position in positions {
-                        text(choice, position, 22. * scale, MUTED);
-                    }
-                });
-        }
-    });
-    if let Some(preview) = targets
-        .iter()
-        .find(|preview| selection == Some(Selection::Glove(preview.target)))
-    {
-        short_button(
-            panel,
-            Name::Choice("commit-glove-target".into()),
-            format!("Commit Glove / Cancel box {}", preview.target.number),
-            Input::Submit(view.submission(Action::CancelHit {
-                target: preview.target,
-            })),
-            GOLD,
-        );
-    }
 }
 
 fn field_event(event: Event) -> Option<String> {
@@ -260,6 +159,19 @@ fn field_event(event: Event) -> Option<String> {
         }
         _ => None,
     }
+}
+
+pub(super) fn recent_plays(view: &Observation) -> Vec<String> {
+    let mut recent: Vec<_> = view
+        .events
+        .iter()
+        .rev()
+        .copied()
+        .map_while(field_event)
+        .take(4)
+        .collect();
+    recent.reverse();
+    recent
 }
 
 fn game_header(
@@ -492,62 +404,31 @@ fn adjacent(
         }
         return;
     }
-    root.spawn((
-        Node {
-            flex_direction: FlexDirection::Column,
-            row_gap: px(11. * s),
-            ..layout.place(1120., 258., 768., 718.)
-        },
-        Pickable::IGNORE,
-    ))
-    .with_children(|panel| {
-        if let Some(play) = &game.play {
-            let defender = if game.glove_pending {
-                game.acting
-            } else {
-                game.batting
-            };
-            panel.spawn(row(31. * s)).with_children(|sources| {
-                face(
-                    sources,
-                    prints,
-                    play.batter,
-                    &format!("{} play", defender.opponent().abbreviation()),
-                    s,
-                );
-                let action = if view.standing.is_none() || game.glove_pending {
-                    "Glove"
-                } else {
-                    "play"
-                };
-                face(
-                    sources,
-                    prints,
-                    play.defender,
-                    &format!("{} {action}", defender.abbreviation()),
-                    s,
-                );
+    if let Some(play) = &game.play {
+        glove::draw_faces(root, layout, view, game, play, prints);
+    }
+    if let Some(Decision::Glove { targets }) = &view.decision {
+        glove::draw_outcomes(root, layout, view, game, targets, selection);
+    } else {
+        let panel_top = if game.play.is_some() { 619. } else { 258. };
+        root.spawn((
+            Node {
+                ..layout.place(1120., panel_top, 768., 240.)
+            },
+            Pickable::IGNORE,
+        ))
+        .with_children(|panel| {
+            panel.spawn(col(9. * s)).with_children(|history| {
+                for entry in recent_plays(view) {
+                    text(history, entry, 22. * s, FIELD_LABEL);
+                }
             });
-        }
-        if let Some(Decision::Glove { targets }) = &view.decision {
-            compare(panel, view, game, targets, selection, s);
-        } else {
-            let recent: Vec<_> = view
-                .events
-                .iter()
-                .rev()
-                .copied()
-                .map_while(field_event)
-                .take(4)
-                .collect();
-            for entry in recent.into_iter().rev() {
-                text(panel, entry, 22. * s, FIELD_LABEL);
-            }
-        }
-        if let Some(error) = error {
-            text(panel, error, 21. * s, GOLD);
-        }
-    });
+        });
+    }
+    if let Some(error) = error {
+        root.spawn((layout.place(1120., 950., 768., 45.), Pickable::IGNORE))
+            .with_children(|status| text(status, error, 21. * s, GOLD));
+    }
 }
 
 pub fn draw(
