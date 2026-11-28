@@ -10,6 +10,10 @@ args = ["mcp", "--automation-read-root", ".", "--automation-write-root", "art"]
 command = "figcraft-cli"
 args = ["mcp", "--automation-read-root", ".", "--automation-write-root", "art"]
 
+[mcp_servers.photocraft-baseball-highlights]
+command = "photocraft-cli"
+args = ["mcp", "--headless", "--no-gpu", "--automation-read-root", ".", "--automation-write-root", "art"]
+
 [mcp_servers.blender]
 command = "uvx"
 args = ["--python", "3.11", "--from", "mcp-for-blender==2.3.1", "mcp-for-blender"]

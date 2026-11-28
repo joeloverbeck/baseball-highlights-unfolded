@@ -31,6 +31,18 @@
         "art"
       ]
     },
+    "photocraft-baseball-highlights": {
+      "command": "photocraft-cli",
+      "args": [
+        "mcp",
+        "--headless",
+        "--no-gpu",
+        "--automation-read-root",
+        ".",
+        "--automation-write-root",
+        "art"
+      ]
+    },
     "blender": {
       "command": "uvx",
       "args": [
