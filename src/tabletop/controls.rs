@@ -1,4 +1,4 @@
-use super::{Prints, Session, between_games, field, market, market_transfer, revenue};
+use super::{Prints, Session, between_games, card_focus, field, market, market_transfer, revenue};
 use baseball_highlights_unfolded::{
     Action, Card, Decision, Event, HitBox, Observation, Player, Seat, Submission,
 };
@@ -25,7 +25,6 @@ pub(super) enum Selection {
     PublicCard(Card),
     Dugout(Seat),
     DugoutCard { seat: Seat, card: Card },
-    HandCard(Card),
     History,
     Glove(HitBox),
 }
@@ -39,7 +38,7 @@ pub struct Interface {
 #[derive(Clone)]
 pub(super) enum Input {
     Inspect(Selection),
-    ReadOffer(market::Region),
+    ReadCard(card_focus::Region),
     Submit(Submission),
     Close,
 }
@@ -62,7 +61,7 @@ fn click(
     controls: Query<&Control>,
     mut session: ResMut<Session>,
     mut ui: ResMut<Interface>,
-    mut market: ResMut<market::Interaction>,
+    mut card_focus: ResMut<card_focus::Interaction>,
 ) {
     if event.button != PointerButton::Primary {
         return;
@@ -75,7 +74,7 @@ fn click(
             ui.selection = Some(*selection);
             ui.error = None;
         }
-        Input::ReadOffer(region) => market.click(*region),
+        Input::ReadCard(region) => card_focus.click(*region),
         Input::Close => {
             ui.selection = None;
             ui.error = None;
@@ -85,6 +84,10 @@ fn click(
 }
 
 pub(super) fn submit(session: &mut Session, ui: &mut Interface, submission: Submission) {
+    if session.seat != submission.seat {
+        ui.error = Some("This decision belongs to the other manager.".into());
+        return;
+    }
     match session.game.submit(submission) {
         Ok(()) => {
             ui.selection = None;
@@ -102,7 +105,7 @@ pub fn hover(
             &mut BackgroundColor,
             Has<revenue::ReadingControl>,
         ),
-        (Changed<Hovered>, Without<market::Region>),
+        (Changed<Hovered>, Without<card_focus::Region>),
     >,
 ) {
     for (hovered, control, mut color, reading) in &mut buttons {
@@ -218,51 +221,6 @@ pub(super) fn short_button(
         .commands()
         .entity(id)
         .with_children(|button| text(button, label, 16., INK));
-}
-
-pub(super) fn hits(card: Player) -> String {
-    if card.threatened_hits.is_empty() {
-        "No threatened hits".into()
-    } else {
-        format!("Threats  {}", card.threatened_hits.join(" / "))
-    }
-}
-
-pub(super) fn card_rail(
-    parent: &mut ChildSpawnerCommands,
-    players: &[Player],
-    prints: &Prints,
-    selection: Option<Selection>,
-    selection_for: fn(Card) -> Selection,
-    first_position: usize,
-) {
-    parent.spawn(row(6.)).with_children(|rail| {
-        for (position, &player) in players.iter().enumerate() {
-            let item = selection_for(player.card);
-            let id = button(
-                rail,
-                SeatName::Component(format!("inspect-{}", player.card.identity)),
-                format!(
-                    "Inspect {}, position {}",
-                    player.name,
-                    first_position + position
-                ),
-                Input::Inspect(item),
-                if selection == Some(item) { GOLD } else { PAPER },
-                Node {
-                    flex_basis: px(0.),
-                    flex_grow: 1.,
-                    min_width: px(0.),
-                    padding: UiRect::all(px(6.)),
-                    ..row(5.)
-                },
-            );
-            rail.commands().entity(id).with_children(|tile| {
-                picture(tile, prints.front(player.card.identity), 28., 39.);
-                text(tile, player.name, 14., INK);
-            });
-        }
-    });
 }
 
 pub(super) fn inspector(
@@ -406,6 +364,7 @@ pub fn draw(
     if let Some(position) = &view.field {
         field::draw(
             &mut commands,
+            field::Layout::new(size),
             &view,
             position,
             &prints,
@@ -479,12 +438,21 @@ impl seat::Game for AgentTable {
             revenue::inspected_contributor(&view, world.resource::<Interface>().selection);
         let dugout_inspection =
             between_games::inspection(&view, world.resource::<Interface>().selection);
-        let interaction = world.resource::<market::Interaction>();
-        let market_inspection = interaction.reading(&view);
+        let interaction = world.resource::<card_focus::Interaction>();
+        let market_inspection = market::reading(&view, interaction.visible());
+        let hand_inspection = field::hand::reading(&view, interaction.visible());
         let focus = interaction.focus();
         let cards_in_motion = world.resource::<market_transfer::Playback>().moving();
         let observation = serde_json::to_value(&view).expect("public observation serializes");
         let viewport = viewport(world);
+        let stadium = view.field.as_ref().zip(viewport).map(|(game, size)| {
+            let rect = field::Layout::new(size).stadium();
+            json!({
+                "viewport": [rect.min.x, rect.min.y, rect.width(), rect.height()],
+                "prompt": field::prompt(&view, game),
+                "threat": field::threat_summary(game),
+            })
+        });
         let mut focused = None;
         let controls: Vec<_> = controls(world).into_iter().filter_map(|(entity, control)| {
             let target = seat::ui_target(world, entity, viewport)?;
@@ -492,7 +460,7 @@ impl seat::Game for AgentTable {
                 SeatName::Component(name) => (Some(name), None),
                 SeatName::Choice(name) => (None, Some(name)),
             };
-            if focus.is_some() && world.get::<market::Region>(entity).copied() == focus {
+            if focus.is_some() && world.get::<card_focus::Region>(entity).copied() == focus {
                 focused = Some(json!({ "component": component, "choice": choice, "label": control.label }));
             }
             Some(json!({"component": component, "choice": choice, "label": control.label,
@@ -502,8 +470,9 @@ impl seat::Game for AgentTable {
             observation,
             table: json!({
                 "controls": controls, "focus": focused,
-                "supported_keys": market::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
+                "supported_keys": card_focus::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
                 "market_inspection": market_inspection, "cards_in_motion": cards_in_motion,
+                "stadium": stadium, "hand_inspection": hand_inspection,
                 "refresh_error": refresh_error, "revenue_inspection": revenue_inspection,
                 "dugout_inspection": dugout_inspection,
             }),
@@ -558,7 +527,7 @@ impl seat::Game for AgentTable {
         if !layout || viewport(world).is_none() {
             return vec!["Table layout".into()];
         }
-        if world.resource::<market::Interaction>().waiting() {
+        if world.resource::<card_focus::Interaction>().waiting() {
             return vec!["Card help".into()];
         }
         if world.resource::<market_transfer::Playback>().moving() {
@@ -568,11 +537,11 @@ impl seat::Game for AgentTable {
     }
 
     fn focus(&self, world: &mut World) -> seat::Focus {
-        let Some(focus) = world.resource::<market::Interaction>().focus() else {
+        let Some(focus) = world.resource::<card_focus::Interaction>().focus() else {
             return seat::Focus::Nothing;
         };
         for (entity, control) in controls(world) {
-            if world.get::<market::Region>(entity).copied() == Some(focus) {
+            if world.get::<card_focus::Region>(entity).copied() == Some(focus) {
                 return seat::Focus::Control {
                     choice: match control.name {
                         SeatName::Choice(name) => Some(name),
@@ -586,7 +555,7 @@ impl seat::Game for AgentTable {
     }
 
     fn keys(&self) -> &[seat::SeatKey] {
-        &market::KEYS
+        &card_focus::KEYS
     }
 
     fn interrupts(&self, _world: &mut World, input: seat::Interrupt<'_>) -> bool {

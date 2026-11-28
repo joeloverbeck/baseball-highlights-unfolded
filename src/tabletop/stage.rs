@@ -146,11 +146,21 @@ pub fn viewport(
     let (mut camera, mut pose, mut projection) = camera.into_inner();
     let scale = window.scale_factor();
     let field = session.game.has_field();
-    let height = if field { field::HEIGHT } else { FIELD };
-    let viewport = Viewport {
-        physical_position: UVec2::new(0, (HEADER * scale).round() as u32),
-        physical_size: UVec2::new(window.physical_width(), (height * scale).round() as u32),
-        ..default()
+    let viewport = if field {
+        let rect = field::Layout::new(Vec2::new(window.width(), window.height())).stadium();
+        let start = (rect.min * scale).round().as_uvec2();
+        let end = (rect.max * scale).round().as_uvec2();
+        Viewport {
+            physical_position: start,
+            physical_size: end - start,
+            ..default()
+        }
+    } else {
+        Viewport {
+            physical_position: UVec2::new(0, (HEADER * scale).round() as u32),
+            physical_size: UVec2::new(window.physical_width(), (FIELD * scale).round() as u32),
+            ..default()
+        }
     };
     if !camera.viewport.as_ref().is_some_and(|current| {
         current.physical_position == viewport.physical_position

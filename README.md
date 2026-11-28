@@ -67,6 +67,8 @@ Run `scripts/native-buy-round --game-two` for the tracked Foxx and Maris replay 
 
 Run `scripts/native-buy-round --start-game` to inspect both public Dugouts from both seats and start game two. It verifies the modified opening hands and exercises the ordinary X11 window at 1080 × 720 and 3840 × 2160.
 
+Run `scripts/native-stadium` to replay the Visitor opener through both manager seats and the ordinary X11 app at 1080 × 720 and 3840 × 2160. The route checks the exact physical card, private hands, keyboard inspection, slow pointer travel across all six card gaps and the anchored stadium. It saves captures, the measured geometry, the manager transcript and the executable digest in the printed evidence directory.
+
 Run `scripts/native-glove` with the same prerequisites to exercise both Glove commitments, switching previews, the NY observer and reopening the pending SF choice.
 
 If Xvfb reports `failed to bind listener` or `Cannot establish any listening sockets` inside an agent sandbox, retry the same smoke launcher with permission to access its isolated local X11 socket. Run it as your normal user. The sandbox can restrict socket access even when Xvfb is installed and available on PATH.

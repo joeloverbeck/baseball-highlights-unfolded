@@ -1,4 +1,5 @@
 mod between_games;
+mod card_focus;
 mod card_help;
 mod controls;
 mod field;
@@ -119,17 +120,18 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
     app.insert_resource(prints)
         .insert_resource(Session { game, seat })
         .init_resource::<controls::Interface>()
-        .init_resource::<market::Interaction>()
+        .init_resource::<card_focus::Interaction>()
         .init_resource::<market_transfer::Playback>()
         .add_systems(Startup, (camera, stage::setup))
         .add_systems(
             Update,
             (
                 controls::draw,
-                market::interact,
+                card_focus::interact,
                 market::present,
                 market_transfer::draw,
                 market_transfer::animate,
+                field::hand::present,
                 stage::draw,
                 controls::hover,
             )
