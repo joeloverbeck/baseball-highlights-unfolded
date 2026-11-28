@@ -1,6 +1,6 @@
-use super::{FIELD, HEADER, Prints, Session};
+use super::{FIELD, HEADER, Prints, Session, field};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, Observation, Offer, Player, Revenue, Seat, Submission,
+    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Revenue, Seat, Submission,
 };
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
@@ -10,19 +10,20 @@ use bevy::{
 use serde_json::json;
 use unfolded_tabletop::seat::{self, Admission, Hit, Name as SeatName, Observed};
 
-const INK: Color = Color::srgb(0.14, 0.10, 0.07);
-const MUTED: Color = Color::srgb(0.34, 0.24, 0.15);
-const CREAM: Color = Color::srgb(0.97, 0.91, 0.80);
-const PAPER: Color = Color::srgb(0.92, 0.84, 0.69);
-const GOLD: Color = Color::srgb(0.96, 0.78, 0.48);
-const DARK: Color = Color::srgb(0.10, 0.16, 0.13);
-const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
+pub(super) const INK: Color = Color::srgb(0.14, 0.10, 0.07);
+pub(super) const MUTED: Color = Color::srgb(0.34, 0.24, 0.15);
+pub(super) const CREAM: Color = Color::srgb(0.97, 0.91, 0.80);
+pub(super) const PAPER: Color = Color::srgb(0.92, 0.84, 0.69);
+pub(super) const GOLD: Color = Color::srgb(0.96, 0.78, 0.48);
+pub(super) const DARK: Color = Color::srgb(0.10, 0.16, 0.13);
+pub(super) const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
 
 #[derive(Clone, Copy, PartialEq)]
-enum Selection {
+pub(super) enum Selection {
     Offer { slot: u8, card: Card },
     PublicCard(Card),
     History,
+    Glove(HitBox),
 }
 
 #[derive(Resource, Default)]
@@ -32,7 +33,7 @@ pub struct Interface {
 }
 
 #[derive(Clone)]
-enum Input {
+pub(super) enum Input {
     Inspect(Selection),
     Submit(Submission),
     Close,
@@ -48,7 +49,7 @@ pub(super) struct Control {
 
 #[derive(Component, Clone)]
 pub struct Board {
-    revision: u64,
+    pub(super) revision: u64,
 }
 
 fn click(
@@ -85,7 +86,10 @@ fn click(
                             card: replacement,
                         })
                     }
-                    Action::ChooseOrder { .. } | Action::Demote { .. } | Action::Pass => None,
+                    Action::ChooseOrder { .. }
+                    | Action::Demote { .. }
+                    | Action::Pass
+                    | Action::CancelHit { .. } => None,
                 };
                 ui.error = None;
             }
@@ -100,7 +104,7 @@ pub fn hover(mut buttons: Query<(&Hovered, &Control, &mut BackgroundColor), Chan
     }
 }
 
-fn col(gap: f32) -> Node {
+pub(super) fn col(gap: f32) -> Node {
     Node {
         flex_direction: FlexDirection::Column,
         row_gap: px(gap),
@@ -108,14 +112,19 @@ fn col(gap: f32) -> Node {
     }
 }
 
-fn row(gap: f32) -> Node {
+pub(super) fn row(gap: f32) -> Node {
     Node {
         column_gap: px(gap),
         ..default()
     }
 }
 
-fn text(parent: &mut ChildSpawnerCommands, words: impl Into<String>, size: f32, color: Color) {
+pub(super) fn text(
+    parent: &mut ChildSpawnerCommands,
+    words: impl Into<String>,
+    size: f32,
+    color: Color,
+) {
     parent.spawn((
         Text::new(words),
         TextFont {
@@ -127,7 +136,12 @@ fn text(parent: &mut ChildSpawnerCommands, words: impl Into<String>, size: f32, 
     ));
 }
 
-fn picture(parent: &mut ChildSpawnerCommands, handle: Handle<Image>, width: f32, height: f32) {
+pub(super) fn picture(
+    parent: &mut ChildSpawnerCommands,
+    handle: Handle<Image>,
+    width: f32,
+    height: f32,
+) {
     parent.spawn((
         ImageNode::new(handle),
         Node {
@@ -168,7 +182,7 @@ fn button(
         .id()
 }
 
-fn short_button(
+pub(super) fn short_button(
     parent: &mut ChildSpawnerCommands,
     name: SeatName,
     label: String,
@@ -374,6 +388,9 @@ fn event_text(event: Event) -> String {
             "{} finished buying. ${unspent} expired.",
             seat.abbreviation(),
         ),
+        Event::GloveCancelled { .. } | Event::HitResolved { .. } | Event::ThreatsPlaced { .. } => {
+            unreachable!("only Buy Round events reach the Buy Round panel")
+        }
     }
 }
 
@@ -485,6 +502,17 @@ pub fn draw(
         commands.entity(entity).despawn();
     }
     let view = session.game.observe(session.seat);
+    if let Some(position) = &view.field {
+        field::draw(
+            &mut commands,
+            &view,
+            position,
+            &prints,
+            ui.selection,
+            ui.error.as_deref(),
+        );
+        return;
+    }
     commands.spawn((
         Board { revision: view.revision },
         Node { width: percent(100.), height: percent(100.), ..col(0.) },
@@ -628,7 +656,11 @@ impl seat::Game for AgentTable {
         }
         Hit {
             name: None,
-            description: json!({ "surface": "Buy Round" }),
+            description: json!({ "surface": if world.resource::<Session>().game.glove_review().is_some() {
+                "Field"
+            } else {
+                "Buy Round"
+            } }),
         }
     }
 
@@ -639,7 +671,7 @@ impl seat::Game for AgentTable {
             .iter(world)
             .any(|board| board.revision == revision);
         if !layout || viewport(world).is_none() {
-            return vec!["Buy Row layout".into()];
+            return vec!["Table layout".into()];
         }
         Vec::new()
     }

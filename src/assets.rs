@@ -1,5 +1,5 @@
 //! Admission for the owner-local original collection and its approved proxy faces.
-use crate::{CardId, series::buy_round_face_ids};
+use crate::{CardId, GloveReview, series::buy_round_face_ids};
 use image::DynamicImage;
 use serde::Deserialize;
 use std::{
@@ -88,7 +88,21 @@ impl Collection {
     }
 
     pub fn buy_round_faces(&self) -> Result<HashMap<CardId, DynamicImage>, String> {
-        buy_round_face_ids()
+        self.public_faces(buy_round_face_ids())
+    }
+
+    pub fn glove_review_faces(
+        &self,
+        fixture: GloveReview,
+    ) -> Result<HashMap<CardId, DynamicImage>, String> {
+        self.public_faces(fixture.face_ids())
+    }
+
+    fn public_faces(
+        &self,
+        identities: impl Iterator<Item = CardId>,
+    ) -> Result<HashMap<CardId, DynamicImage>, String> {
+        identities
             .map(CardId::printed_face)
             .collect::<BTreeSet<_>>()
             .into_iter()

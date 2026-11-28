@@ -14,11 +14,19 @@ Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey
 
 The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` with a fresh path to start at the purchase-order choice. Two desktop windows using the same save can follow each other’s turns. Close and relaunch to resume whichever choice is pending. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output.
 
+## Review the Glove decision
+
+Run `cargo run --locked -- --review-glove` to open the high field camera as SF. NY leads 2–1 with an average runner on second. Select **Preview box 1 / Single** or **Preview box 2 / Home run** to compare the effects while the live field holds. Select **Commit Glove / Cancel box 1** for NY 4–SF 1 with empty bases, or **Commit Glove / Cancel box 2** for NY 3–SF 1 with Mickey Maris on first. In either case, SF’s single then waits at home. The scorecard lists the committed events in order.
+
+Close and reopen the same save to resume. Add `--seat ny` in a second window to follow the public field as NY. The review has its own `glove-review.json` in the same state directory as the Buy Round. Use `--review-glove --save FILE` with a fresh path for the other outcome. The review ends after this play.
+
 ## Repository checks
 
 CI runs `cargo fmt --check`, the Buy Round rules and save tests with `cargo test --locked --no-default-features`, and `cargo check --locked --all-targets` for the Ubuntu app. With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` for the original-set ledger and design restore checks.
 
 Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with X11 capture support, and the audited owner-local card collection. It uses the normal desktop binary on an isolated display to exercise primary and secondary clicks, both signings and refills, close and resume, and the face-down piles and Dugouts. It prints the adapter and the temporary directory containing captures, logs, and the scratch save. Use `--assets DIRECTORY` for another copy of the collection or set `WGPU_ADAPTER_NAME` to select an available Vulkan adapter.
+
+Run `scripts/native-glove` with the same prerequisites to exercise both Glove commitments, switching previews, the NY observer and reopening the pending SF choice.
 
 ## Project documents
 

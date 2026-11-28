@@ -1,13 +1,13 @@
 identity,tts_id,instances,art,implementation,verification,evidence
 ST-059,1700,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
-ST-057,1701,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
+ST-057,1701,1,present,buy-round-revenue-and-dugout + glove-review-average-runner,buy-round-tested + glove-native-smoke,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 3 / 15 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 ST-046,1704,1,present,pending,pending,
-ST-056,1705,1,present,buy-round-revenue-and-demotion,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
+ST-056,1705,1,present,buy-round-revenue-and-demotion + glove-review-lone-opposing-single,buy-round-tested + glove-manager-seat-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 ST-049,1709,1,present,pending,pending,
 ST-058,1710,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 ST-053,1713,1,present,pending,pending,
 ST-052,1715,1,present,pending,pending,
-ST-050,1716,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
+ST-050,1716,1,present,buy-round-revenue-and-dugout + glove-review-no-opposing-threat,buy-round-tested + glove-manager-seat-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 ST-047,1719,1,present,pending,pending,
 ST-060,1720,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 ST-010,1723,1,present,pending,pending,
@@ -21,7 +21,7 @@ ST-008,1804,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 /
 ST-005,1805,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-013,1806,1,present,pending,pending,
 ST-012,1807,1,present,pending,pending,
-ST-001,1808,1,present,pending,pending,
+ST-001,1808,1,present,glove-and-single,glove-native-smoke,issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 ST-006,1809,1,present,pending,pending,
 ST-010,1810,1,present,pending,pending,
 ST-036,1812,1,present,pending,pending,
@@ -97,11 +97,11 @@ FA-111,2124,1,present,pending,pending,
 FA-112,2125,1,present,pending,pending,
 FA-109,2126,1,present,pending,pending,
 FA-108,2127,1,present,pending,pending,
-FA-082,2300,1,present,pending,pending,
+FA-082,2300,1,present,glove-single-double,glove-manager-seat-tested,issue #7 / RB 11 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 FA-068,2301,1,present,buy-round-refill,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 FA-077,2302,1,present,pending,pending,
 FA-107,2303,1,present,pending,pending,
-FA-067,2304,1,present,buy-round-refill-inspection-and-signing,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
+FA-067,2304,1,present,buy-round-refill-inspection-and-signing + glove-review-single-and-home-run,buy-round-tested + glove-native-smoke,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 FA-120,2305,1,present,pending,pending,
 HC-564,2306,1,present,pending,pending,
 FA-086,2307,1,present,pending,pending,
@@ -135,7 +135,7 @@ FA-081,2408,1,present,pending,pending,
 FA-085,2409,1,present,pending,pending,
 FA-093,2410,1,present,pending,pending,
 FA-084,2411,1,present,pending,pending,
-FA-096,2412,1,present,pending,pending,
+FA-096,2412,1,present,three-ordered-singles,glove-manager-seat-tested,issue #7 / RB 11 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 FA-098,2413,1,present,pending,pending,
 FA-095,2414,1,present,pending,pending,
 FA-083,2415,1,present,pending,pending,

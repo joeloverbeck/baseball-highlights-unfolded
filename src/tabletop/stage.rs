@@ -1,6 +1,6 @@
 //! Textured solids present the committed zones. Transfers are cosmetic playback.
-use super::{FIELD, HEADER, Prints, Session};
-use baseball_highlights_unfolded::{CardId, Event};
+use super::{FIELD, HEADER, Prints, Session, field};
+use baseball_highlights_unfolded::{CardId, Event, FieldView, RunnerSpeed};
 use bevy::{
     camera::{ScalingMode, Viewport},
     prelude::*,
@@ -25,6 +25,11 @@ const LINEUP: f32 = 5.7;
 const IN_PLAY: f32 = 8.2;
 const MINORS: f32 = 10.7;
 const OTHER_DUGOUT: f32 = 1.5;
+// Press Box artboard is 720 by 420 points, mapped at 60 points per
+// world unit. Base locations are the centres of the authored paths.
+const PARK_WIDTH: f32 = 12.;
+const PARK_DEPTH: f32 = 7.;
+const BASE_CENTRES: [(f32, f32); 3] = [(446.32, 302.6), (360., 236.2), (273.68, 302.6)];
 const CARD: TurningCard = TurningCard::new(WIDTH, LENGTH, card::CORNER_FRACTION, THICKNESS, 0.001);
 
 #[derive(Component)]
@@ -37,6 +42,10 @@ pub struct Stock {
     fronts: HashMap<CardId, Handle<StandardMaterial>>,
     face: Handle<Mesh>,
     solid: Handle<Mesh>,
+    pawn: Handle<Mesh>,
+    pawn_colors: [Handle<StandardMaterial>; 3],
+    speed_mark: Handle<Mesh>,
+    speed_ink: [Handle<StandardMaterial>; 2],
 }
 
 impl Stock {
@@ -69,9 +78,30 @@ fn printed(
 pub fn setup(
     mut commands: Commands,
     prints: Res<Prints>,
+    session: Res<Session>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+    let field_review = session.game.glove_review().is_some();
+    let (scaling_mode, pose, backdrop_size, backdrop_y) = if field_review {
+        (
+            ScalingMode::FixedVertical {
+                viewport_height: PARK_DEPTH,
+            },
+            Transform::from_xyz(0., 18., 0.).looking_at(Vec3::ZERO, Vec3::NEG_Z),
+            Vec2::new(PARK_WIDTH, PARK_DEPTH),
+            -0.01,
+        )
+    } else {
+        (
+            ScalingMode::FixedHorizontal {
+                viewport_width: 25.5,
+            },
+            Transform::from_xyz(0., 13., 6.).looking_at(Vec3::ZERO, Vec3::Y),
+            Vec2::new(28., 8.),
+            -1.2,
+        )
+    };
     commands.spawn((
         StageCamera,
         Camera3d::default(),
@@ -84,17 +114,15 @@ pub fn setup(
             ..default()
         },
         Projection::Orthographic(OrthographicProjection {
-            scaling_mode: ScalingMode::FixedHorizontal {
-                viewport_width: 25.5,
-            },
+            scaling_mode,
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_xyz(0., 13., 6.).looking_at(Vec3::ZERO, Vec3::Y),
+        pose,
     ));
     commands.spawn((
-        Mesh3d(meshes.add(Rectangle::new(28., 8.))),
+        Mesh3d(meshes.add(Rectangle::from_size(backdrop_size))),
         MeshMaterial3d(printed(&mut materials, prints.park.clone())),
-        Transform::from_xyz(0., -1.2, 0.).with_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
+        Transform::from_xyz(0., backdrop_y, 0.).with_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
     ));
     commands.spawn((
         DirectionalLight {
@@ -113,17 +141,34 @@ pub fn setup(
             .collect(),
         face: meshes.add(CARD.face_mesh()),
         solid: meshes.add(CARD.paper_mesh()),
+        pawn: meshes.add(Cylinder::new(0.23, 0.14)),
+        pawn_colors: [
+            materials.add(Color::srgb(0.96, 0.92, 0.82)),
+            materials.add(Color::srgb(0.15, 0.43, 0.72)),
+            materials.add(Color::srgb(0.75, 0.19, 0.14)),
+        ],
+        speed_mark: meshes.add(Cuboid::new(0.033, 0.02, 0.16)),
+        speed_ink: [
+            materials.add(Color::srgb(0.11, 0.19, 0.19)),
+            materials.add(Color::srgb(0.97, 0.91, 0.78)),
+        ],
     });
 }
 
 pub fn viewport(
     window: Single<&Window, With<PrimaryWindow>>,
     mut camera: Single<&mut Camera, With<StageCamera>>,
+    session: Res<Session>,
 ) {
     let scale = window.scale_factor();
+    let height = if session.game.glove_review().is_some() {
+        field::HEIGHT
+    } else {
+        FIELD
+    };
     let viewport = Viewport {
         physical_position: UVec2::new(0, (HEADER * scale).round() as u32),
-        physical_size: UVec2::new(window.physical_width(), (FIELD * scale).round() as u32),
+        physical_size: UVec2::new(window.physical_width(), (height * scale).round() as u32),
         ..default()
     };
     if !camera.viewport.as_ref().is_some_and(|current| {
@@ -222,6 +267,62 @@ fn transfer(path: CardMove, face_down: bool) -> CardMove {
     path.lifted(Lift::arc(0.72)).turned(turn)
 }
 
+fn field_position(x: f32, y: f32) -> Vec3 {
+    Vec3::new((x - 360.) / 60., 0., (y - 210.) / 60.)
+}
+
+fn pawn(commands: &mut Commands, stock: &Stock, at: Vec3, speed: RunnerSpeed) {
+    let bars = match speed {
+        RunnerSpeed::Slow => 1,
+        RunnerSpeed::Average => 2,
+        RunnerSpeed::Fast => 3,
+    };
+    commands
+        .spawn((
+            Scene,
+            Mesh3d(stock.pawn.clone()),
+            MeshMaterial3d(stock.pawn_colors[bars - 1].clone()),
+            Transform::from_translation(at + 0.07 * Vec3::Y),
+        ))
+        .with_children(|marker| {
+            for bar in 0..bars {
+                let x = (bar as f32 - (bars - 1) as f32 / 2.) * 0.08;
+                marker.spawn((
+                    Mesh3d(stock.speed_mark.clone()),
+                    MeshMaterial3d(stock.speed_ink[usize::from(bars > 1)].clone()),
+                    Transform::from_xyz(x, 0.075, 0.),
+                ));
+            }
+        });
+}
+
+fn field_scene(commands: &mut Commands, stock: &Stock, view: &FieldView) {
+    for (base, (x, y)) in BASE_CENTRES.into_iter().enumerate() {
+        let at = field_position(x, y);
+        let [sf, ny] = view.diamonds.map(|diamond| diamond.bases[base]);
+        let separation = if sf.is_some() && ny.is_some() {
+            0.24
+        } else {
+            0.
+        };
+        for (runner, offset) in [(sf, -separation), (ny, separation)] {
+            if let Some(runner) = runner {
+                pawn(commands, stock, at + offset * Vec3::X, runner.speed);
+            }
+        }
+    }
+    let home = field_position(360., 369.);
+    for (index, threat) in view.threatened.iter().enumerate() {
+        let offset = (index as f32 - (view.threatened.len() - 1) as f32 / 2.) * 0.51;
+        pawn(
+            commands,
+            stock,
+            home + Vec3::new(offset, 0., 0.40),
+            threat.batter.speed,
+        );
+    }
+}
+
 pub fn draw(
     mut commands: Commands,
     session: Res<Session>,
@@ -239,6 +340,10 @@ pub fn draw(
     }
     let latest = shown.is_some().then(|| view.events.last()).flatten();
     *shown = Some(view.revision);
+    if let Some(field) = &view.field {
+        field_scene(&mut commands, &stock, field);
+        return;
+    }
     let presented = view.buyer.unwrap_or(view.seat);
     let roster = view
         .rosters
