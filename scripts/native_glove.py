@@ -1,19 +1,22 @@
 """Exercise both Glove outcomes through the ordinary Ubuntu window."""
 
 import argparse
-import os
 from pathlib import Path
 from struct import iter_unpack
 import subprocess
 import sys
 import tempfile
 
-from PIL import ImageChops, ImageGrab
+from PIL import ImageChops
 
-from native_buy_round import build, click, close, launch, position, require, wait_for, xdotool
+from native_buy_round import (
+    GAME_SIZE, build, capture_when, check_display, click, close, launch, position, require,
+    wait_for, xdotool,
+)
 
 
 TITLE = "Baseball Highlights / Glove Review"
+OBSERVER_X = GAME_SIZE[0] + 32
 BOXES = {1: (555, 440), 2: (1000, 440)}
 BOX_COLOR_SAMPLES = {1: (400, 433), 2: (900, 433)}
 COMMIT = (805, 580)
@@ -25,7 +28,10 @@ LIVE = (0, 0, 1280, 360)
 
 
 def review_window(executable, save, assets, log, seat="sf"):
-    return launch(executable, save, assets, log, seat, title=TITLE, args=("--review-glove",))
+    origin = (OBSERVER_X if seat == "ny" else 0, 0)
+    return launch(
+        executable, save, assets, log, seat, title=TITLE, args=("--review-glove",), origin=origin,
+    )
 
 
 def focus(window):
@@ -33,14 +39,8 @@ def focus(window):
     xdotool("mousemove", "--window", window, 5, 4)
 
 
-def capture_when(table, path, ready):
-    def frame():
-        image = ImageGrab.grab(bbox=table, xdisplay=os.environ["DISPLAY"]).convert("RGB")
-        return image if image.getpixel((1000, 760)) == PAPER and ready(image) else None
-
-    image = wait_for(frame, f"the Glove review frame for {path.name}")
-    image.save(path)
-    return image
+def capture_review(table, path, ready):
+    return capture_when(table, path, lambda image: image.getpixel((1000, 760)) == PAPER and ready(image))
 
 
 def selection_is(image, selected):
@@ -87,17 +87,17 @@ def check_resolution(save, cancelled):
 def check_pending(executable, assets, evidence, save):
     with review_window(executable, save, assets, evidence / "sf-before.log") as (sf, window, table):
         focus(window)
-        opening = capture_when(table, evidence / "sf-opening.png", lambda im: selection_is(im, None))
+        opening = capture_review(table, evidence / "sf-opening.png", lambda im: selection_is(im, None))
         require(blue_pawn(opening, (640, 227)), "Expected the average runner on second")
         pending = save.read_bytes()
         with review_window(executable, save, assets, evidence / "ny-before.log", "ny") as (ny, other, other_table):
             focus(other)
-            observed = capture_when(other_table, evidence / "ny-opening.png", observer_panel)
+            observed = capture_review(other_table, evidence / "ny-opening.png", observer_panel)
             focus(window)
             for step, selected in enumerate((1, 2, 1), 1):
                 click(window, BOXES[selected])
                 focus(window)
-                preview = capture_when(
+                preview = capture_review(
                     table, evidence / f"sf-preview-{step}.png",
                     lambda im: selection_is(im, selected),
                 )
@@ -107,7 +107,7 @@ def check_pending(executable, assets, evidence, save):
             focus(other)
             click(other, COMMIT)
             focus(other)
-            observer_preview = capture_when(other_table, evidence / "ny-during-preview.png",
+            observer_preview = capture_review(other_table, evidence / "ny-during-preview.png",
                                             observer_panel)
             require(not ImageChops.difference(observed, observer_preview).getbbox(),
                     "SF's local preview changed NY's window")
@@ -120,12 +120,12 @@ def check_pending(executable, assets, evidence, save):
 def commit(executable, assets, evidence, save, box, pending=None):
     with review_window(executable, save, assets, evidence / f"sf-commit-{box}.log") as (sf, window, table):
         focus(window)
-        capture_when(table, evidence / f"sf-pending-{box}.png", lambda im: selection_is(im, None))
+        capture_review(table, evidence / f"sf-pending-{box}.png", lambda im: selection_is(im, None))
         if pending is not None:
             require(save.read_bytes() == pending, "Resumed a different pending Glove decision")
         click(window, BOXES[box])
         focus(window)
-        capture_when(table, evidence / f"sf-selected-{box}.png", lambda im: selection_is(im, box))
+        capture_review(table, evidence / f"sf-selected-{box}.png", lambda im: selection_is(im, box))
         before = save.read_bytes()
         click(window, COMMIT, button=3)
         require(save.read_bytes() == before, "Secondary click committed the Glove")
@@ -136,7 +136,7 @@ def commit(executable, assets, evidence, save, box, pending=None):
         committed = save.read_bytes()
         click(window, COMMIT)
         require(save.read_bytes() == committed, "The same click committed the Glove twice")
-        capture_when(table, evidence / f"sf-resolved-{box}.png",
+        capture_review(table, evidence / f"sf-resolved-{box}.png",
                      lambda im: not blue_pawn(im, (640, 227))
                      and blue_pawn(im, (703, 275)) == (box == 2))
         close(sf, window)
@@ -149,6 +149,7 @@ def main():
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-glove."))
     print(f"Native Glove evidence in {evidence}", flush=True)
     try:
+        check_display("scripts/native-glove", (OBSERVER_X + GAME_SIZE[0], GAME_SIZE[1]))
         executable = build()
         first = evidence / "cancel-single.json"
         pending = check_pending(executable, args.assets, evidence, first)

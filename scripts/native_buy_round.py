@@ -80,8 +80,25 @@ def xdotool(*args, check=True):
     )
 
 
+def check_display(launcher, minimum=GAME_SIZE):
+    display = os.environ.get("DISPLAY")
+    if not display:
+        raise RuntimeError(f"Launch through {launcher} to start the isolated display.")
+    try:
+        width, height = map(int, xdotool("getdisplaygeometry").stdout.split())
+        ImageGrab.grab(bbox=(0, 0, 1, 1), xdisplay=display)
+    except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
+        raise RuntimeError(f"Could not capture the X11 display for {launcher} ({display}): {error}") from error
+    min_width, min_height = minimum
+    if width < min_width or height < min_height:
+        raise RuntimeError(
+            f"{launcher} requires a display of at least {min_width}x{min_height}, "
+            f"found {width}x{height} on {display}."
+        )
+
+
 @contextmanager
-def launch(executable, save, assets, log, seat=None, *, title=TITLE, args=()):
+def launch(executable, save, assets, log, seat=None, *, title=TITLE, args=(), origin=None):
     command = [executable, "--save", str(save), *args]
     if seat:
         command += ["--seat", seat]
@@ -105,6 +122,8 @@ def launch(executable, save, assets, log, seat=None, *, title=TITLE, args=()):
         try:
             window = wait_for(find_window, f"the game window. See {log}")
             print(f"Vulkan adapter ({log.stem}) {vulkan_adapter(log)}", flush=True)
+            if origin is not None:
+                xdotool("windowmove", "--sync", window, *origin)
             xdotool("windowraise", window, "windowfocus", "--sync", window)
             geometry = dict(
                 line.split("=", 1)
@@ -113,6 +132,8 @@ def launch(executable, save, assets, log, seat=None, *, title=TITLE, args=()):
             x, y, width, height = (int(geometry[key]) for key in ("X", "Y", "WIDTH", "HEIGHT"))
             if (width, height) != GAME_SIZE:
                 raise RuntimeError(f"Expected the default 1280x800 window, found {width}x{height}")
+            if origin is not None and (x, y) != origin:
+                raise RuntimeError(f"Expected window {window} at {origin}, found {(x, y)}. See {log}")
             yield game, window, (x, y, x + width, y + height)
         finally:
             if game.poll() is None:
@@ -172,10 +193,23 @@ def close(game, window):
         raise RuntimeError("Game did not exit successfully after the window close")
 
 
-def capture(table, path, *, piles=None):
+def capture_when(table, path, ready):
+    latest = None
+
     def frame():
-        image = ImageGrab.grab(bbox=table, xdisplay=os.environ["DISPLAY"]).convert("RGB")
-        image.save(path)
+        nonlocal latest
+        latest = ImageGrab.grab(bbox=table, xdisplay=os.environ["DISPLAY"]).convert("RGB")
+        return latest if ready(latest) else None
+
+    try:
+        return wait_for(frame, f"the expected frame. See {path}")
+    finally:
+        if latest is not None:
+            latest.save(path)
+
+
+def capture(table, path, *, piles=None):
+    def matches_piles(image):
         if piles is None:
             return True
 
@@ -191,7 +225,7 @@ def capture(table, path, *, piles=None):
                 return False
         return True
 
-    wait_for(frame, f"the expected face-down piles. See {path}")
+    capture_when(table, path, matches_piles)
 
 
 def position(save):
@@ -284,11 +318,7 @@ def main():
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-buy-round."))
     print(f"Native Buy Round evidence in {evidence}", flush=True)
     try:
-        display = os.environ.get("DISPLAY")
-        if not display:
-            raise RuntimeError("Launch through scripts/native-buy-round to start the isolated display.")
-        xdotool("getdisplaygeometry")
-        ImageGrab.grab(bbox=(0, 0, 1, 1), xdisplay=display)
+        check_display("scripts/native-buy-round")
         smoke(build(), args.assets, evidence)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(error, file=sys.stderr)
