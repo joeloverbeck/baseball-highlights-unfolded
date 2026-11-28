@@ -323,11 +323,11 @@ pub(super) fn prompt(view: &Observation, game: &FieldView) -> String {
         if view.acting_manager == Some(view.seat) {
             "Which hit will you cancel?".into()
         } else {
-            format!("{} is choosing a Glove target", club_name(game.acting))
+            format!("{} chooses a Glove target", game.acting.abbreviation())
         }
     } else if view.acting_manager.is_none() {
         if view.standing.is_some() {
-            "Game two opening review complete".into()
+            "Game 2 opening complete".into()
         } else {
             "Glove resolved".into()
         }

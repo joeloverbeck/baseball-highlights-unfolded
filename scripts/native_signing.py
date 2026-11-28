@@ -140,6 +140,12 @@ def review_managers(executable, assets, evidence):
                 and waiting["observation"]["events"] == signed["events"],
                 "NY must see SF's active decision, funds and history while waiting")
         pending_bytes = save.read_bytes()
+        activate(ny, "ny", [], save, "component", "inspect-slot-5")
+        refill = observe(ny)
+        require(refill["table"]["market_inspection"]["budget"] == "$5 short"
+                and all(not (item["choice"] or "").startswith("sign-") for item in refill["table"]["controls"])
+                and save.read_bytes() == pending_bytes,
+                "NY can read the $5 shortfall on Maris during SF's demotion without signing")
         shutil.copyfile(save, pending_save)
         for name, seat, card in (
             ("waiting-seat", "ny", eligible[0]),
@@ -215,14 +221,24 @@ def center(box):
     return (left + right) // 2, (top + bottom) // 2
 
 
-def secondary_offers(image):
+def secondary_offer_faces(image):
     minimum = image.width // 19
     borders = []
     for y in range(round(image.height * 0.53), round(image.height * 0.83)):
         runs = row_runs(image, y, FRAME, minimum)
         if len(runs) == 6:
-            borders.append(y)
-    return len(borders) >= 2 and borders[-1] - borders[0] > image.height / 8
+            borders.append((y, runs))
+    if len(borders) < 2:
+        return None
+    top, runs = borders[0]
+    bottom, _ = borders[-1]
+    if bottom - top <= image.height / 8:
+        return None
+    return [(left, top, right, bottom) for left, right in runs]
+
+
+def secondary_offers(image):
+    return bool(secondary_offer_faces(image))
 
 
 def demotion_action(image, face, scale, color=GOLD):

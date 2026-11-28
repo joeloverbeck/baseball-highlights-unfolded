@@ -97,6 +97,12 @@ impl Interaction {
         self.clicked = Some(region);
     }
 
+    pub(super) fn focus_accessible(&mut self, region: Region) {
+        self.clicked = None;
+        self.focus = Some(region);
+        self.keyboard = true;
+    }
+
     pub(super) fn waiting(&self) -> bool {
         self.hover.waiting()
     }

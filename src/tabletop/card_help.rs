@@ -49,19 +49,43 @@ pub(super) fn symbols(player: Player) -> impl Iterator<Item = Symbol> {
 
 pub(super) fn draw(parent: &mut ChildSpawnerCommands, prints: &Prints, player: Player, scale: f32) {
     for symbol in symbols(player) {
-        parent
-            .spawn(Node {
-                align_items: AlignItems::Center,
-                ..row(10. * scale)
-            })
-            .with_children(|line| {
-                picture(
-                    line,
-                    prints.card_symbols[symbol.image].clone(),
-                    34. * scale,
-                    34. * scale,
-                );
-                text(line, symbol.meaning, 15. * scale, INK);
-            });
+        line(parent, prints, symbol, scale, Val::Auto, 15. * scale);
     }
+}
+
+pub(super) fn draw_side_by_side(
+    parent: &mut ChildSpawnerCommands,
+    prints: &Prints,
+    player: Player,
+    scale: f32,
+    width: f32,
+) {
+    for symbol in symbols(player) {
+        line(parent, prints, symbol, scale, px(width), 14. * scale);
+    }
+}
+
+fn line(
+    parent: &mut ChildSpawnerCommands,
+    prints: &Prints,
+    symbol: Symbol,
+    scale: f32,
+    width: Val,
+    font_size: f32,
+) {
+    parent
+        .spawn(Node {
+            align_items: AlignItems::Center,
+            width,
+            ..row(10. * scale)
+        })
+        .with_children(|line| {
+            picture(
+                line,
+                prints.card_symbols[symbol.image].clone(),
+                34. * scale,
+                34. * scale,
+            );
+            text(line, symbol.meaning, font_size, INK);
+        });
 }

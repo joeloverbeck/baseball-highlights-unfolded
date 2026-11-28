@@ -15,7 +15,7 @@ import tempfile
 from PIL import ImageChops
 
 from native_buy_round import (
-    build, capture_when, check_display, close, launch, position, require, wait_for, xdotool,
+    build, capture_when, check_display, click, close, launch, position, require, wait_for, xdotool,
 )
 
 
@@ -144,6 +144,11 @@ def replay_managers(executable, assets, evidence, save, trace):
         def choose_ny(kind, name):
             return activate(ny, "ny", trace, save, kind, name)
 
+        before = save.read_bytes()
+        activate(ny, "ny", [], save, "component", "inspect-slot-2")
+        require(any(control["component"] == "close-inspection" for control in observe(ny)["table"]["controls"]),
+                "NY must be able to inspect a Free Agent while waiting for the order")
+        require(save.read_bytes() == before, "Revenue offer inspection changed the save")
         choose_sf("choice", "buy-first-sf")
         choose_sf("component", "inspect-slot-2")
         purchase(choose_sf, "FA-065", "ST-004", "FA-067")
@@ -158,6 +163,10 @@ def replay_managers(executable, assets, evidence, save, trace):
             choose_sf("component", f"open-dugout-{team}")
             choose_sf("component", "close-dugout")
         require(save.read_bytes() == before, "Opening the public Dugouts changed the save")
+        activate(ny, "ny", [], save, "component", "open-dugout-sf")
+        require(observe(ny)["table"]["dugout_inspection"] is not None,
+                "NY must be able to inspect SF's public Dugout before Game 2")
+        require(save.read_bytes() == before, "The waiting manager's Dugout inspection changed the save")
         sf_drawn = choose_sf("choice", "start-game-two")
         shutil.copyfile(save, evidence / "sf-hand-position.json")
         ny_drawn = observe(ny)["observation"]
@@ -188,8 +197,14 @@ def replay_managers(executable, assets, evidence, save, trace):
             require(preview == pending and save.read_bytes() == before, "A Glove preview committed a change")
 
         committed = choose_sf("choice", "commit-glove-target")
-        observer = observe(ny)["observation"]
+        observed = [observe(request) for request in (sf, ny)]
+        observer = observed[1]["observation"]
         field = committed["field"]
+        for reply in observed:
+            faces = {item["component"]: item["label"] for item in reply["table"]["controls"]}
+            require(faces.get("inspect-glove-batter") == "Inspect Mickey Maris, NY In Play / Previous batter"
+                    and faces.get("inspect-glove-defender") == "Inspect Frankie Foxx, SF In Play / Threatened hits",
+                    "Both seats must identify Foxx as the current threat and Maris as the previous batter")
         require(committed["decision"] is None and observer["decision"] is None and field == observer["field"],
                 "Both seats must see the same completed field without a pending action")
         sf_diamond, ny_diamond = field["diamonds"]
@@ -209,8 +224,8 @@ def replay_managers(executable, assets, evidence, save, trace):
 def replay_desktop(executable, assets, evidence, save, trace, size):
     from native_glove import choice_point, no_choices, pawn_at, selection_is
     from native_market import GOLD, PAPER, annotation, card_boxes, client_bounds, move
-    from native_purchase_order import point
-    from native_signing import center, demotion_action, finish_buttons, press, secondary_offers
+    from native_purchase_order import panel_visible, point
+    from native_signing import center, demotion_action, finish_buttons, press, secondary_offer_faces, secondary_offers
     from native_stadium import action_span, check_park, faces_visible, geometry
 
     width, height = size
@@ -218,6 +233,7 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
     stadium_scale, park, hand_faces = geometry(size)
     offer_faces = None
     selected_face = None
+    demotion_market = None
 
     def matchup(image):
         return image.getpixel(point(size, 0.04, 0.26)) == (36, 60, 64)
@@ -243,7 +259,7 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
         return game, window, bounds
 
     def aim(entry, capture):
-        nonlocal offer_faces, selected_face
+        nonlocal offer_faces, selected_face, demotion_market
         name = entry.name
         seat = entry.seat
         if name == "buy-first-sf":
@@ -289,10 +305,14 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
             if entry.kind == "component":
                 index = next(i for i, card in enumerate(club["in_play"]) if card["identity"] == identity)
                 opened = capture(f"{seat}-eligible", pending_demotion)
+                demotion_market = [(box, opened.crop(box)) for box in secondary_offer_faces(opened)]
                 selected_face = card_boxes(opened)[index]
                 return center(selected_face)
             prepared = capture(f"{seat}-send-to-minors",
                                lambda image: demotion_action(image, selected_face, scale))
+            require(all(ImageChops.difference(face, prepared.crop(box)).getbbox() is None
+                        for box, face in demotion_market),
+                    "Demotion help must leave all six replenished offers completely visible")
             return demotion_action(prepared, selected_face, scale)
 
         require(name.startswith(("inspect-", "play-")), f"No physical route to {name}")
@@ -311,6 +331,16 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
         windows = {"sf": open_window(exits, "sf", "sf-desktop")}
         if size == SIZES[0]:
             windows["ny"] = open_window(exits, "ny", "ny-desktop")
+            _, window, bounds = windows["ny"]
+            xdotool("windowraise", window, "windowfocus", "--sync", window)
+            offer = point(size, 0.32, 0.27)
+            move(window, offer)
+            capture_when(bounds, evidence / "ny-revenue.png",
+                         lambda image: image.getpixel((304, 313)) == (64, 94, 99))
+            before = file_digest(save)
+            click(window, offer)
+            capture_when(bounds, evidence / "ny-revenue-offer.png", panel_visible)
+            require(file_digest(save) == before, "Reading a revenue-screen offer changed the save")
         live_glove = None
         for step, entry in enumerate(trace, 1):
             if entry.seat not in windows:
@@ -325,6 +355,13 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
 
             before = file_digest(save)
             target = aim(entry, capture)
+            if entry.name == "start-game-two" and size == SIZES[0]:
+                _, observer, observed_bounds = windows["ny"]
+                capture_when(observed_bounds, evidence / "ny-dugout-matchup.png", matchup)
+                click(observer, point(size, 0.19, 0.72))
+                capture_when(observed_bounds, evidence / "ny-dugout-before-start.png", dugouts)
+                require(file_digest(save) == before, "Reading SF's Dugout changed the save")
+                xdotool("windowraise", window, "windowfocus", "--sync", window)
             press(window, target)
             label = f"{entry.seat.upper()} / {entry.label}"
             if entry.kind == "choice":

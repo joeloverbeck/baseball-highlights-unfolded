@@ -1,11 +1,13 @@
 use super::{Prints, Session, between_games, card_focus, field, market, market_transfer, revenue};
+use accesskit::{Action as AccessibleAction, Node as AccessibleNode, Role};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, Observation, Player, Seat, Submission,
+    Action, Card, Decision, Event, Observation, Player, Refusal, Seat, Submission,
 };
 use bevy::{
+    a11y::{AccessibilityNode, ActionRequest},
+    input_focus::{FocusCause, InputFocus},
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
     prelude::*,
-    ui::prelude::AccessibleLabel,
     window::PrimaryWindow,
 };
 use serde_json::json;
@@ -76,6 +78,56 @@ fn click(
     let Ok((control, region)) = controls.get(event.entity) else {
         return;
     };
+    activate(control, region, &mut session, &mut ui, &mut card_focus);
+}
+
+pub(super) fn accessibility(
+    mut requests: MessageReader<ActionRequest>,
+    controls: Query<(&Control, Option<&card_focus::Region>)>,
+    mut session: ResMut<Session>,
+    mut ui: ResMut<Interface>,
+    mut card_focus: ResMut<card_focus::Interaction>,
+) {
+    for request in requests.read() {
+        if request.action == AccessibleAction::Click
+            && let Some(entity) = Entity::try_from_bits(request.target_node.0)
+            && let Ok((control, region)) = controls.get(entity)
+        {
+            activate(control, region, &mut session, &mut ui, &mut card_focus);
+            if let Some(region) = region {
+                card_focus.focus_accessible(*region);
+            }
+        }
+    }
+}
+
+pub(super) fn accessibility_focus(
+    card_focus: Res<card_focus::Interaction>,
+    controls: Query<(Entity, &card_focus::Region), With<Control>>,
+    mut focus: ResMut<InputFocus>,
+) {
+    let next = card_focus.keyboard_focus().and_then(|active| {
+        controls
+            .iter()
+            .find_map(|(entity, region)| (active == *region).then_some(entity))
+    });
+    if focus.get() != next {
+        if let Some(entity) = next {
+            focus.set(entity, FocusCause::Navigated);
+        } else {
+            // Bevy still routes keys to the window with no focused control.
+            focus.clear();
+        }
+    }
+}
+
+fn activate(
+    control: &Control,
+    region: Option<&card_focus::Region>,
+    session: &mut ResMut<Session>,
+    ui: &mut ResMut<Interface>,
+    card_focus: &mut ResMut<card_focus::Interaction>,
+) {
     match &control.input {
         Input::Inspect(selection) => {
             ui.inspect(*selection);
@@ -88,7 +140,7 @@ fn click(
             ui.selection = None;
             ui.error = None;
         }
-        Input::Submit(submission) => submit(&mut session, &mut ui, submission.clone()),
+        Input::Submit(submission) => submit(session, ui, submission.clone()),
     }
 }
 
@@ -186,6 +238,9 @@ pub(super) fn button(
     node: Node,
 ) -> Entity {
     let label = label.into();
+    let mut accessible = AccessibleNode::new(Role::Button);
+    accessible.set_label(label.as_str());
+    accessible.add_action(AccessibleAction::Click);
     parent
         .spawn((
             Pickable::default(),
@@ -195,7 +250,7 @@ pub(super) fn button(
             },
             BackgroundColor(color),
             Hovered::default(),
-            AccessibleLabel::new(label.clone()),
+            AccessibilityNode::from(accessible),
             Control {
                 name,
                 label,
@@ -337,18 +392,27 @@ pub(super) fn event_text(event: Event) -> String {
     }
 }
 
+fn refresh_session(session: &mut Mut<Session>) -> Result<bool, Refusal> {
+    let advanced = session.bypass_change_detection().game.refresh()?;
+    if advanced {
+        session.set_changed();
+    }
+    Ok(advanced)
+}
+
 pub fn refresh(
     time: Res<Time>,
     mut elapsed: Local<std::time::Duration>,
-    mut session: ResMut<Session>,
+    session: ResMut<Session>,
+    mut ui: ResMut<Interface>,
 ) {
     *elapsed += time.delta();
     if *elapsed < std::time::Duration::from_millis(250) {
         return;
     }
     *elapsed = std::time::Duration::ZERO;
-    if matches!(session.bypass_change_detection().game.refresh(), Ok(true)) {
-        session.set_changed();
+    if matches!(refresh_session(&mut session.into()), Ok(true)) {
+        *ui = Interface::default();
     }
 }
 
@@ -435,14 +499,15 @@ fn viewport(world: &mut World) -> Option<Vec2> {
 
 impl seat::Game for AgentTable {
     fn observe(&self, world: &mut World) -> Observed {
-        let (view, refresh_error) = {
+        let (view, refreshed) = {
             let mut session = world.resource_mut::<Session>();
-            let refreshed = session.bypass_change_detection().game.refresh();
-            if matches!(refreshed, Ok(true)) {
-                session.set_changed();
-            }
-            (session.game.observe(session.seat), refreshed.is_err())
+            let refreshed = refresh_session(&mut session);
+            (session.game.observe(session.seat), refreshed)
         };
+        if matches!(refreshed, Ok(true)) {
+            *world.resource_mut::<Interface>() = Interface::default();
+        }
+        let refresh_error = refreshed.is_err();
         let selection = world.resource::<Interface>().selection;
         let revenue_inspection = revenue::inspected_contributor(&view, selection);
         let dugout_inspection = between_games::inspection(&view, selection);

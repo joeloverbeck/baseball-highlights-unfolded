@@ -87,8 +87,8 @@ impl Layout {
             demotion,
         };
         if demotion {
-            layout.card_width = (slot_width - 22. * scale).min(167. * scale) * 0.64;
-            layout.market_y = layout.in_play_face(0).max.y + 65. * scale;
+            layout.card_width = (slot_width - 22. * scale).min(130. * scale) * 0.64;
+            layout.market_y = layout.in_play_face(0).max.y + 115. * scale;
         }
         layout
     }
@@ -101,7 +101,7 @@ impl Layout {
 
     pub(super) fn in_play_face(self, index: u8) -> Rect {
         let stride = (self.width - 2. * self.margin) / 6.;
-        let width = (stride - 21. * self.scale).min(166. * self.scale);
+        let width = (stride - 21. * self.scale).min(151. * self.scale);
         let x = self.margin + (f32::from(index) + 0.5) * stride - width / 2.;
         face_rect(x, 117. * self.scale, width)
     }
@@ -117,7 +117,7 @@ impl Layout {
     }
 
     fn club_top(self) -> f32 {
-        self.face(1).max.y + if self.demotion { 35. } else { 95. } * self.scale
+        self.face(1).max.y + if self.demotion { 38. } else { 95. } * self.scale
     }
 
     fn pile_height(self) -> f32 {
@@ -669,18 +669,32 @@ fn disclosure(
         ),
         _ => return,
     };
-    let help_width = 334. * s;
     let gap = 12. * s;
-    let help_right = face.max.x + gap + help_width <= layout.width - layout.margin;
-    let help_x = if help_right {
-        face.max.x + gap
+    let help_width = if layout.demotion {
+        (if player.pinch_hitter { 890. } else { 446. }) * s
     } else {
-        face.min.x - gap - help_width
+        334. * s
     };
+    let help_right = face.max.x + gap + help_width <= layout.width - layout.margin;
     let action_y = face.max.y + if offer.is_some() { 53. } else { 14. } * s;
-    let help_height = if player.pinch_hitter { 153. } else { 83. } * s;
-    let help_y = (face.max.y + if offer.is_some() { 29. } else { 14. } * s)
-        .min(layout.height - help_height - 20. * s);
+    let (help_x, help_y, help_height) = if layout.demotion {
+        // Keep both rows of cards unobscured. The help uses the space between
+        // the demotion action and the Buy Row, with the two symbols side by side.
+        let left = (face.center().x - help_width / 2.).clamp(
+            layout.margin + 116. * s,
+            layout.width - layout.margin - help_width,
+        );
+        (left, layout.market_y - 65. * s, 62. * s)
+    } else {
+        let left = if help_right {
+            face.max.x + gap
+        } else {
+            face.min.x - gap - help_width
+        };
+        let height = if player.pinch_hitter { 153. } else { 83. } * s;
+        let top = (face.max.y + 29. * s).min(layout.height - height - 20. * s);
+        (left, top, height)
+    };
     let region = Region {
         target,
         part: Part::Help,
@@ -693,64 +707,91 @@ fn disclosure(
         CREAM,
         Node {
             border: UiRect::all(px(2. * s)),
-            padding: UiRect::all(px(7. * s)),
+            padding: UiRect::axes(px(7. * s), px(if layout.demotion { 2. } else { 7. } * s)),
             justify_content: JustifyContent::Center,
-            flex_direction: FlexDirection::Column,
+            flex_direction: if layout.demotion {
+                FlexDirection::Row
+            } else {
+                FlexDirection::Column
+            },
             row_gap: px(5. * s),
+            column_gap: px(10. * s),
             ..place(help_x, help_y, help_width, help_height)
         },
     );
     root.commands()
         .entity(help)
         .insert((region, BorderColor::all(CREAM)))
-        .with_children(|panel| card_help::draw(panel, prints, player, s));
+        .with_children(|panel| {
+            if layout.demotion {
+                card_help::draw_side_by_side(panel, prints, player, s, 430. * s);
+            } else {
+                card_help::draw(panel, prints, player, s);
+            }
+        });
 
-    let edge = if help_right {
-        face.max.x
+    if !layout.demotion || offer.is_none() {
+        bridge(
+            root,
+            target,
+            place(face.min.x, face.max.y, face.width(), action_y - face.max.y),
+        );
+    }
+    if layout.demotion {
+        let (top, bottom) = if offer.is_some() {
+            (help_y + help_height, face.min.y)
+        } else {
+            (action_y + 34. * s, help_y)
+        };
+        let left = face.min.x.max(help_x);
+        let right = face.max.x.min(help_x + help_width);
+        bridge(root, target, place(left, top, right - left, bottom - top));
     } else {
-        face.min.x - gap
-    };
-    bridge(root, target, place(edge, help_y, gap, 61. * s));
-    bridge(
-        root,
-        target,
-        place(face.min.x, face.max.y, face.width(), action_y - face.max.y),
-    );
+        let edge = if help_right {
+            face.max.x
+        } else {
+            face.min.x - gap
+        };
+        bridge(root, target, place(edge, help_y, gap, 61. * s));
+    }
 
     let action = if let Some(offer) = offer {
-        if !layout.demotion {
-            root.spawn((
-                Node {
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    column_gap: px(4. * s),
-                    ..place(face.min.x, face.max.y + 26. * s, face.width(), 24. * s)
-                },
-                Pickable::IGNORE,
-            ))
-            .with_children(|amount| {
-                if let Some(left) = offer.balance_after {
-                    text(amount, format!("${}", view.balance), 13. * s, GOLD);
-                    panel(
-                        amount,
-                        Node {
-                            width: px(7. * s),
-                            height: px(1.4 * s),
-                            ..default()
-                        },
-                        GOLD,
-                    );
-                    text(
-                        amount,
-                        format!("${} = ${left} left", offer.cost),
-                        13. * s,
-                        GOLD,
-                    );
-                } else {
-                    text(amount, budget(offer, view.balance), 13. * s, GOLD);
-                }
-            });
-        }
+        let (width, top, height) = if layout.demotion {
+            (150. * s, face.max.y + 23. * s, 14. * s)
+        } else {
+            (face.width(), face.max.y + 26. * s, 24. * s)
+        };
+        root.spawn((
+            Node {
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                column_gap: px(4. * s),
+                ..place(face.center().x - width / 2., top, width, height)
+            },
+            Pickable::IGNORE,
+        ))
+        .with_children(|amount| {
+            if let Some(left) = offer.balance_after {
+                text(amount, format!("${}", view.balance), 13. * s, GOLD);
+                panel(
+                    amount,
+                    Node {
+                        width: px(7. * s),
+                        height: px(1.4 * s),
+                        ..default()
+                    },
+                    GOLD,
+                );
+                text(
+                    amount,
+                    format!("${} = ${left} left", offer.cost),
+                    13. * s,
+                    GOLD,
+                );
+            } else {
+                text(amount, budget(offer, view.balance), 13. * s, GOLD);
+            }
+        });
         can_sign(view, offer).then(|| {
             (
                 format!("sign-{}-{}", offer.slot, player.card.instance),
@@ -814,13 +855,13 @@ pub(super) fn present(
     interaction: Res<Interaction>,
     session: Res<Session>,
     prints: Res<Prints>,
-    mut existing: Query<(Entity, &Region, &mut BorderColor)>,
+    mut existing: Query<(&Region, &mut BorderColor)>,
     disclosures: Query<Entity, With<Disclosure>>,
     mut shown: Local<Option<(Entity, Target)>>,
 ) {
     let visible = interaction
         .visible()
-        .filter(|target| !matches!(target.source, Source::Hand(..)));
+        .filter(|target| matches!(target.source, Source::Offer(..) | Source::InPlay(..)));
     // The shared dwell clock can update every frame. Keep the board and actual
     // input entities intact unless the visible offer or the board changes.
     let next = layout
@@ -849,11 +890,14 @@ pub(super) fn present(
         }
     }
 
-    for (_, region, mut border) in &mut existing {
-        if matches!(region.target.source, Source::Hand(..)) {
+    for (region, mut border) in &mut existing {
+        if !matches!(
+            region.target.source,
+            Source::Offer(..) | Source::InPlay(..) | Source::Finish
+        ) {
             continue;
         }
-        let color = if Some(*region) == interaction.focus() {
+        let color = if Some(*region) == interaction.keyboard_focus() {
             FOCUS
         } else {
             match region.part {

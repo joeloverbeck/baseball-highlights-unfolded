@@ -71,6 +71,9 @@ def selection_is(image, selected):
     for box, delta in ((1, 0), (2, 392)):
         if pixel(1140 + delta, 632) != PAPER:
             return False
+        stroke = (GOLD,) if selected == box else (PAPER,)
+        if not border_at(image, 1310 + delta, 620, stroke):
+            return False
         if pixel(1140 + delta, 920) != (GOLD if selected == box else BOARD):
             return False
     return True
@@ -315,6 +318,13 @@ def review_desktop(executable, assets, evidence, practice, box, size, pending, c
         xdotool("key", "Return")
         capture_review(bounds, evidence / "sf-selected.png", lambda image: selection_is(image, box))
         require(save.read_bytes() == pending, "Keyboard preview committed Glove")
+        xdotool("key", "Tab")
+        next_focus_y = 614 if box == 1 else 875
+        capture_review(bounds, evidence / "sf-selected-with-focus-moved.png", lambda image: (
+            selection_is(image, box)
+            and border_at(image, 1702, next_focus_y, (FOCUS,))
+        ))
+        require(save.read_bytes() == pending, "Traveling away from the selection changed Glove")
         click(window, choice_point(size, box, commit=True), button=3)
         require(save.read_bytes() == pending, "Secondary click committed Glove")
         click(window, choice_point(size, box, commit=True))

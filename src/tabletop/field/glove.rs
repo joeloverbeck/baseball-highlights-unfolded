@@ -64,12 +64,18 @@ pub(super) fn draw_faces(
     let s = layout.scale;
     for (slot, (team, player)) in matchup(game, play).into_iter().enumerate() {
         let left = CARD_LEFT[slot];
-        let role = if slot == 0 {
+        let role = if game
+            .threatened
+            .iter()
+            .any(|hit| hit.target.card == player.card)
+        {
             "Threatened hits"
-        } else if player.immediate_action.contains("Glove") {
+        } else if slot == 0 {
+            "Previous batter"
+        } else if game.glove_pending {
             "Glove"
         } else {
-            "Response"
+            "Last play"
         };
         let accent = if team == Seat::SanFrancisco {
             GOLD
@@ -240,7 +246,7 @@ pub(super) fn draw_outcomes(
                     Outline::new(px(4. * s), px(2. * s), Color::NONE),
                 ))
                 .with_children(|action| {
-                    text(action, format!("Use Glove · Cancel {hit}"), 23. * s, DARK)
+                    text(action, format!("Use Glove / Cancel {hit}"), 23. * s, DARK)
                 });
         }
     }

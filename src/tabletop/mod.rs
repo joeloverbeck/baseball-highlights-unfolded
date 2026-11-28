@@ -12,7 +12,7 @@ use baseball_highlights_unfolded::{
     CardId, Game, GloveReview, Seat,
     assets::{Collection, display_face_id},
 };
-use bevy::{prelude::*, time::TimeUpdateStrategy};
+use bevy::{input_focus::InputFocusSystems, prelude::*, time::TimeUpdateStrategy};
 use std::{collections::HashMap, time::Duration};
 use unfolded_tabletop::{
     capture,
@@ -173,7 +173,19 @@ pub fn run(game: Game, seat: Seat, art: Art) -> Result<(), String> {
         ..default()
     }));
     install(&mut app, game, seat, art);
-    app.add_systems(Update, controls::refresh.before(controls::draw));
+    app.add_systems(
+        Update,
+        (
+            controls::refresh.before(controls::draw),
+            controls::accessibility
+                .after(controls::draw)
+                .before(card_focus::interact),
+        ),
+    );
+    app.add_systems(
+        PostUpdate,
+        controls::accessibility_focus.before(InputFocusSystems::FocusChangeEvents),
+    );
     match app.run() {
         AppExit::Success => Ok(()),
         AppExit::Error(code) => Err(format!("The tabletop closed with status {code}.")),
