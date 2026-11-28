@@ -9,5 +9,5 @@ for dependency in Xvfb xvfb-run xauth xdotool; do
     fi
 done
 
-timeout 10m xvfb-run -a -e /dev/stderr -s '-screen 0 1440x900x24 -dpi 96' \
+timeout 10m xvfb-run -a -e /dev/stderr -s '-screen 0 2640x900x24 -dpi 96' \
     python3 -B scripts/native_glove.py "$@"

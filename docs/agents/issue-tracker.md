@@ -4,6 +4,8 @@ Use GitHub Issues and PRs in `joeloverbeck/baseball-highlights-unfolded`. Publis
 
 When pausing work in a local checkout, record its path, branch, base SHA, and whether it has uncommitted edits in the existing handoff. Include the owning clone when the worktree belongs to another clone. Check that location and its Git status when resuming.
 
+For a checkpoint bundle, add its path, SHA-256 digest, and inventory of modified and untracked files to the same handoff. Account for ignored files separately. Before removing a source checkout, compare its current changes and local-only files with the retained bundle or backup.
+
 ## GitHub CLI
 
 - Check the target before writing with `gh repo view --json nameWithOwner`.

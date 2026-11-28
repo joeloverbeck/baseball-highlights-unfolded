@@ -6,6 +6,8 @@ Distinguish threatened hits from resolved action. A batter can wait at home whil
 
 For each new 2D graphic, present at least three competent, materially different alternatives made in VectorCraft. For each layout or composite UI, make at least three alternatives using both VectorCraft and FigCraft. Compare them at playing size on the same position. For each manager decision, recommend a direction and explain what each alternative makes easier or harder to see or do. When different designs serve different decisions best, show how their strongest parts work together before asking the owner to select. Show the owner the alternatives and obtain selection before application implementation. Effects belong in EffectCraft when motion is being authored. Preserve editable source and inspect the selected result in the native scene.
 
+Before reviewing a reused art export, reproduce it from the editable source and compare it with the candidate asset. Record the source path, tool version, and export command or settings in the existing handoff.
+
 For new 3D pieces agree on the piece’s role and scale, then create consistent front, back, left and right turnaround portraits when modeling requires them. Maintain the same proportions, orientation convention, materials and base across views. Choose Blender modeling or Tripo with the owner for that asset. Tripo submission, external uploads and spend are separate from local design. Inspect the resulting piece from the game camera, alongside the other speeds and the cards, and let the owner judge the combined presentation.
 
 ## Selected direction for Glove and the Buy Round
