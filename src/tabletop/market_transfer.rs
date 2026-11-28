@@ -2,6 +2,7 @@
 
 use super::{
     Prints, Session,
+    controls::Board,
     market::{Layout, OfferFace, place},
 };
 use baseball_highlights_unfolded::{Card, Event, Observation, Seat};
@@ -107,16 +108,20 @@ pub(super) fn draw(
     mut commands: Commands,
     session: Res<Session>,
     prints: Res<Prints>,
-    layout: Query<(Entity, &Layout)>,
+    layout: Query<(Entity, &Board, &Layout)>,
     mut playback: ResMut<Playback>,
     offers: Query<(&OfferFace, &mut Visibility), Without<PileTop>>,
     piles: Query<(&PileTop, &mut Visibility), Without<OfferFace>>,
 ) {
-    let Some((board, layout)) = layout.single().ok() else {
+    let Some((board, shown, layout)) = layout.single().ok() else {
         *playback = Playback::default();
         return;
     };
     let revision = session.game.revision();
+    // Keyboard commits can arrive after the UI draws for this frame.
+    if shown.revision != revision {
+        return;
+    }
     if playback.board == Some(board)
         && playback
             .previous

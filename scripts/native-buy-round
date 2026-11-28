@@ -15,6 +15,10 @@ if [ "${1-}" = --game-two ]; then
     shift
     script=scripts/native_game_two.py
     screen=2640x900x24
+elif [ "${1-}" = --signing ]; then
+    shift
+    script=scripts/native_signing.py
+    screen=3840x2160x24
 elif [ "${1-}" = --market ]; then
     shift
     script=scripts/native_market.py
