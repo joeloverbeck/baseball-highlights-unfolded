@@ -87,3 +87,29 @@ cmp /tmp/park-field.png art/manager-review/park-field.png
 Issue #7 requires no shared extraction or sibling migration. The [manager-seat tests](../../tests/glove.rs) reproduce both Maris branches, restore the pending manager and hit boxes, reject wrong-seat, stale, duplicate and competing writes, and exercise one target and zero targets. The independent RB 11 example removes Wiffle’s middle box and resolves boxes 1 and 3 in order. Two slow runners occupy first and second before McGwire threatens a single and double. The [native smoke](../../scripts/native-glove) exercises the two reviewed Maris outcomes in the ordinary X11 window. A shared JSON-lines seat run also exercised preview, wrong-seat refusal, commitment, refresh of an already open NY seat and stale refusal. Physical input and readability on the owner's display remain for owner acceptance.
 
 Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, SEM-1, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, FID-1–4, INT-1/2/4 and LONG-1.
+
+## Issue #8 implementation
+
+The [game-two continuation](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/8) starts from the completed Buy Round in the same save. SF plays first as Visitor, and both teams draw six from the top of their post-buy Lineups. NY hosts and carries its game-one win. The review covers the first three plays from hand, including any Glove decision they create. On Deck, pinch hitting, the Visitor Save, extra innings and the rest of game two belong to issue #3.
+
+The [scratch starting position](../../tests/fixtures/expert-game-two-start.json) has SHA-256 `9a000386da0ca3b9df47ab4caa86ed2276b2d92641a88d3920aa6ebd1836dad4`. The ordinary build created it at the SF purchase-order choice. The [README replay](../../README.md#follow-the-signings-into-game-two) works from a copy. The two signings and demotions preserve both 15-card rosters and each card's instance. In that replay NY's acquired Maris cancels ST-013's single, then threatens a single and a home run. SF's acquired Foxx cancels either box. The home run alone scores one. The single alone leaves the score at 0–0 and puts Maris on first. Foxx then threatens a double. RB 5–6 and Ref 2 supply the timing and two independently calculated projections.
+
+| Repository | Inspected revision | Carryover path |
+| --- | --- | --- |
+| unfolded-tabletop | `443ffe135ac3a17cf97c2e1bbc39807ae5fd637c` | The existing pin supplies `SeededRandom`, validated record replacement and the shared `seat::Game` pointer controls. The draw consumes the existing ordered pile. |
+| Cuba Libre | `ace2696b89e8ba62d373dcf524347b69bdcc7872` | `tabletop::piles::spawn_stack` derives display from committed zones. Baseball uses its own field and hand disclosure on the same shared rendering primitives. |
+| Arkham | `cf7d92df0433d8c4a2a36621c8e668bee22fb968` | `gathering_tabletop::draws::Playback` presents committed draws. Baseball's six cards enter the hand together and the existing field camera presents the new position. |
+| Netrunner | `5727b703b2ef7ca5a3886b2874fe50b8d3ec3caa` | `tabletop::seat::Table::observe` separates public state from manager-private zones. Baseball's seat projection exposes each hand only to its owner. |
+| Mudsong | `9630c8c0bd4567cbaf91f7c14ce81b116f275641` | `seeded_randomness` checks the pinned shuffle-and-draw primitive. Baseball uses the same saved seed for replay validation and keeps its own ordering and reveal rules. |
+
+The current shared pin covers this path. The existing Buy Round saves and separate Glove review still open. Game two uses the approved Press Box camera and the Scorebook’s decision and source-card areas. The hand uses the same one-row player rail as the native Buy Round demotion control. [Selected design](../../art/manager-review/COMBINED.md)
+
+**Manager-seat evidence.** The [Rust continuation test](../../tests/game_two.rs) checks exact Lineup order before and after six draws, the seat-specific hand, wrong-seat and demoted-card refusals, the public Glove state, restart and duplicate commitment refusal. A two-process JSON-lines run used the named controls on both seats, including both local previews, and produced the same committed field in both observations.
+
+**Ubuntu automation.** Two ordinary X11 windows at 1280×800 on NVIDIA GeForce RTX 2080 Ti Vulkan ran the same trace from the same starting save. Both windows showed Maris, Average, on first after the commitment. The 1080×720 capture shows all six hand labels, and the small window accepted inspection and play of Maris. The separate exact-position Glove check still covers NY 2–SF 1 and the Average runner on second.
+
+**Replay identity.** The Ubuntu and JSON-lines runs used the debug executable with SHA-256 `b55667fbb9c9a88df8e9872c88c08ff7413519198a4737d2bc32daec9c5e3f88`. The two resulting saves were byte-for-byte identical with SHA-256 `349832864c46a5deec9bce79c9c2966e123a5327c505215f4e45c2d65af4c43f`. The trace, saves, control labels, captures and build digest are in the owner-local `local/issue-8/replay/` directory.
+
+**Ubuntu owner check.** Pending. Use the README replay and the separate Glove review to locate the runner and read its speed, explain both target outcomes, compare Rizzuto and Foxx at playing size, name Foxx's replacement and SF's remaining funds, and select a demotion. The offer inspector already displays speed, revenue and PH as text. Whether comparison needs those fields directly in the Buy Row depends on the owner's pass at playing size.
+
+Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6/8, SEM-1, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, PUB-1, FID-1–4, SIM-4, INT-1/2/4 and LONG-1.

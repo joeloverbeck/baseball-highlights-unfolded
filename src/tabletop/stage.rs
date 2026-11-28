@@ -35,6 +35,11 @@ const CARD: TurningCard = TurningCard::new(WIDTH, LENGTH, card::CORNER_FRACTION,
 #[derive(Component)]
 pub struct StageCamera;
 
+#[derive(Component)]
+pub struct Backdrop {
+    field: bool,
+}
+
 #[derive(Resource)]
 pub struct Stock {
     paper: Handle<StandardMaterial>,
@@ -82,26 +87,8 @@ pub fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let field_review = session.game.glove_review().is_some();
-    let (scaling_mode, pose, backdrop_size, backdrop_y) = if field_review {
-        (
-            ScalingMode::FixedVertical {
-                viewport_height: PARK_DEPTH,
-            },
-            Transform::from_xyz(0., 18., 0.).looking_at(Vec3::ZERO, Vec3::NEG_Z),
-            Vec2::new(PARK_WIDTH, PARK_DEPTH),
-            -0.01,
-        )
-    } else {
-        (
-            ScalingMode::FixedHorizontal {
-                viewport_width: 25.5,
-            },
-            Transform::from_xyz(0., 13., 6.).looking_at(Vec3::ZERO, Vec3::Y),
-            Vec2::new(28., 8.),
-            -1.2,
-        )
-    };
+    let field = session.game.has_field();
+    let (scaling_mode, pose) = camera_pose(field);
     commands.spawn((
         StageCamera,
         Camera3d::default(),
@@ -119,11 +106,23 @@ pub fn setup(
         }),
         pose,
     ));
-    commands.spawn((
-        Mesh3d(meshes.add(Rectangle::from_size(backdrop_size))),
-        MeshMaterial3d(printed(&mut materials, prints.park.clone())),
-        Transform::from_xyz(0., backdrop_y, 0.).with_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
-    ));
+    for (is_field, size, y, image) in [
+        (false, Vec2::new(28., 8.), -1.2, &prints.buy_park),
+        (
+            true,
+            Vec2::new(PARK_WIDTH, PARK_DEPTH),
+            -0.01,
+            &prints.field_park,
+        ),
+    ] {
+        commands.spawn((
+            Backdrop { field: is_field },
+            Mesh3d(meshes.add(Rectangle::from_size(size))),
+            MeshMaterial3d(printed(&mut materials, image.clone())),
+            Transform::from_xyz(0., y, 0.).with_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
+            backdrop_visibility(field == is_field),
+        ));
+    }
     commands.spawn((
         DirectionalLight {
             illuminance: 7500.,
@@ -155,17 +154,42 @@ pub fn setup(
     });
 }
 
+fn camera_pose(field: bool) -> (ScalingMode, Transform) {
+    if field {
+        (
+            ScalingMode::FixedVertical {
+                viewport_height: PARK_DEPTH,
+            },
+            Transform::from_xyz(0., 18., 0.).looking_at(Vec3::ZERO, Vec3::NEG_Z),
+        )
+    } else {
+        (
+            ScalingMode::FixedHorizontal {
+                viewport_width: 25.5,
+            },
+            Transform::from_xyz(0., 13., 6.).looking_at(Vec3::ZERO, Vec3::Y),
+        )
+    }
+}
+
+fn backdrop_visibility(visible: bool) -> Visibility {
+    if visible {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    }
+}
+
 pub fn viewport(
     window: Single<&Window, With<PrimaryWindow>>,
-    mut camera: Single<&mut Camera, With<StageCamera>>,
+    camera: Single<(&mut Camera, &mut Transform, &mut Projection), With<StageCamera>>,
     session: Res<Session>,
+    mut backdrops: Query<(&Backdrop, &mut Visibility)>,
 ) {
+    let (mut camera, mut pose, mut projection) = camera.into_inner();
     let scale = window.scale_factor();
-    let height = if session.game.glove_review().is_some() {
-        field::HEIGHT
-    } else {
-        FIELD
-    };
+    let field = session.game.has_field();
+    let height = if field { field::HEIGHT } else { FIELD };
     let viewport = Viewport {
         physical_position: UVec2::new(0, (HEADER * scale).round() as u32),
         physical_size: UVec2::new(window.physical_width(), (height * scale).round() as u32),
@@ -176,6 +200,16 @@ pub fn viewport(
             && current.physical_size == viewport.physical_size
     }) {
         camera.viewport = Some(viewport);
+    }
+    let (scaling_mode, next_pose) = camera_pose(field);
+    if *pose != next_pose {
+        *pose = next_pose;
+        if let Projection::Orthographic(projection) = &mut *projection {
+            projection.scaling_mode = scaling_mode;
+        }
+        for (backdrop, mut visibility) in &mut backdrops {
+            *visibility = backdrop_visibility(field == backdrop.field);
+        }
     }
 }
 

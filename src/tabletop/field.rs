@@ -1,8 +1,8 @@
 use super::{
     HEADER, Prints,
     controls::{
-        Board, CREAM, DARK, FIELD_LABEL, GOLD, INK, Input, MUTED, PAPER, Selection, col, picture,
-        row, short_button, text,
+        Board, CREAM, DARK, FIELD_LABEL, GOLD, INK, Input, MUTED, PAPER, Selection, card_rail, col,
+        hits, picture, row, short_button, text,
     },
 };
 use baseball_highlights_unfolded::{
@@ -128,6 +128,27 @@ fn field_event(event: Event) -> Option<String> {
             threat.target.number,
             threat.hit.label()
         )),
+        Event::CardPlayed { seat, card } => Some(format!(
+            "{} played {} / {}.",
+            seat.abbreviation(),
+            Player::describe(card)?.name,
+            card.identity,
+        )),
+        Event::FastballCancelled { seat } => Some(format!(
+            "{} cancelled all hits with Fastball.",
+            seat.abbreviation()
+        )),
+        Event::ImmediateHit {
+            seat,
+            card,
+            hit,
+            runs,
+        } => Some(format!(
+            "{} / {} for {} / {runs} runs.",
+            Player::describe(card)?.name,
+            hit.label(),
+            seat.abbreviation(),
+        )),
         Event::HitResolved { seat, threat, runs } => {
             let name = Player::describe(threat.target.card)?.name;
             let suffix = if runs == 1 { "run" } else { "runs" };
@@ -147,6 +168,38 @@ fn field_event(event: Event) -> Option<String> {
             Some(format!("{} threatens {threats}.", seat.abbreviation()))
         }
         _ => None,
+    }
+}
+
+fn play_choice(
+    panel: &mut ChildSpawnerCommands,
+    view: &Observation,
+    hand: &[Player],
+    prints: &Prints,
+    selection: Option<Selection>,
+) {
+    text(panel, "Choose a card from your hand", 25., INK);
+    card_rail(panel, hand, prints, selection, Selection::HandCard);
+    if let Some(player) = hand
+        .iter()
+        .find(|player| selection == Some(Selection::HandCard(player.card)))
+    {
+        text(panel, player.immediate_action, 17., INK);
+        text(panel, hits(*player), 17., INK);
+        let ph = if player.pinch_hitter { " / PH" } else { "" };
+        text(
+            panel,
+            format!("{} / ${} revenue{ph}", player.speed, player.revenue),
+            16.,
+            MUTED,
+        );
+        short_button(
+            panel,
+            Name::Choice(format!("play-{}", player.card.identity)),
+            format!("Play {} / {}", player.name, player.card.identity),
+            Input::Submit(view.submission(Action::PlayCard { card: player.card })),
+            GOLD,
+        );
     }
 }
 
@@ -186,17 +239,28 @@ pub fn draw(
             .with_children(|header| {
                 text(
                     header,
-                    format!("Expert   /   {} home", field.home.abbreviation()),
+                    match view.standing {
+                        Some(standing) => format!(
+                            "Expert Game {}   /   {} home",
+                            standing.game,
+                            field.home.abbreviation()
+                        ),
+                        None => format!("Expert   /   {} home", field.home.abbreviation()),
+                    },
                     21.,
                     CREAM,
                 );
                 text(header, score(&field.diamonds), 28., GOLD);
-                text(
-                    header,
-                    format!("{} manager", view.seat.abbreviation()),
-                    21.,
-                    CREAM,
-                );
+                let manager = match view.standing {
+                    Some(standing) => format!(
+                        "{} manager   /   Series SF {} - {} NY",
+                        view.seat.abbreviation(),
+                        standing.wins[0],
+                        standing.wins[1],
+                    ),
+                    None => format!("{} manager", view.seat.abbreviation()),
+                };
+                text(header, manager, 21., CREAM);
             });
             root.spawn((
                 Node {
@@ -215,7 +279,7 @@ pub fn draw(
                         ..col(6.)
                     })
                     .with_children(|club| {
-                        let caption = if field.batting == team {
+                        let caption = if field.batting == team && !field.threatened.is_empty() {
                             " / Batting"
                         } else {
                             ""
@@ -255,10 +319,56 @@ pub fn draw(
                 BackgroundColor(PAPER),
             ))
             .with_children(|book| {
-                book.spawn(row(14.)).with_children(|sources| {
-                    face(sources, prints, field.play.batter, "NY play");
-                    face(sources, prints, field.play.defender, "SF Glove");
-                });
+                let selected_hand = match (&view.decision, selection) {
+                    (Some(Decision::PlayCard { hand }), Some(Selection::HandCard(card))) => {
+                        hand.iter().find(|player| player.card == card).copied()
+                    }
+                    _ => None,
+                };
+                if let Some(play) = field
+                    .play
+                    .filter(|_| field.glove_pending || view.acting_manager.is_none())
+                {
+                    let defender = if field.glove_pending {
+                        field.acting
+                    } else {
+                        field.batting
+                    };
+                    book.spawn(row(14.)).with_children(|sources| {
+                        face(
+                            sources,
+                            prints,
+                            play.batter,
+                            &format!("{} play", defender.opponent().abbreviation()),
+                        );
+                        let action = if view.standing.is_none() || field.glove_pending {
+                            "Glove"
+                        } else {
+                            "play"
+                        };
+                        face(
+                            sources,
+                            prints,
+                            play.defender,
+                            &format!("{} {action}", defender.abbreviation()),
+                        );
+                    });
+                } else {
+                    let last = view.rosters[index(field.batting)].in_play.last().copied();
+                    book.spawn(row(14.)).with_children(|sources| {
+                        if let Some(player) = last {
+                            face(
+                                sources,
+                                prints,
+                                player,
+                                &format!("{} last play", field.batting.abbreviation()),
+                            );
+                        }
+                        if let Some(player) = selected_hand {
+                            face(sources, prints, player, "Selected from hand");
+                        }
+                    });
+                }
                 book.spawn(Node {
                     flex_grow: 1.,
                     min_width: px(0.),
@@ -267,6 +377,8 @@ pub fn draw(
                 .with_children(|panel| {
                     if let Some(Decision::Glove { targets }) = &view.decision {
                         compare(panel, view, field, targets, selection);
+                    } else if let Some(Decision::PlayCard { hand }) = &view.decision {
+                        play_choice(panel, view, hand, prints, selection);
                     } else if field.glove_pending {
                         text(
                             panel,
@@ -275,7 +387,14 @@ pub fn draw(
                             INK,
                         );
                     } else {
-                        text(panel, "Glove resolved", 25., INK);
+                        let status = match (view.standing, view.acting_manager) {
+                            (Some(_), Some(manager)) => {
+                                format!("{} chooses a card", manager.abbreviation())
+                            }
+                            (Some(_), None) => "Game two opening review complete".into(),
+                            (None, _) => "Glove resolved".into(),
+                        };
+                        text(panel, status, 25., INK);
                         let recent: Vec<_> = view
                             .events
                             .iter()

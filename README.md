@@ -2,7 +2,7 @@
 
 An Ubuntu-first native Rust tabletop game in development. Manage a team through a competitive series against Codex or Claude Code. Make the lineup, tactical and buying decisions, talk baseball with the opposing manager, and watch the consequences unfold in a 3D ballpark.
 
-The first native increment opens the reviewed Expert Buy Round. See the [first playable specification](docs/specs/two-expert-games.md) for the full series work. The [original-card audit](docs/foundation/content.md#starter-card-proxies) records approved equivalents for eight starter faces. All four original teams can be represented with the available artwork.
+The native review opens the Expert Buy Round and follows its purchases into the opening of game two. See the [first playable specification](docs/specs/two-expert-games.md) for the full series work. The [original-card audit](docs/foundation/content.md#starter-card-proxies) records approved equivalents for eight starter faces. All four original teams can be represented with the available artwork.
 
 ## Open the reviewed Buy Round
 
@@ -13,6 +13,27 @@ SF earns $6 and NY earns $7. In the SF manager seat, choose **SF buys first** or
 Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey Maris for $7**. Babe Bench takes the slot. Choose NY’s demotion and select **Finish buying**. Both Dugouts display their remaining In Play cards face up, each roster has 15 active players, and any unspent revenue expires. **Round history** shows both managers’ choices. Press Space to finish any card motion.
 
 The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` with a fresh path to start at the purchase-order choice. Two desktop windows using the same save can follow each other’s turns. Close and relaunch to resume whichever choice is pending. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output.
+
+## Follow the signings into game two
+
+Use the recorded starting position to repeat the same deals in two Ubuntu windows. Run this block in the SF terminal.
+
+```sh
+baseball_review_dir=$(mktemp -d)
+cp tests/fixtures/expert-game-two-start.json "$baseball_review_dir/series.json"
+printf '%s\n' "$baseball_review_dir"
+cargo run --locked -- --save "$baseball_review_dir/series.json" --seat sf
+```
+
+In a second terminal, replace `/path/to/scratch` with the printed directory and run the NY window.
+
+```sh
+cargo run --locked -- --save /path/to/scratch/series.json --seat ny
+```
+
+In SF choose **SF buys first**, then inspect **Peewee Rizzuto** and **Frankie Foxx**. Both cost $4. The details above the face give speed, revenue and PH. Sign Foxx and check that Mickey Maris fills slot 5 and SF has $2 left. Inspect **ST-004**, confirm **Send to the Minor Leagues**, then select **Finish buying**. In NY sign Maris, check that Babe Bench fills the slot, demote **ST-056**, and finish buying. Both active rosters return to 15.
+
+In SF select **Draw hands for game two**. NY hosts and leads the series 1–0. Select **ST-013**, then **Play Veteran Natural / ST-013**. In NY select **FA-067**, then **Play Mickey Maris / FA-067**. Maris cancels SF’s single and threatens a single and a home run. In SF select **FA-065**, then **Play Frankie Foxx / FA-065**. Preview both Glove targets. Cancelling box 1 gives NY one run and leaves the bases empty. Cancelling box 2 keeps the game score 0–0 and puts Maris on first as an Average runner. Select **Commit Glove / Cancel box 2** to see that runner in both windows, with Foxx’s double waiting at home. The review covers these opening plays from hand.
 
 ## Review the Glove decision
 

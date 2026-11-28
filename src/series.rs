@@ -1,5 +1,5 @@
 use crate::{
-    Card, CardId, FieldView, GlovePreview, GloveReview, HitBox, Player, Threat, field::Field,
+    Card, CardId, FieldView, GlovePreview, GloveReview, Hit, HitBox, Player, Threat, field::Field,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -16,6 +16,8 @@ pub(crate) const FIRST_REFILL: u8 = 67;
 pub(crate) const SECOND_REFILL: u8 = 68;
 const THIRD_REFILL: u8 = 69;
 const SEATS: [Seat; 2] = [Seat::SanFrancisco, Seat::NewYork];
+const FIRST_HOME: Seat = Seat::SanFrancisco;
+const OPENING_PLAYS: usize = 3;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -54,6 +56,8 @@ pub enum Action {
     Sign { slot: u8, card: Card },
     Demote { card: Card },
     Pass,
+    StartGame,
+    PlayCard { card: Card },
     CancelHit { target: HitBox },
 }
 
@@ -74,6 +78,7 @@ pub enum Refusal {
     OfferChanged,
     Unaffordable,
     Ineligible,
+    CardNotInHand,
     HitChanged,
     Save(String),
 }
@@ -88,6 +93,7 @@ impl fmt::Display for Refusal {
             Self::OfferChanged => "That card does not occupy the selected Buy Row slot.",
             Self::Unaffordable => "The buyer cannot afford this offer.",
             Self::Ineligible => "Choose an eligible player from the buyer’s In Play cards.",
+            Self::CardNotInHand => "Choose a card from this manager’s hand.",
             Self::HitChanged => "That hit box is unavailable on the opposing play.",
             Self::Save(error) => return write!(formatter, "Series save: {error}"),
         };
@@ -119,6 +125,22 @@ pub enum Event {
         seat: Seat,
         unspent: u8,
     },
+    GameStarted {
+        home: Seat,
+    },
+    CardPlayed {
+        seat: Seat,
+        card: Card,
+    },
+    FastballCancelled {
+        seat: Seat,
+    },
+    ImmediateHit {
+        seat: Seat,
+        card: Card,
+        hit: Hit,
+        runs: u16,
+    },
     GloveCancelled {
         seat: Seat,
         threat: Threat,
@@ -146,6 +168,10 @@ pub enum Decision {
     },
     Demote {
         eligible: Vec<Card>,
+    },
+    StartGame,
+    PlayCard {
+        hand: Vec<Player>,
     },
     Glove {
         targets: Vec<GlovePreview>,
@@ -224,7 +250,17 @@ pub struct Observation {
     pub decision: Option<Decision>,
     pub events: Vec<Event>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub standing: Option<Standing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<FieldView>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct Standing {
+    pub game: u8,
+    pub home: Seat,
+    /// SF and NY games won, in that order.
+    pub wins: [u8; 2],
 }
 
 impl Observation {
@@ -246,6 +282,8 @@ struct Club {
     #[serde(default)]
     dugout: Vec<Card>,
     minor_leagues: Vec<Card>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    hand: Vec<Card>,
 }
 
 impl Club {
@@ -255,10 +293,9 @@ impl Club {
             lineup: self.lineup.len(),
             in_play: self.in_play.iter().copied().map(Player::public).collect(),
             dugout: self.dugout.iter().copied().map(Player::public).collect(),
-            active: self.lineup.len() + self.in_play.len() + self.dugout.len(),
+            active: self.lineup.len() + self.in_play.len() + self.dugout.len() + self.hand.len(),
             minor_leagues: self.minor_leagues.len(),
-            // The reviewed position starts after end-of-game cleanup.
-            hand: (seat == viewer).then(Vec::new),
+            hand: (seat == viewer).then(|| self.hand.clone()),
             on_deck: None,
         }
     }
@@ -335,6 +372,8 @@ struct Position {
     events: Vec<Event>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     field_review: Option<FieldReview>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    opening: Option<Field>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -367,6 +406,7 @@ impl Position {
                 in_play: in_play.map(physical).to_vec(),
                 dugout: Vec::new(),
                 minor_leagues: Vec::new(),
+                hand: Vec::new(),
             }
         };
         let clubs = [
@@ -397,6 +437,7 @@ impl Position {
             clubs,
             events: Vec::new(),
             field_review: None,
+            opening: None,
         }
     }
 
@@ -462,15 +503,24 @@ impl Position {
         if let Some(review) = &self.field_review {
             return review.field.manager();
         }
+        if let Some(field) = &self.opening {
+            return field
+                .manager()
+                .or_else(|| (self.opening_plays() < OPENING_PLAYS).then(|| field.acting()));
+        }
         match self.phase {
             Phase::Order => Some(self.order_chooser()),
             Phase::Shopping | Phase::Demotion => self.buyer,
-            Phase::Complete => None,
+            Phase::Complete => Some(FIRST_HOME),
         }
     }
 
+    fn opening_plays(&self) -> usize {
+        self.clubs.iter().map(|club| club.in_play.len()).sum()
+    }
+
     fn revision(&self) -> u64 {
-        // Leave room for this round's choices while keeping revisions exact in JSON clients.
+        // Keep revisions exact in JSON clients. Submissions also carry the series identity.
         let prefix = u64::from_str_radix(&self.series[..12], 16).expect("valid series identity");
         prefix * 16 + self.events.len() as u64
     }
@@ -490,6 +540,21 @@ impl Position {
         let acting_manager = self.acting_manager();
         let decision = if let Some(review) = &self.field_review {
             review.field.decision(seat)
+        } else if let Some(field) = &self.opening {
+            if field.manager().is_some() {
+                field.decision(seat)
+            } else if acting_manager == Some(seat) {
+                Some(Decision::PlayCard {
+                    hand: self.clubs[seat.index()]
+                        .hand
+                        .iter()
+                        .copied()
+                        .map(Player::public)
+                        .collect(),
+                })
+            } else {
+                None
+            }
         } else if acting_manager == Some(seat) {
             match self.phase {
                 Phase::Order => Some(Decision::ChooseOrder),
@@ -503,7 +568,7 @@ impl Position {
                 Phase::Demotion => Some(Decision::Demote {
                     eligible: self.clubs[seat.index()].in_play.clone(),
                 }),
-                Phase::Complete => None,
+                Phase::Complete => Some(Decision::StartGame),
             }
         } else {
             None
@@ -525,7 +590,21 @@ impl Position {
             rosters: SEATS.map(|team| self.clubs[team.index()].observe(team, seat)),
             decision,
             events: self.events.clone(),
-            field: self.field_review.as_ref().map(|review| review.field.view()),
+            standing: self.field_review.is_none().then(|| Standing {
+                game: if self.opening.is_some() { 2 } else { 1 },
+                home: if self.opening.is_some() {
+                    FIRST_HOME.opponent()
+                } else {
+                    FIRST_HOME
+                },
+                wins: SEATS.map(|seat| u8::from(self.winner == seat)),
+            }),
+            field: self
+                .field_review
+                .as_ref()
+                .map(|review| &review.field)
+                .or(self.opening.as_ref())
+                .map(Field::view),
         }
     }
 
@@ -537,6 +616,23 @@ impl Position {
             };
         }
         let seat = self.acting_manager().ok_or(Refusal::WrongDecision)?;
+        if let Some(field) = &mut self.opening {
+            return match action {
+                Action::CancelHit { target } => field.cancel_hit(target, &mut self.events),
+                Action::PlayCard { card } if field.manager().is_none() => {
+                    let club = &mut self.clubs[seat.index()];
+                    let index = club
+                        .hand
+                        .iter()
+                        .position(|candidate| *candidate == card)
+                        .ok_or(Refusal::CardNotInHand)?;
+                    club.in_play.push(club.hand.remove(index));
+                    self.events.push(Event::CardPlayed { seat, card });
+                    field.play_card(card, &mut self.events)
+                }
+                _ => Err(Refusal::WrongDecision),
+            };
+        }
         let club = &mut self.clubs[seat.index()];
         let balance = &mut self.balances[seat.index()];
         match (self.phase, action) {
@@ -598,6 +694,17 @@ impl Position {
                     self.phase = Phase::Complete;
                 }
             }
+            (Phase::Complete, Action::StartGame) => {
+                let home = FIRST_HOME.opponent();
+                for club in &mut self.clubs {
+                    // The reviewed Buy Round always leaves at least nine in each Lineup.
+                    club.hand = (0..6)
+                        .map(|_| club.lineup.pop().expect("opening Lineup"))
+                        .collect();
+                }
+                self.opening = Some(Field::opening(home));
+                self.events.push(Event::GameStarted { home });
+            }
             _ => return Err(Refusal::WrongDecision),
         }
         Ok(())
@@ -611,6 +718,8 @@ impl Event {
             Self::Signed { slot, card, .. } => Some(Action::Sign { slot, card }),
             Self::Demoted { card, .. } => Some(Action::Demote { card }),
             Self::Passed { .. } => Some(Action::Pass),
+            Self::GameStarted { .. } => Some(Action::StartGame),
+            Self::CardPlayed { card, .. } => Some(Action::PlayCard { card }),
             Self::GloveCancelled {
                 threat,
                 chosen: true,
@@ -619,6 +728,8 @@ impl Event {
                 target: threat.target,
             }),
             Self::GloveCancelled { chosen: false, .. }
+            | Self::FastballCancelled { .. }
+            | Self::ImmediateHit { .. }
             | Self::HitResolved { .. }
             | Self::ThreatsPlaced { .. } => None,
         }
@@ -740,6 +851,7 @@ impl save::Format for SeriesFormat {
     fn identity(&self, payload: &SavedPosition) -> save::Identity {
         let format = match payload {
             SavedPosition::Current(position) if position.field_review.is_some() => "glove-review-1",
+            SavedPosition::Current(position) if position.opening.is_some() => "expert-series-1",
             SavedPosition::Current(_) => "expert-buy-round-2",
             SavedPosition::Legacy(_) => "expert-buy-round-1",
         };
@@ -752,7 +864,12 @@ impl save::Format for SeriesFormat {
         identity.get("game") == Some("baseball-highlights-unfolded")
             && matches!(
                 identity.get("format"),
-                Some("expert-buy-round-1" | "expert-buy-round-2" | "glove-review-1")
+                Some(
+                    "expert-buy-round-1"
+                        | "expert-buy-round-2"
+                        | "glove-review-1"
+                        | "expert-series-1"
+                )
             )
     }
 
@@ -872,6 +989,10 @@ impl Game {
 
     pub fn revision(&self) -> u64 {
         self.position.revision()
+    }
+
+    pub fn has_field(&self) -> bool {
+        self.position.field_review.is_some() || self.position.opening.is_some()
     }
 
     /// Refresh a second view of the saved series without acquiring write authority.

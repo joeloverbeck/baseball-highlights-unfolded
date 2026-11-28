@@ -1,33 +1,33 @@
 identity,tts_id,instances,art,implementation,verification,evidence
 ST-059,1700,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 ST-057,1701,1,present,buy-round-revenue-and-dugout + glove-review-average-runner,buy-round-tested + glove-native-smoke,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 3 / 15 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
-ST-046,1704,1,present,pending,pending,
+ST-046,1704,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-056,1705,1,present,buy-round-revenue-and-demotion + glove-review-lone-opposing-single,buy-round-tested + glove-manager-seat-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
-ST-049,1709,1,present,pending,pending,
+ST-049,1709,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-058,1710,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 ST-053,1713,1,present,pending,pending,
-ST-052,1715,1,present,pending,pending,
+ST-052,1715,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-050,1716,1,present,buy-round-revenue-and-dugout + glove-review-no-opposing-threat,buy-round-tested + glove-manager-seat-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
 ST-047,1719,1,present,pending,pending,
 ST-060,1720,1,present,buy-round-revenue-and-dugout,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
-ST-010,1723,1,present,pending,pending,
+ST-010,1723,1,present,game-two-opening-card-data,printed-face-audited,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-008,1724,1,present,pending,pending,
 ST-011,1726,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
-ST-015,1800,1,present,pending,pending,
+ST-015,1800,1,present,game-two-opening-card-data,printed-face-audited,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-002,1801,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-014,1802,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-004,1803,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-008,1804,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
 ST-005,1805,1,present,buy-round-in-play-and-demotion,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
-ST-013,1806,1,present,pending,pending,
-ST-012,1807,1,present,pending,pending,
+ST-013,1806,1,present,game-two-opening-single,game-two-seat-and-native-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
+ST-012,1807,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-001,1808,1,present,glove-and-single,glove-native-smoke,issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
-ST-006,1809,1,present,pending,pending,
-ST-010,1810,1,present,pending,pending,
+ST-006,1809,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
+ST-010,1810,1,present,game-two-opening-card-data,printed-face-audited,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-036,1812,1,present,pending,pending,
 ST-040,1813,2,present,pending,pending,
 ST-032,1814,1,present,pending,pending,
-ST-007,1815,1,present,pending,pending,
+ST-007,1815,1,present,game-two-opening-card-data,printed-face-audited,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-035,1816,1,present,pending,pending,
 ST-045,1817,1,present,pending,pending,
 ST-033,1818,2,present,pending,pending,
@@ -39,10 +39,10 @@ ST-044,1823,1,present,pending,pending,
 ST-038,1824,1,present,pending,pending,
 ST-037,1825,1,present,pending,pending,
 ST-025,1900,2,present,pending,pending,
-ST-049,1901,1,present,pending,pending,
-ST-054,1904,2,present,pending,pending,
+ST-049,1901,1,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
+ST-054,1904,2,present,game-two-opening-hand,game-two-hand-tested,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-018,1906,2,present,pending,pending,
-ST-051,1912,1,present,pending,pending,
+ST-051,1912,1,present,game-two-opening-card-data,printed-face-audited,issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 CO-130,1913,1,present,pending,pending,
 CO-135,1914,1,present,pending,pending,
 CO-134,1915,1,present,pending,pending,
@@ -92,7 +92,7 @@ FA-110,2119,1,present,pending,pending,
 FA-076,2120,1,present,pending,pending,
 FA-088,2121,1,present,pending,pending,
 FA-106,2122,1,present,pending,pending,
-FA-065,2123,1,present,buy-round-inspection-and-signing,buy-round-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation
+FA-065,2123,1,present,buy-round-inspection-and-signing + game-two-opening-glove-and-double,buy-round-tested + game-two-seat-and-native-tested,issue #5 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-5-implementation + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 FA-111,2124,1,present,pending,pending,
 FA-112,2125,1,present,pending,pending,
 FA-109,2126,1,present,pending,pending,
@@ -101,7 +101,7 @@ FA-082,2300,1,present,glove-single-double,glove-manager-seat-tested,issue #7 / R
 FA-068,2301,1,present,buy-round-refill,buy-round-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation
 FA-077,2302,1,present,pending,pending,
 FA-107,2303,1,present,pending,pending,
-FA-067,2304,1,present,buy-round-refill-inspection-and-signing + glove-review-single-and-home-run,buy-round-tested + glove-native-smoke,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation
+FA-067,2304,1,present,buy-round-refill-inspection-and-signing + glove-review-single-and-home-run + game-two-opening-glove-single-and-home-run,buy-round-tested + glove-native-smoke + game-two-seat-and-native-tested,issue #6 / RB 9 / tests/buy_round.rs / ../specs/two-expert-games.md#issue-6-implementation + issue #7 / RB 5-6 / Ref 1 / tests/glove.rs / ../specs/two-expert-games.md#issue-7-implementation + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 FA-120,2305,1,present,pending,pending,
 HC-564,2306,1,present,pending,pending,
 FA-086,2307,1,present,pending,pending,
@@ -535,14 +535,14 @@ ST-417,5312,1,present,pending,pending,
 ST-419,5313,1,present,pending,pending,
 ST-420,5314,1,present,pending,pending,
 PR-517,5400,1,present,pending,pending,
-ST-003,,,proxy:ST-004,pending,pending,content.md#starter-card-proxies
-ST-009,,,proxy:ST-010,pending,pending,content.md#starter-card-proxies
+ST-003,,,proxy:ST-004,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
+ST-009,,,proxy:ST-010,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 ST-019,,,proxy:ST-018,pending,pending,content.md#starter-card-proxies
 ST-024,,,proxy:ST-025,pending,pending,content.md#starter-card-proxies
 ST-034,,,proxy:ST-033,pending,pending,content.md#starter-card-proxies
 ST-039,,,proxy:ST-040,pending,pending,content.md#starter-card-proxies
-ST-048,,,proxy:ST-049,pending,pending,content.md#starter-card-proxies
-ST-055,,,proxy:ST-054,pending,pending,content.md#starter-card-proxies
+ST-048,,,proxy:ST-049,game-two-opening-hand,game-two-hand-tested,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
+ST-055,,,proxy:ST-054,game-two-opening-card-data,printed-face-audited,content.md#starter-card-proxies + issue #8 / RB 5-6 / Ref 2 / tests/game_two.rs / ../specs/two-expert-games.md#issue-8-implementation
 AS-591,,,unlocated,pending,pending,
 AS-592,,,unlocated,pending,pending,
 AS-593,,,unlocated,pending,pending,
