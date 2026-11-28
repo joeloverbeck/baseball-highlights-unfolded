@@ -1,8 +1,11 @@
-use super::{FIELD, HEADER, Prints, Session, field};
+use super::{Prints, Session, between_games, card_focus, field, market, market_transfer, revenue};
+use accesskit::{Action as AccessibleAction, Node as AccessibleNode, Role};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Revenue, Seat, Submission,
+    Action, Card, Decision, Event, Observation, Player, Refusal, Seat, Submission,
 };
 use bevy::{
+    a11y::{AccessibilityNode, ActionRequest},
+    input_focus::{FocusCause, InputFocus},
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
     prelude::*,
     window::PrimaryWindow,
@@ -22,20 +25,29 @@ pub(super) const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
 pub(super) enum Selection {
     Offer { slot: u8, card: Card },
     PublicCard(Card),
-    HandCard(Card),
+    Dugout(Seat),
+    DugoutCard { seat: Seat, card: Card },
     History,
-    Glove(HitBox),
+    Glove(card_focus::Target),
 }
 
 #[derive(Resource, Default)]
 pub struct Interface {
-    selection: Option<Selection>,
-    error: Option<String>,
+    pub(super) selection: Option<Selection>,
+    pub(super) error: Option<String>,
+}
+
+impl Interface {
+    pub(super) fn inspect(&mut self, selection: Selection) {
+        self.selection = Some(selection);
+        self.error = None;
+    }
 }
 
 #[derive(Clone)]
 pub(super) enum Input {
     Inspect(Selection),
+    ReadCard(card_focus::Region),
     Submit(Submission),
     Close,
 }
@@ -44,7 +56,7 @@ pub(super) enum Input {
 pub(super) struct Control {
     name: SeatName,
     label: String,
-    input: Input,
+    pub(super) input: Input,
     color: Color,
 }
 
@@ -55,55 +67,114 @@ pub struct Board {
 
 fn click(
     event: On<PointerClick>,
-    controls: Query<&Control>,
+    controls: Query<(&Control, Option<&card_focus::Region>)>,
     mut session: ResMut<Session>,
     mut ui: ResMut<Interface>,
+    mut card_focus: ResMut<card_focus::Interaction>,
 ) {
     if event.button != PointerButton::Primary {
         return;
     }
-    let Ok(control) = controls.get(event.entity) else {
+    let Ok((control, region)) = controls.get(event.entity) else {
         return;
     };
+    activate(control, region, &mut session, &mut ui, &mut card_focus);
+}
+
+pub(super) fn accessibility(
+    mut requests: MessageReader<ActionRequest>,
+    controls: Query<(&Control, Option<&card_focus::Region>)>,
+    mut session: ResMut<Session>,
+    mut ui: ResMut<Interface>,
+    mut card_focus: ResMut<card_focus::Interaction>,
+) {
+    for request in requests.read() {
+        if request.action == AccessibleAction::Click
+            && let Some(entity) = Entity::try_from_bits(request.target_node.0)
+            && let Ok((control, region)) = controls.get(entity)
+        {
+            activate(control, region, &mut session, &mut ui, &mut card_focus);
+            if let Some(region) = region {
+                card_focus.focus_accessible(*region);
+            }
+        }
+    }
+}
+
+pub(super) fn accessibility_focus(
+    card_focus: Res<card_focus::Interaction>,
+    controls: Query<(Entity, &card_focus::Region), With<Control>>,
+    mut focus: ResMut<InputFocus>,
+) {
+    let next = card_focus.keyboard_focus().and_then(|active| {
+        controls
+            .iter()
+            .find_map(|(entity, region)| (active == *region).then_some(entity))
+    });
+    if focus.get() != next {
+        if let Some(entity) = next {
+            focus.set(entity, FocusCause::Navigated);
+        } else {
+            // Bevy still routes keys to the window with no focused control.
+            focus.clear();
+        }
+    }
+}
+
+fn activate(
+    control: &Control,
+    region: Option<&card_focus::Region>,
+    session: &mut ResMut<Session>,
+    ui: &mut ResMut<Interface>,
+    card_focus: &mut ResMut<card_focus::Interaction>,
+) {
     match &control.input {
         Input::Inspect(selection) => {
-            ui.selection = Some(*selection);
-            ui.error = None;
+            ui.inspect(*selection);
+            if let Some(region) = region {
+                card_focus.click(*region);
+            }
         }
+        Input::ReadCard(region) => card_focus.click(*region),
         Input::Close => {
             ui.selection = None;
             ui.error = None;
         }
-        Input::Submit(submission) => match session.game.submit(submission.clone()) {
-            Ok(()) => {
-                ui.selection = match submission.action {
-                    Action::Sign { slot, .. } => {
-                        let replacement = session.game.observe(session.seat).offers
-                            [usize::from(slot - 1)]
-                        .player
-                        .card;
-                        Some(Selection::Offer {
-                            slot,
-                            card: replacement,
-                        })
-                    }
-                    Action::ChooseOrder { .. }
-                    | Action::Demote { .. }
-                    | Action::Pass
-                    | Action::StartGame
-                    | Action::PlayCard { .. }
-                    | Action::CancelHit { .. } => None,
-                };
-                ui.error = None;
-            }
-            Err(error) => ui.error = Some(error.to_string()),
-        },
+        Input::Submit(submission) => submit(session, ui, submission.clone()),
     }
 }
 
-pub fn hover(mut buttons: Query<(&Hovered, &Control, &mut BackgroundColor), Changed<Hovered>>) {
-    for (hovered, control, mut color) in &mut buttons {
-        color.0 = if hovered.get() { GOLD } else { control.color };
+pub(super) fn submit(session: &mut Session, ui: &mut Interface, submission: Submission) {
+    if session.seat != submission.seat {
+        ui.error = Some("This decision belongs to the other manager.".into());
+        return;
+    }
+    match session.game.submit(submission) {
+        Ok(()) => {
+            ui.selection = None;
+            ui.error = None;
+        }
+        Err(error) => ui.error = Some(error.to_string()),
+    }
+}
+
+pub fn hover(
+    mut buttons: Query<
+        (
+            &Hovered,
+            &Control,
+            &mut BackgroundColor,
+            Has<revenue::ReadingControl>,
+        ),
+        (Changed<Hovered>, Without<card_focus::Region>),
+    >,
+) {
+    for (hovered, control, mut color, reading) in &mut buttons {
+        color.0 = match (hovered.get(), reading) {
+            (true, true) => revenue::READ_HIGHLIGHT,
+            (true, false) => GOLD,
+            (false, _) => control.color,
+        };
     }
 }
 
@@ -130,6 +201,7 @@ pub(super) fn text(
 ) {
     parent.spawn((
         Text::new(words),
+        Label,
         TextFont {
             font_size: FontSize::Px(size),
             ..default()
@@ -157,7 +229,7 @@ pub(super) fn picture(
     ));
 }
 
-fn button(
+pub(super) fn button(
     parent: &mut ChildSpawnerCommands,
     name: SeatName,
     label: impl Into<String>,
@@ -165,6 +237,10 @@ fn button(
     color: Color,
     node: Node,
 ) -> Entity {
+    let label = label.into();
+    let mut accessible = AccessibleNode::new(Role::Button);
+    accessible.set_label(label.as_str());
+    accessible.add_action(AccessibleAction::Click);
     parent
         .spawn((
             Pickable::default(),
@@ -174,9 +250,10 @@ fn button(
             },
             BackgroundColor(color),
             Hovered::default(),
+            AccessibilityNode::from(accessible),
             Control {
                 name,
-                label: label.into(),
+                label,
                 input,
                 color,
             },
@@ -210,152 +287,72 @@ pub(super) fn short_button(
         .with_children(|button| text(button, label, 16., INK));
 }
 
-pub(super) fn hits(card: Player) -> String {
-    if card.threatened_hits.is_empty() {
-        "No threatened hits".into()
-    } else {
-        format!("Threats  {}", card.threatened_hits.join(" / "))
-    }
-}
-
-fn price(offer: &Offer, balance: Option<u8>) -> String {
-    let cost = offer.cost;
-    match (offer.balance_after, balance) {
-        (Some(left), _) => format!("${cost}  /  ${left} left"),
-        (None, Some(balance)) => format!("${cost}  /  ${} short", cost - balance),
-        (None, None) => format!("${cost}"),
-    }
-}
-
-fn offer_tile(
-    parent: &mut ChildSpawnerCommands,
-    offer: &Offer,
-    balance: Option<u8>,
-    prints: &Prints,
-    selection: Option<Selection>,
-) {
-    let slot = Selection::Offer {
-        slot: offer.slot,
-        card: offer.player.card,
-    };
-    let id = button(
-        parent,
-        SeatName::Component(format!("inspect-slot-{}", offer.slot)),
-        format!("Inspect {}", offer.player.name),
-        Input::Inspect(slot),
-        if selection == Some(slot) { GOLD } else { CREAM },
-        Node {
-            flex_grow: 1.,
-            flex_basis: px(0.),
-            min_width: px(0.),
-            padding: UiRect::all(px(9.)),
-            ..row(10.)
-        },
-    );
-    parent.commands().entity(id).with_children(|tile| {
-        picture(tile, prints.front(offer.player.card.identity), 61., 84.);
-        tile.spawn(col(3.)).with_children(|info| {
-            text(info, offer.player.name, 19., INK);
-            text(info, offer.player.immediate_action, 14., MUTED);
-            text(info, hits(offer.player), 14., MUTED);
-            text(info, price(offer, balance), 15., INK);
-        });
-    });
-}
-
-pub(super) fn card_rail(
-    parent: &mut ChildSpawnerCommands,
-    players: &[Player],
-    prints: &Prints,
-    selection: Option<Selection>,
-    selection_for: fn(Card) -> Selection,
-) {
-    parent.spawn(row(6.)).with_children(|rail| {
-        for &player in players {
-            let item = selection_for(player.card);
-            let id = button(
-                rail,
-                SeatName::Component(format!("inspect-{}", player.card.identity)),
-                format!("Inspect {}", player.card.identity),
-                Input::Inspect(item),
-                if selection == Some(item) { GOLD } else { PAPER },
-                Node {
-                    flex_basis: px(0.),
-                    flex_grow: 1.,
-                    min_width: px(0.),
-                    padding: UiRect::all(px(6.)),
-                    ..row(5.)
-                },
-            );
-            rail.commands().entity(id).with_children(|tile| {
-                picture(tile, prints.front(player.card.identity), 28., 39.);
-                tile.spawn(col(2.)).with_children(|label| {
-                    text(label, player.card.identity.to_string(), 14., INK);
-                    text(label, player.name, 13., MUTED);
-                });
-            });
-        }
-    });
-}
-
-fn inspector(
+pub(super) fn inspector(
     parent: &mut ChildSpawnerCommands,
     view: &Observation,
     prints: &Prints,
     selection: Option<Selection>,
+    scale: f32,
 ) {
-    parent.spawn((
-        Node { width: px(282.), flex_shrink: 0., align_items: AlignItems::Center, padding: UiRect::all(px(12.)), border_radius: BorderRadius::all(px(6.)), ..col(8.) },
-        BackgroundColor(PAPER),
-    )).with_children(|panel| {
+    let panel = parent
+        .spawn((
+            Node {
+                width: percent(100.),
+                height: percent(100.),
+                padding: UiRect::all(px(12. * scale)),
+                border_radius: BorderRadius::all(px(6. * scale)),
+                ..col(7. * scale)
+            },
+            BackgroundColor(PAPER),
+        ))
+        .id();
+    parent.commands().entity(panel).with_children(|panel| {
         if selection == Some(Selection::History) {
-            text(panel, "Buy Round history", 20., INK);
-            for &event in &view.events {
-                text(panel, event_text(event), 15., INK);
-            }
+            text(panel, "Buy Round history", 20. * scale, INK);
+            panel.spawn(Node {
+                flex_grow: 1.,
+                min_height: px(0.),
+                overflow: Overflow::clip_y(),
+                ..col(5. * scale)
+            }).with_children(|history| {
+                for &event in &view.events {
+                    text(history, event_text(event), 14. * scale, INK);
+                }
+            });
             short_button(panel, SeatName::Component("close-history".into()), "Close history".into(), Input::Close, CREAM);
             return;
         }
-        let (player, action) = match selection {
-            Some(Selection::Offer { slot, card })
-                if view.offers[usize::from(slot - 1)].player.card == card => {
-                let offer = &view.offers[usize::from(slot - 1)];
-                let permitted = matches!(&view.decision, Some(Decision::Sign { affordable }) if affordable.contains(&offer.player.card));
-                text(panel, price(offer, view.buyer.map(|_| view.balance)), 16., MUTED);
-                (offer.player, permitted.then(|| (format!("Sign {} for ${}", offer.player.name, offer.cost), Action::Sign { slot, card: offer.player.card })))
-            }
-            Some(Selection::PublicCard(card)) => {
-                let Some(player) = view.rosters.iter()
-                    .flat_map(|roster| roster.in_play.iter().chain(&roster.dugout))
-                    .find(|player| player.card == card) else {
-                        text(panel, "This player is no longer in a public pile.", 18., MUTED);
-                        return;
-                    };
-                let permitted = matches!(&view.decision, Some(Decision::Demote { eligible }) if eligible.contains(&card));
-                ( *player, permitted.then(|| ("Send to the Minor Leagues".into(), Action::Demote { card })) )
-            }
-            _ => {
-                text(panel, "Select a player to inspect the full face.", 18., MUTED);
-                return;
-            }
+        let Some(Selection::PublicCard(card)) = selection else {
+            return;
         };
-        text(panel, player.name, 20., INK);
-        let pinch = if player.pinch_hitter { " / PH" } else { "" };
-        text(panel, format!("{} / {} / ${} revenue{pinch}", player.card.identity, player.speed, player.revenue), 14., MUTED);
-        picture(panel, prints.front(player.card.identity), 232., 322.);
-        if let Some((label, action)) = action {
-            let name = match action {
-                Action::Sign { slot, card } => format!("sign-{slot}-{}", card.instance),
-                Action::Demote { card } => format!("demote-{}-{}", card.identity, card.instance),
-                _ => unreachable!("the inspector only submits signing or demotion"),
+        let Some(player) = view.rosters.iter()
+            .flat_map(|roster| roster.in_play.iter().chain(&roster.dugout))
+            .find(|player| player.card == card) else {
+                text(panel, "This player is no longer in a public pile.", 17. * scale, INK);
+                return;
             };
-            short_button(panel, SeatName::Choice(name), label, Input::Submit(view.submission(action)), GOLD);
-        }
-        short_button(panel, SeatName::Component("close-inspection".into()), "Close face".into(), Input::Close, CREAM);
+        panel.spawn(row(12. * scale)).with_children(|reading| {
+            picture(reading, prints.front(player.card.identity), 139. * scale, 194. * scale);
+            reading.spawn(col(8. * scale)).with_children(|details| {
+                text(details, player.name, 19. * scale, INK);
+                let pinch = if player.pinch_hitter { " / PH" } else { "" };
+                text(details, format!("{} / ${} revenue{pinch}", player.speed, player.revenue), 14. * scale, MUTED);
+                if matches!(&view.decision, Some(Decision::Demote { eligible }) if eligible.contains(&card)) {
+                    short_button(
+                        details,
+                        SeatName::Choice(format!("demote-{}-{}", card.identity, card.instance)),
+                        format!("Send {} to Minors", player.name),
+                        Input::Submit(view.submission(Action::Demote { card })),
+                        GOLD,
+                    );
+                }
+                short_button(details, SeatName::Component("close-inspection".into()), "Close face".into(), Input::Close, CREAM);
+            });
+        });
     });
 }
 
-fn event_text(event: Event) -> String {
+pub(super) fn event_text(event: Event) -> String {
     match event {
         Event::OrderChosen { chooser, first } => format!(
             "{} chose {} to buy first.",
@@ -378,11 +375,15 @@ fn event_text(event: Event) -> String {
                 reveal.name,
             )
         }
-        Event::Demoted { seat, card } => format!(
-            "{} sent {} to the Minor Leagues.",
-            seat.abbreviation(),
-            card.identity,
-        ),
+        Event::Demoted { seat, card } => {
+            let player = Player::describe(card).expect("a demoted player was public");
+            format!(
+                "{} sent {} (${} revenue) to the Minor Leagues.",
+                seat.abbreviation(),
+                player.name,
+                player.revenue,
+            )
+        }
         Event::Passed { seat, unspent } => format!(
             "{} finished buying. ${unspent} expired.",
             seat.abbreviation(),
@@ -391,122 +392,27 @@ fn event_text(event: Event) -> String {
     }
 }
 
-fn revenue_text(revenue: &Revenue) -> String {
-    let amounts = revenue
-        .contributions
-        .iter()
-        .map(|entry| format!("{} ${}", entry.card.identity, entry.amount))
-        .collect::<Vec<_>>()
-        .join("  +  ");
-    format!(
-        "{} revenue   {amounts}  =  ${}",
-        revenue.seat.abbreviation(),
-        revenue.total
-    )
-}
-
-fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
-    if let Some(buyer) = view.buyer {
-        let phase = if view.demotion_pending {
-            "chooses a demotion"
-        } else {
-            "shops"
-        };
-        book.spawn(Node {
-            align_items: AlignItems::Center,
-            ..row(12.)
-        })
-        .with_children(|turn| {
-            text(
-                turn,
-                format!("{} {phase}", buyer.abbreviation()),
-                19.,
-                CREAM,
-            );
-            if matches!(view.decision, Some(Decision::Sign { .. })) {
-                short_button(
-                    turn,
-                    SeatName::Choice("pass".into()),
-                    "Finish buying".into(),
-                    Input::Submit(view.submission(Action::Pass)),
-                    GOLD,
-                );
-            }
-        });
-    } else if view.first_buyer.is_none() {
-        let reason = if view.revenue[0].total == view.revenue[1].total {
-            "mini-game loser"
-        } else {
-            "lower revenue"
-        };
-        text(
-            book,
-            format!(
-                "{} chooses purchase order ({reason}).",
-                view.order_chooser.abbreviation()
-            ),
-            19.,
-            CREAM,
-        );
-        if matches!(view.decision, Some(Decision::ChooseOrder)) {
-            book.spawn(row(9.)).with_children(|choices| {
-                for first in [Seat::SanFrancisco, Seat::NewYork] {
-                    let action = Action::ChooseOrder { first };
-                    short_button(
-                        choices,
-                        SeatName::Choice(format!(
-                            "buy-first-{}",
-                            first.abbreviation().to_lowercase()
-                        )),
-                        format!("{} buys first", first.abbreviation()),
-                        Input::Submit(view.submission(action)),
-                        GOLD,
-                    );
-                }
-            });
-        }
-    } else {
-        book.spawn(Node {
-            align_items: AlignItems::Center,
-            ..row(12.)
-        })
-        .with_children(|turn| {
-            if view.decision == Some(Decision::StartGame) {
-                text(turn, "Buy Round complete", 19., CREAM);
-                short_button(
-                    turn,
-                    SeatName::Choice("start-game-two".into()),
-                    "Draw hands for game two".into(),
-                    Input::Submit(view.submission(Action::StartGame)),
-                    GOLD,
-                );
-            } else if let Some(manager) = view.acting_manager {
-                text(
-                    turn,
-                    format!(
-                        "Buy Round complete / Waiting for {} to draw",
-                        manager.abbreviation()
-                    ),
-                    19.,
-                    CREAM,
-                );
-            }
-        });
+fn refresh_session(session: &mut Mut<Session>) -> Result<bool, Refusal> {
+    let advanced = session.bypass_change_detection().game.refresh()?;
+    if advanced {
+        session.set_changed();
     }
+    Ok(advanced)
 }
 
 pub fn refresh(
     time: Res<Time>,
     mut elapsed: Local<std::time::Duration>,
-    mut session: ResMut<Session>,
+    session: ResMut<Session>,
+    mut ui: ResMut<Interface>,
 ) {
     *elapsed += time.delta();
     if *elapsed < std::time::Duration::from_millis(250) {
         return;
     }
     *elapsed = std::time::Duration::ZERO;
-    if matches!(session.bypass_change_detection().game.refresh(), Ok(true)) {
-        session.set_changed();
+    if matches!(refresh_session(&mut session.into()), Ok(true)) {
+        *ui = Interface::default();
     }
 }
 
@@ -516,10 +422,14 @@ pub fn draw(
     ui: Res<Interface>,
     prints: Res<Prints>,
     existing: Query<Entity, With<Board>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    mut last_size: Local<Vec2>,
 ) {
-    if !session.is_changed() && !ui.is_changed() {
+    let size = Vec2::new(window.width(), window.height());
+    if !session.is_changed() && !ui.is_changed() && *last_size == size {
         return;
     }
+    *last_size = size;
     for entity in &existing {
         commands.entity(entity).despawn();
     }
@@ -527,6 +437,7 @@ pub fn draw(
     if let Some(position) = &view.field {
         field::draw(
             &mut commands,
+            field::Layout::new(size),
             &view,
             position,
             &prints,
@@ -535,71 +446,37 @@ pub fn draw(
         );
         return;
     }
-    commands.spawn((
-        Board { revision: view.revision },
-        Node { width: percent(100.), height: percent(100.), ..col(0.) },
+    let mut board = commands.spawn((
+        Board {
+            revision: view.revision,
+        },
+        Node {
+            width: percent(100.),
+            height: percent(100.),
+            ..col(0.)
+        },
         Pickable::IGNORE,
-    )).with_children(|root| {
-        root.spawn((
-            Node { width: percent(100.), height: px(HEADER), align_items: AlignItems::Center, justify_content: JustifyContent::SpaceBetween, padding: UiRect::horizontal(px(18.)), ..default() },
-            BackgroundColor(DARK),
-        )).with_children(|head| {
-            text(head, "Expert   /   Game 1 Buy Round", 24., CREAM);
-            text(head, format!("{} manager   /   SF ${}   /   NY ${}", view.seat.abbreviation(), view.balances[0], view.balances[1]), 20., GOLD);
+    ));
+    if let Some(next_game) = view.next_game {
+        board.with_children(|root| {
+            between_games::draw(
+                root,
+                &view,
+                next_game,
+                &prints,
+                ui.selection,
+                ui.error.as_deref(),
+            )
         });
-        root.spawn((Node { height: px(FIELD), flex_shrink: 0., ..default() }, Pickable::IGNORE));
-        root.spawn((
-            Node { flex_grow: 1., padding: UiRect::axes(px(16.), px(9.)), ..row(12.) },
-            BackgroundColor(DARK),
-        )).with_children(|body| {
-            body.spawn(Node { flex_grow: 1., min_width: px(0.), ..col(5.) }).with_children(|book| {
-                for revenue in &view.revenue {
-                    text(book, revenue_text(revenue), 14., FIELD_LABEL);
-                }
-                purchase_turn(book, &view);
-                book.spawn(Node { align_items: AlignItems::Center, ..row(12.) })
-                    .with_children(|heading| {
-                        text(heading, "Buy Row", 23., CREAM);
-                        text(heading, format!("Free Agent Deck  {}", view.free_agent_deck), 15., FIELD_LABEL);
-                        if !view.events.is_empty() {
-                            short_button(heading, SeatName::Component("round-history".into()), "Round history".into(), Input::Inspect(Selection::History), CREAM);
-                        }
-                    });
-                for offers in view.offers.chunks(3) {
-                    book.spawn(row(8.)).with_children(|tiles| {
-                        for offer in offers {
-                            offer_tile(tiles, offer, view.buyer.map(|_| view.balance), &prints, ui.selection);
-                        }
-                    });
-                }
-                if let Some(&event) = view.events.last() {
-                    text(book, event_text(event), 16., GOLD);
-                }
-                for roster in &view.rosters {
-                    text(book, format!("{}   /   Lineup {}   /   Dugout {}   /   Minor Leagues {}   /   Active roster {}",
-                        roster.seat.abbreviation(), roster.lineup, roster.dugout.len(), roster.minor_leagues, roster.active,
-                    ), 15., FIELD_LABEL);
-                    if !roster.dugout.is_empty() {
-                        card_rail(book, &roster.dugout, &prints, ui.selection, Selection::PublicCard);
-                    }
-                }
-                if let Some(buyer) = view.buyer.filter(|_| view.demotion_pending) {
-                    let roster = view.rosters.iter().find(|roster| roster.seat == buyer).expect("each manager has a roster");
-                    let title = if Some(view.seat) == view.buyer {
-                        "In Play / Choose one player to demote".to_owned()
-                    } else {
-                        format!("{} In Play / Demotion pending", buyer.abbreviation())
-                    };
-                    text(book, title, 19., CREAM);
-                    card_rail(book, &roster.in_play, &prints, ui.selection, Selection::PublicCard);
-                }
-                if let Some(error) = &ui.error {
-                    text(book, error, 17., GOLD);
-                }
-            });
-            inspector(body, &view, &prints, ui.selection);
+    } else if view.first_buyer.is_none() {
+        board.with_children(|root| {
+            revenue::draw(root, &view, &prints, ui.selection, ui.error.as_deref())
         });
-    });
+    } else {
+        let layout = market::Layout::new(size, view.demotion_pending);
+        board.insert((layout, market::background()));
+        board.with_children(|root| market::draw(root, layout, &view, &prints, &ui));
+    }
 }
 
 pub struct AgentTable;
@@ -622,28 +499,68 @@ fn viewport(world: &mut World) -> Option<Vec2> {
 
 impl seat::Game for AgentTable {
     fn observe(&self, world: &mut World) -> Observed {
-        let (view, refresh_error) = {
+        let (view, refreshed) = {
             let mut session = world.resource_mut::<Session>();
-            let refreshed = session.bypass_change_detection().game.refresh();
-            if matches!(refreshed, Ok(true)) {
-                session.set_changed();
-            }
-            (session.game.observe(session.seat), refreshed.is_err())
+            let refreshed = refresh_session(&mut session);
+            (session.game.observe(session.seat), refreshed)
         };
+        if matches!(refreshed, Ok(true)) {
+            *world.resource_mut::<Interface>() = Interface::default();
+        }
+        let refresh_error = refreshed.is_err();
+        let selection = world.resource::<Interface>().selection;
+        let revenue_inspection = revenue::inspected_contributor(&view, selection);
+        let dugout_inspection = between_games::inspection(&view, selection);
+        let round_history =
+            (selection == Some(Selection::History) && view.field.is_none()).then(|| {
+                view.events
+                    .iter()
+                    .copied()
+                    .map(event_text)
+                    .collect::<Vec<_>>()
+            });
+        let interaction = world.resource::<card_focus::Interaction>();
+        let market_inspection = market::reading(&view, interaction.visible());
+        let hand_inspection = field::hand::reading(&view, interaction.visible());
+        let glove_inspection = field::glove::reading(&view, interaction.visible());
+        let focus = interaction.focus();
+        let cards_in_motion = world.resource::<market_transfer::Playback>().moving();
         let observation = serde_json::to_value(&view).expect("public observation serializes");
         let viewport = viewport(world);
+        let stadium = view.field.as_ref().zip(viewport).map(|(game, size)| {
+            let rect = field::Layout::new(size).stadium();
+            json!({
+                "viewport": [rect.min.x, rect.min.y, rect.width(), rect.height()],
+                "prompt": field::prompt(&view, game),
+                "threat": field::threat_summary(game),
+                "recent_plays": field::recent_plays(&view),
+            })
+        });
+        let mut focused = None;
         let controls: Vec<_> = controls(world).into_iter().filter_map(|(entity, control)| {
             let target = seat::ui_target(world, entity, viewport)?;
             let (component, choice) = match control.name {
                 SeatName::Component(name) => (Some(name), None),
                 SeatName::Choice(name) => (None, Some(name)),
             };
+            if focus.is_some() && world.get::<card_focus::Region>(entity).copied() == focus {
+                focused = Some(json!({ "component": component, "choice": choice, "label": control.label }));
+            }
             Some(json!({"component": component, "choice": choice, "label": control.label,
                 "position": [target.position.x, target.position.y], "on_screen": target.on_screen }))
         }).collect();
         Observed {
             observation,
-            table: json!({ "controls": controls, "refresh_error": refresh_error }),
+            table: json!({
+                "controls": controls, "focus": focused,
+                "supported_keys": card_focus::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
+                "market_inspection": market_inspection, "cards_in_motion": cards_in_motion,
+                "stadium": stadium, "hand_inspection": hand_inspection,
+                "glove_inspection": glove_inspection,
+                "round_history": round_history,
+                "refresh_error": refresh_error, "revenue_inspection": revenue_inspection,
+                "dugout_inspection": dugout_inspection,
+            }),
         }
     }
 
@@ -695,7 +612,43 @@ impl seat::Game for AgentTable {
         if !layout || viewport(world).is_none() {
             return vec!["Table layout".into()];
         }
+        if world.resource::<card_focus::Interaction>().waiting() {
+            return vec!["Card help".into()];
+        }
+        if world.resource::<market_transfer::Playback>().moving() {
+            return vec!["Card transfer".into()];
+        }
         Vec::new()
+    }
+
+    fn focus(&self, world: &mut World) -> seat::Focus {
+        let Some(focus) = world.resource::<card_focus::Interaction>().focus() else {
+            return seat::Focus::Nothing;
+        };
+        for (entity, control) in controls(world) {
+            if world.get::<card_focus::Region>(entity).copied() == Some(focus) {
+                return seat::Focus::Control {
+                    choice: match control.name {
+                        SeatName::Choice(name) => Some(name),
+                        SeatName::Component(_) => None,
+                    },
+                    label: control.label,
+                };
+            }
+        }
+        seat::Focus::Nothing
+    }
+
+    fn keys(&self) -> &[seat::SeatKey] {
+        &card_focus::KEYS
+    }
+
+    fn interrupts(&self, _world: &mut World, input: seat::Interrupt<'_>) -> bool {
+        matches!(
+            input,
+            seat::Interrupt::Key("Tab" | "Shift+Tab" | "Escape" | "Space")
+                | seat::Interrupt::Activate(SeatName::Component(_))
+        )
     }
 
     fn admission(&self, world: &World) -> Admission {

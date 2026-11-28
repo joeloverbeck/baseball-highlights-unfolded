@@ -14,7 +14,23 @@ screen=1440x900x24
 if [ "${1-}" = --game-two ]; then
     shift
     script=scripts/native_game_two.py
-    screen=2640x900x24
+    screen=4096x2304x24
+elif [ "${1-}" = --signing ]; then
+    shift
+    script=scripts/native_signing.py
+    screen=3840x2160x24
+elif [ "${1-}" = --market ]; then
+    shift
+    script=scripts/native_market.py
+    screen=3840x2160x24
+elif [ "${1-}" = --start-game ]; then
+    shift
+    script=scripts/native_game_start.py
+    screen=3840x2160x24
+elif [ "${1-}" = --order ]; then
+    shift
+    script=scripts/native_purchase_order.py
+    screen=4096x2304x24
 fi
 
 timeout 10m xvfb-run -a -e /dev/stderr -s "-screen 0 $screen -dpi 96" \

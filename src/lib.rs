@@ -5,10 +5,10 @@ mod series;
 
 pub use cards::{Card, CardId, Player};
 pub use field::{
-    Diamond, FieldPlay, FieldView, GlovePreview, GloveReview, Hit, HitBox, Runner, RunnerSpeed,
-    Threat,
+    Diamond, FieldPlay, FieldView, GlovePreview, GloveReview, Hit, HitBox, Runner, RunnerAdvance,
+    RunnerSpeed, Threat,
 };
 pub use series::{
-    Action, BuyRoundFixture, Contribution, Decision, Event, Game, Observation, Offer, Refusal,
-    Revenue, Roster, Seat, Standing, Submission,
+    Action, BuyRoundFixture, Contribution, Decision, Event, Game, NextGame, Observation, Offer,
+    Refusal, Revenue, Roster, Seat, Standing, Submission,
 };

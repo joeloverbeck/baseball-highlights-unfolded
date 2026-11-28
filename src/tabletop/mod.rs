@@ -1,12 +1,18 @@
+mod between_games;
+mod card_focus;
+mod card_help;
 mod controls;
 mod field;
+mod market;
+mod market_transfer;
+mod revenue;
 mod stage;
 
 use baseball_highlights_unfolded::{
     CardId, Game, GloveReview, Seat,
     assets::{Collection, display_face_id},
 };
-use bevy::{prelude::*, time::TimeUpdateStrategy};
+use bevy::{input_focus::InputFocusSystems, prelude::*, time::TimeUpdateStrategy};
 use std::{collections::HashMap, time::Duration};
 use unfolded_tabletop::{
     capture,
@@ -30,6 +36,10 @@ pub struct Art {
     back: image::DynamicImage,
     buy_park: image::DynamicImage,
     field_park: image::DynamicImage,
+    pennant: image::DynamicImage,
+    card_symbols: [image::DynamicImage; 4],
+    autograph: image::DynamicImage,
+    transfer_card: image::DynamicImage,
 }
 
 impl Art {
@@ -46,6 +56,27 @@ impl Art {
             back: collection.back()?,
             buy_park: park(include_bytes!("../../art/manager-review/park-0.png"))?,
             field_park: park(include_bytes!("../../art/manager-review/park-field.png"))?,
+            pennant: park(include_bytes!("../../art/manager-review/match/pennant.png"))?,
+            card_symbols: [
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-S.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-A.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-F.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-PH.png"
+                ))?,
+            ],
+            autograph: park(include_bytes!(
+                "../../art/manager-review/signing/autograph.png"
+            ))?,
+            transfer_card: park(include_bytes!(
+                "../../art/manager-review/between-games/transfer-card.png"
+            ))?,
         })
     }
 }
@@ -56,6 +87,10 @@ struct Prints {
     back: Handle<Image>,
     buy_park: Handle<Image>,
     field_park: Handle<Image>,
+    pennant: Handle<Image>,
+    card_symbols: [Handle<Image>; 4],
+    autograph: Handle<Image>,
+    transfer_card: Handle<Image>,
 }
 
 impl Prints {
@@ -72,6 +107,10 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         back: texture(art.back),
         buy_park: texture(art.buy_park),
         field_park: texture(art.field_park),
+        pennant: texture(art.pennant),
+        card_symbols: art.card_symbols.map(&mut texture),
+        autograph: texture(art.autograph),
+        transfer_card: texture(art.transfer_card),
         faces: art
             .faces
             .into_iter()
@@ -81,10 +120,23 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
     app.insert_resource(prints)
         .insert_resource(Session { game, seat })
         .init_resource::<controls::Interface>()
+        .init_resource::<card_focus::Interaction>()
+        .init_resource::<market_transfer::Playback>()
         .add_systems(Startup, (camera, stage::setup))
         .add_systems(
             Update,
-            (controls::draw, stage::draw, stage::animate, controls::hover).chain(),
+            (
+                controls::draw,
+                card_focus::interact,
+                market::present,
+                market_transfer::draw,
+                market_transfer::animate,
+                field::hand::present,
+                field::glove::present,
+                stage::draw,
+                controls::hover,
+            )
+                .chain(),
         )
         .add_systems(PostUpdate, stage::viewport);
 }
@@ -121,7 +173,19 @@ pub fn run(game: Game, seat: Seat, art: Art) -> Result<(), String> {
         ..default()
     }));
     install(&mut app, game, seat, art);
-    app.add_systems(Update, controls::refresh.before(controls::draw));
+    app.add_systems(
+        Update,
+        (
+            controls::refresh.before(controls::draw),
+            controls::accessibility
+                .after(controls::draw)
+                .before(card_focus::interact),
+        ),
+    );
+    app.add_systems(
+        PostUpdate,
+        controls::accessibility_focus.before(InputFocusSystems::FocusChangeEvents),
+    );
     match app.run() {
         AppExit::Success => Ok(()),
         AppExit::Error(code) => Err(format!("The tabletop closed with status {code}.")),

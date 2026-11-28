@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import re
-from struct import iter_unpack
 import subprocess
 import sys
 import tempfile
@@ -18,17 +17,9 @@ from PIL import ImageGrab
 
 TITLE = "Baseball Highlights / Expert Buy Round"
 GAME_SIZE = (1280, 800)
-# Coordinates in the ordinary launch at 96 DPI. A layout change may move them.
-SF_FIRST = (91, 287)
-RIZZUTO_OFFER = (493, 382)
-SLOT_FIVE = (493, 507)
-SIGN_FOXX = (1124, 659)
-SIGN_MARIS = (1124, 642)
-SECOND_IN_PLAY = (253, 689)
-CONFIRM_DEMOTION = (1124, 614)
-FINISH_BUYING = (195, 259)
-ROUND_HISTORY = (380, 286)
-PILE_CENTERS = {"Free Agent Deck": 800, "Lineup": 925, "Minor Leagues": 1176}
+# Purchase order and completion use the ordinary launch at 96 DPI.
+SF_FIRST = (966, 641)
+ROUND_HISTORY = (1160, 52)
 
 
 def build():
@@ -208,24 +199,8 @@ def capture_when(table, path, ready):
             latest.save(path)
 
 
-def capture(table, path, *, piles=None):
-    def matches_piles(image):
-        if piles is None:
-            return True
-
-        # Sample dark brown print inside each back. The exposed field and its
-        # markings contain very little of this color at these three positions.
-        for name, center in PILE_CENTERS.items():
-            crop = image.crop((center - 12, 99, center + 12, 136))
-            dark_ink = sum(
-                red < 100 and red > green + 8 and green >= blue
-                for red, green, blue in iter_unpack("BBB", crop.tobytes())
-            )
-            if (dark_ink >= 60) != (name in piles):
-                return False
-        return True
-
-    capture_when(table, path, matches_piles)
+def capture(table, path):
+    capture_when(table, path, lambda image: True)
 
 
 def record(save):
@@ -242,65 +217,86 @@ def require(condition, description):
 
 
 def smoke(executable, assets, evidence):
+    from native_market import GOLD, PAPER, annotation, card_boxes
+    from native_signing import center, demotion_action, finish_buttons, press, secondary_offers
+
     save = evidence / "series.json"
-    piles = {"Free Agent Deck", "Lineup"}
+    scale = min(GAME_SIZE[0] / 1080, GAME_SIZE[1] / 720)
+
+    def market_faces(table, name):
+        frame = capture_when(table, evidence / f"{name}.png", card_boxes)
+        return card_boxes(frame)
+
+    def read_offer(window, table, face, name, color, *, action=False):
+        press(window, center(face))
+        frame = capture_when(table, evidence / f"{name}.png",
+                             lambda image: annotation(image, face, scale, color, action=action))
+        return annotation(frame, face, scale, color, action=action)
+
+    def pending_faces(table, name):
+        frame = capture_when(table, evidence / f"{name}.png",
+                             lambda image: secondary_offers(image) and card_boxes(image))
+        return card_boxes(frame)
+
+    def demote_and_pass(window, table, seat, expected):
+        face = pending_faces(table, f"{seat}-pending")[1]
+        press(window, center(face))
+        frame = capture_when(table, evidence / f"{seat}-demotion.png",
+                             lambda image: demotion_action(image, face, scale))
+        press(window, demotion_action(frame, face, scale))
+        wait_for(lambda: position(save)["phase"] == "Shopping", f"{seat} to finish its demotion")
+        club = position(save)["clubs"][0 if seat == "sf" else 1]
+        require(club["minor_leagues"][-1]["identity"] == expected, "The selected card was not demoted")
+        require(len(club["lineup"]) + len(club["in_play"]) == 15,
+                f"{seat} did not return to 15 active players")
+        frame = capture_when(table, evidence / f"{seat}-demoted.png",
+                             lambda image: len(finish_buttons(image, scale)) == 2)
+        press(window, finish_buttons(frame, scale)[0])
+
     with launch(executable, save, assets, evidence / "first.log") as (game, window, table):
         series = record(save)["series"]
         before = position(save)
         require(before["phase"] == "Order" and before["balances"] == [6, 7],
                 "Expected an order decision with SF $6 and NY $7")
-        capture(table, evidence / "opening.png", piles=piles)
+        capture_when(table, evidence / "opening.png",
+                     lambda image: image.getpixel((SF_FIRST[0], SF_FIRST[1] - 13))[0] > 230)
         click(window, SF_FIRST)
         wait_for(lambda: position(save)["buyer"] == "san_francisco", "SF to buy first")
-        click(window, RIZZUTO_OFFER)
-        capture(table, evidence / "rizzuto.png")
-        click(window, SLOT_FIVE)
-        capture(table, evidence / "foxx.png")
+        offers = market_faces(table, "sf-opening")
         initial_bytes = save.read_bytes()
-        click(window, SIGN_FOXX, button=3)
+        read_offer(window, table, offers[1], "rizzuto", PAPER)
+        sign_foxx = read_offer(window, table, offers[4], "foxx", GOLD, action=True)
+        require(save.read_bytes() == initial_bytes, "Inspection changed the saved series")
+        click(window, sign_foxx, button=3)
         require(save.read_bytes() == initial_bytes, "Secondary click changed the saved series")
-        click(window, SIGN_FOXX)
+        press(window, sign_foxx)
         wait_for(lambda: position(save)["phase"] == "Demotion", "Foxx to sign")
         after = position(save)
         require(after["balances"] == [2, 7] and after["row"][4]["identity"] == "FA-067",
                 "Expected $2 and Mickey Maris in slot 5")
         require(after["clubs"][0]["lineup"][-1]["identity"] == "FA-065", "Foxx did not top SF's Lineup")
-        capture(table, evidence / "refill.png", piles=piles)
+        pending_faces(table, "refill")
         pending_bytes = save.read_bytes()
         close(game, window)
 
     with launch(executable, save, assets, evidence / "resumed.log") as (game, window, table):
         require(save.read_bytes() == pending_bytes, "The resumed save differs from the pending demotion")
-        capture(table, evidence / "resumed.png", piles=piles)
-        click(window, SECOND_IN_PLAY)
-        capture(table, evidence / "demotion.png")
-        click(window, CONFIRM_DEMOTION)
-        wait_for(lambda: position(save)["phase"] == "Shopping", "ST-004 to enter the Minor Leagues")
-        demoted = position(save)
-        sf = demoted["clubs"][0]
         require(record(save)["series"] == series, "Resumed a different series")
-        require(sf["minor_leagues"][-1]["identity"] == "ST-004", "The selected card was not demoted")
-        require(len(sf["lineup"]) + len(sf["in_play"]) == 15, "SF did not return to 15 active players")
-        capture(table, evidence / "sf-demoted.png", piles=piles | {"Minor Leagues"})
-        click(window, FINISH_BUYING)
+        demote_and_pass(window, table, "sf", "ST-004")
         wait_for(lambda: position(save)["buyer"] == "new_york", "NY to take over")
         close(game, window)
 
     with launch(executable, save, assets, evidence / "ny.log", seat="ny") as (game, window, table):
-        capture(table, evidence / "ny-opening.png", piles=piles)
-        click(window, SLOT_FIVE)
-        capture(table, evidence / "maris.png")
-        click(window, SIGN_MARIS)
+        offers = market_faces(table, "ny-opening")
+        sign_maris = read_offer(window, table, offers[4], "maris", GOLD, action=True)
+        press(window, sign_maris)
         wait_for(lambda: position(save)["phase"] == "Demotion", "Maris to sign")
         signed = position(save)
         require(signed["balances"] == [0, 0] and signed["row"][4]["identity"] == "FA-068",
                 "NY must spend $7 and reveal Babe Bench in slot 5")
         require(signed["clubs"][1]["lineup"][-1]["identity"] == "FA-067",
                 "Maris did not top NY's Lineup")
-        click(window, SECOND_IN_PLAY)
-        click(window, CONFIRM_DEMOTION)
-        wait_for(lambda: position(save)["phase"] == "Shopping", "NY to finish its demotion")
-        click(window, FINISH_BUYING)
+        demote_and_pass(window, table, "ny", "ST-056")
         wait_for(lambda: position(save)["phase"] == "Complete", "both managers to finish")
         complete = position(save)
         require(complete["balances"] == [0, 0], "Revenue carried forward")
@@ -310,9 +306,14 @@ def smoke(executable, assets, evidence):
                     "Expected five cards in the Dugout and ten in the Lineup")
             require([card["identity"] for card in club["minor_leagues"]] == [expected],
                     f"Expected only {expected} in the Minor Leagues")
-        capture(table, evidence / "finished.png", piles=piles | {"Minor Leagues"})
+        def completed_matchup(image):
+            return image.getpixel((51, 208)) == (36, 60, 64)
+
+        capture_when(table, evidence / "finished.png", completed_matchup)
+        before_history = save.read_bytes()
         click(window, ROUND_HISTORY)
-        capture(table, evidence / "history.png")
+        capture_when(table, evidence / "history.png", lambda image: not completed_matchup(image))
+        require(save.read_bytes() == before_history, "Opening history changed the saved series")
         close(game, window)
 
 
@@ -322,12 +323,14 @@ def main():
         epilog="Use scripts/native-buy-round --game-two to replay the opening on both interfaces.",
     )
     parser.add_argument("--assets", type=Path, help="Path to the audited owner-local collection")
+    parser.add_argument("--executable", type=Path, help="Use a specific built executable")
     args = parser.parse_args()
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-buy-round."))
     print(f"Native Buy Round evidence in {evidence}", flush=True)
     try:
         check_display("scripts/native-buy-round")
-        smoke(build(), args.assets, evidence)
+        executable = args.executable.resolve() if args.executable else build()
+        smoke(executable, args.assets, evidence)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1

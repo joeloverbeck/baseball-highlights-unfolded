@@ -154,19 +154,35 @@ pub struct Diamond {
 
 impl Diamond {
     fn resolve(&mut self, threat: Threat) -> u16 {
-        self.resolve_hit(threat.hit, threat.batter, false)
+        self.resolve_hit(threat.hit, threat.batter, false, |_| {})
     }
 
-    fn resolve_hit(&mut self, hit: Hit, batter: Runner, clutch: bool) -> u16 {
+    fn resolve_hit(
+        &mut self,
+        hit: Hit,
+        batter: Runner,
+        clutch: bool,
+        mut advance: impl FnMut(RunnerAdvance),
+    ) -> u16 {
         if hit == Hit::Walk {
             let mut incoming = batter;
-            for base in &mut self.bases {
+            for (index, base) in self.bases.iter_mut().enumerate() {
+                advance(RunnerAdvance {
+                    runner: incoming,
+                    from_base: (index != 0).then_some(index),
+                    to_base: Some(index + 1),
+                });
                 match base.replace(incoming) {
                     Some(displaced) => incoming = displaced,
                     None => return 0,
                 }
             }
             self.score += 1;
+            advance(RunnerAdvance {
+                runner: incoming,
+                from_base: Some(3),
+                to_base: None,
+            });
             return 1;
         }
         let before = self.score;
@@ -182,6 +198,11 @@ impl Diamond {
                     || (runner.speed == RunnerSpeed::Average && base == 1 && hit == Hit::Single),
             );
             let destination = (base + distance + extra).min(blocker.map_or(3, |next| next - 1));
+            advance(RunnerAdvance {
+                runner,
+                from_base: Some(base + 1),
+                to_base: (destination != 3).then_some(destination + 1),
+            });
             if destination == 3 {
                 self.score += 1;
             } else {
@@ -189,6 +210,11 @@ impl Diamond {
                 blocker = Some(destination);
             }
         }
+        advance(RunnerAdvance {
+            runner: batter,
+            from_base: None,
+            to_base: (hit != Hit::HomeRun).then_some(distance),
+        });
         if hit == Hit::HomeRun {
             self.score += 1;
         } else {
@@ -224,11 +250,21 @@ pub struct FieldView {
     pub glove_pending: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct RunnerAdvance {
+    pub runner: Runner,
+    /// One-based origin, or None for a batter.
+    pub from_base: Option<usize>,
+    /// One-based destination, or None when the runner scores.
+    pub to_base: Option<usize>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct GlovePreview {
     pub target: HitBox,
     pub cancelled: Hit,
     pub surviving: Vec<Threat>,
+    pub runner_advances: Vec<RunnerAdvance>,
     /// The SF diamond followed by the NY diamond after resolving the threats.
     pub diamonds: [Diamond; 2],
 }
@@ -354,7 +390,7 @@ impl Field {
                 card,
                 speed: RunnerSpeed::of(player),
             };
-            let runs = self.diamonds[batting].resolve_hit(hit, runner, clutch);
+            let runs = self.diamonds[batting].resolve_hit(hit, runner, clutch, |_| {});
             events.push(Event::ImmediateHit {
                 seat: self.acting,
                 card,
@@ -413,13 +449,17 @@ impl Field {
                         .collect();
                     let mut diamonds = self.diamonds;
                     let diamond = &mut diamonds[self.acting.opponent().index()];
-                    for &hit in &surviving {
-                        diamond.resolve(hit);
+                    let mut runner_advances = Vec::new();
+                    for threat in &surviving {
+                        diamond.resolve_hit(threat.hit, threat.batter, false, |advance| {
+                            runner_advances.push(advance);
+                        });
                     }
                     GlovePreview {
                         target: threat.target,
                         cancelled: threat.hit,
                         surviving,
+                        runner_advances,
                         diamonds,
                     }
                 })

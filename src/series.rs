@@ -18,6 +18,7 @@ pub(crate) const SECOND_REFILL: u8 = 68;
 const THIRD_REFILL: u8 = 69;
 const SEATS: [Seat; 2] = [Seat::SanFrancisco, Seat::NewYork];
 const FIRST_HOME: Seat = Seat::SanFrancisco;
+const GAME_TWO_HOME: Seat = FIRST_HOME.opponent();
 const OPENING_PLAYS: usize = 3;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -35,7 +36,7 @@ impl Seat {
         }
     }
 
-    pub fn opponent(self) -> Self {
+    pub const fn opponent(self) -> Self {
         match self {
             Self::SanFrancisco => Self::NewYork,
             Self::NewYork => Self::SanFrancisco,
@@ -259,6 +260,8 @@ pub struct Observation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub standing: Option<Standing>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_game: Option<NextGame>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub field: Option<FieldView>,
 }
 
@@ -268,6 +271,13 @@ pub struct Standing {
     pub home: Seat,
     /// SF and NY games won, in that order.
     pub wins: [u8; 2],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct NextGame {
+    #[serde(flatten)]
+    pub standing: Standing,
+    pub first_player: Seat,
 }
 
 impl Observation {
@@ -555,6 +565,7 @@ impl Position {
         } else {
             None
         };
+        let wins = SEATS.map(|seat| u8::from(self.winner == seat));
         Observation {
             series: series.to_owned(),
             revision,
@@ -575,11 +586,22 @@ impl Position {
             standing: self.field_review.is_none().then(|| Standing {
                 game: if self.opening.is_some() { 2 } else { 1 },
                 home: if self.opening.is_some() {
-                    FIRST_HOME.opponent()
+                    GAME_TWO_HOME
                 } else {
                     FIRST_HOME
                 },
-                wins: SEATS.map(|seat| u8::from(self.winner == seat)),
+                wins,
+            }),
+            next_game: (self.phase == Phase::Complete
+                && self.opening.is_none()
+                && self.field_review.is_none())
+            .then(|| NextGame {
+                standing: Standing {
+                    game: 2,
+                    home: GAME_TWO_HOME,
+                    wins,
+                },
+                first_player: Field::opening(GAME_TWO_HOME).acting(),
             }),
             field: self
                 .field_review
@@ -680,7 +702,7 @@ impl Position {
                 }
             }
             (Phase::Complete, Action::StartGame) => {
-                let home = FIRST_HOME.opponent();
+                let home = GAME_TWO_HOME;
                 for club in &mut self.clubs {
                     // The reviewed Buy Round always leaves at least nine in each Lineup.
                     club.hand = (0..6)
