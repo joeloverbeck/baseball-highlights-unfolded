@@ -77,10 +77,9 @@ fn run() -> Result<(), String> {
     } else {
         Game::open(save)
     }
-    .map_err(|error| error.to_string())?;
-    if game.glove_review() != requested_review {
-        return Err("Use --review-glove to reopen a Glove review save.".into());
-    }
+    .map_err(|error| {
+        format!("{error} To start a fresh series, use --save FILE with an unused path.")
+    })?;
     if let Some(seat) = agent {
         tabletop::serve(game, seat, art)
     } else {

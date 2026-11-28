@@ -1,5 +1,5 @@
 use baseball_highlights_unfolded::{Action, Card, Decision, Event, Game, Hit, Refusal, Seat};
-use std::{fs, path::Path};
+use std::fs;
 
 const SF: Seat = Seat::SanFrancisco;
 const NY: Seat = Seat::NewYork;
@@ -32,40 +32,55 @@ fn buy(game: &mut Game, seat: Seat, serial: u8, demotion: u8) -> (Card, Card) {
     (signed, demoted)
 }
 
-fn saved_cards(path: &Path, seat: usize, zone: &str) -> Vec<Card> {
-    let record: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-    serde_json::from_value(record["payload"]["clubs"][seat][zone].clone()).unwrap()
-}
-
 #[test]
 fn game_two_draws_the_actual_lineups_after_both_purchases() {
     let temporary = tempfile::tempdir().unwrap();
     let path = temporary.path().join("series.json");
     fs::write(&path, include_bytes!("fixtures/expert-game-two-start.json")).unwrap();
     let mut game = Game::open(&path).unwrap();
-    let mut expected = [
-        saved_cards(&path, 0, "lineup"),
-        saved_cards(&path, 1, "lineup"),
+    // Known seed and reviewed signings put these physical cards on top in draw order.
+    let expected = [
+        [
+            ("FA-065", 28),
+            ("ST-013", 98),
+            ("ST-009", 104),
+            ("ST-003", 91),
+            ("ST-012", 14),
+            ("ST-006", 19),
+        ],
+        [
+            ("FA-067", 5),
+            ("ST-054", 53),
+            ("ST-049", 20),
+            ("ST-048", 18),
+            ("ST-046", 25),
+            ("ST-052", 12),
+        ],
     ];
 
     submit(&mut game, SF, Action::ChooseOrder { first: SF });
     let (foxx, sf_demoted) = buy(&mut game, SF, 65, 4);
     let (maris, ny_demoted) = buy(&mut game, NY, 67, 56);
-    expected[0].push(foxx);
-    expected[1].push(maris);
     let closed = game.observe(SF);
     assert_eq!(closed.balances, [0, 0]);
     assert_eq!(closed.decision, Some(Decision::StartGame));
     for (index, demoted) in [sf_demoted, ny_demoted].into_iter().enumerate() {
         assert_eq!(closed.rosters[index].active, 15);
         assert_eq!(closed.rosters[index].dugout.len(), 5);
-        assert_eq!(saved_cards(&path, index, "minor_leagues"), [demoted]);
-        assert_eq!(saved_cards(&path, index, "lineup"), expected[index]);
+        assert_eq!(closed.rosters[index].lineup, 10);
+        assert_eq!(closed.rosters[index].minor_leagues, 1);
+        assert!(closed.events.contains(&Event::Demoted {
+            seat: [SF, NY][index],
+            card: demoted,
+        }));
     }
 
+    let ny_closed = game.observe(NY);
     drop(game);
     let mut game = Game::open(&path).unwrap();
     let mut observer = Game::open(&path).unwrap();
+    assert_eq!(game.observe(SF), closed);
+    assert_eq!(observer.observe(NY), ny_closed);
     let wrong_seat = game.observe(NY).submission(Action::StartGame);
     assert_eq!(game.submit(wrong_seat), Err(Refusal::WrongSeat));
     submit(&mut game, SF, Action::StartGame);
@@ -82,18 +97,14 @@ fn game_two_draws_the_actual_lineups_after_both_purchases() {
     assert_eq!(sf.acting_manager, Some(SF));
     for (index, view) in [sf, ny].into_iter().enumerate() {
         let hand = view.rosters[index].hand.as_ref().unwrap();
-        assert_eq!(
-            hand,
-            &expected[index]
-                .iter()
-                .rev()
-                .take(6)
-                .copied()
-                .collect::<Vec<_>>()
-        );
+        let expected_hand = expected[index].map(|(identity, instance)| Card {
+            identity: identity.parse().unwrap(),
+            instance,
+        });
+        assert_eq!(hand, &expected_hand);
         assert_eq!(view.rosters[1 - index].hand, None);
         assert_eq!(view.rosters[index].active, 15);
-        assert_eq!(saved_cards(&path, index, "lineup"), expected[index][..4]);
+        assert_eq!(view.rosters[index].lineup, 4);
     }
 
     let sf = game.observe(SF);
@@ -148,6 +159,7 @@ fn game_two_draws_the_actual_lineups_after_both_purchases() {
         seat: NY,
         card: maris
     }));
-    assert_eq!(saved_cards(&path, 0, "minor_leagues"), [sf_demoted]);
-    assert_eq!(saved_cards(&path, 1, "minor_leagues"), [ny_demoted]);
+    let reopened = Game::open(&path).unwrap();
+    assert_eq!(reopened.observe(SF), game.observe(SF));
+    assert_eq!(reopened.observe(NY), observer.observe(NY));
 }

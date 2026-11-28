@@ -279,10 +279,8 @@ struct Club {
     // Back of the vector is the top of the face-down pile.
     lineup: Vec<Card>,
     in_play: Vec<Card>,
-    #[serde(default)]
     dugout: Vec<Card>,
     minor_leagues: Vec<Card>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     hand: Vec<Card>,
 }
 
@@ -357,9 +355,6 @@ pub(crate) fn buy_round_face_ids() -> impl Iterator<Item = CardId> {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct Position {
-    series: String,
-    private_seed: u64,
-    fixture: BuyRoundFixture,
     phase: Phase,
     first_buyer: Option<Seat>,
     buyer: Option<Seat>,
@@ -370,24 +365,12 @@ struct Position {
     free_agent_deck: Vec<Card>,
     clubs: [Club; 2],
     events: Vec<Event>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    field_review: Option<FieldReview>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    field_review: Option<Field>,
     opening: Option<Field>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-struct FieldReview {
-    fixture: GloveReview,
-    field: Field,
-}
-
 impl Position {
-    fn new(series: String, private_seed: u64, fixture: BuyRoundFixture) -> Self {
-        Self::setup(series, private_seed, fixture, fixture.refills())
-    }
-
-    fn setup(series: String, private_seed: u64, fixture: BuyRoundFixture, refills: &[u8]) -> Self {
+    fn new(private_seed: u64, fixture: BuyRoundFixture) -> Self {
         let mut random = SeededRandom::new(private_seed);
         let mut instances: Vec<u8> = (1..=120).collect();
         random.shuffle(&mut instances);
@@ -413,9 +396,8 @@ impl Position {
             club(1..=15, SF_IN_PLAY),
             club(46..=60, fixture.ny_in_play()),
         ];
-        // Start with the original seeded tail so the reviewed continuation only
-        // moves the additional fixed refills, preserving all other card positions
-        // relative to one another and every instance identifier.
+        // Keep fixed review refills at the top in draw order.
+        let refills = fixture.refills();
         let mut free_agent_deck: Vec<_> = (FIRST_REFILL + 1..=120).map(physical).collect();
         random.shuffle(&mut free_agent_deck);
         free_agent_deck.retain(|card| !refills.contains(&card.identity.serial()));
@@ -423,9 +405,6 @@ impl Position {
         let revenue = SEATS.map(|seat| Revenue::earned(seat, &clubs[seat.index()].in_play));
         let balances = revenue.each_ref().map(|income| income.total);
         Self {
-            series,
-            private_seed,
-            fixture,
             phase: Phase::Order,
             first_buyer: None,
             buyer: None,
@@ -441,8 +420,8 @@ impl Position {
         }
     }
 
-    fn new_glove_review(series: String, private_seed: u64, fixture: GloveReview) -> Self {
-        let mut position = Self::new(series, private_seed, BuyRoundFixture::Reviewed);
+    fn new_glove_review(private_seed: u64, fixture: GloveReview) -> Self {
+        let mut position = Self::new(private_seed, BuyRoundFixture::Reviewed);
         position.phase = Phase::Complete;
         position.balances = [0; 2];
         for club in &mut position.clubs {
@@ -454,10 +433,12 @@ impl Position {
             .map(|serial| position.put_review_card_in_play(Seat::NewYork, serial));
         let defender = position.put_review_card_in_play(Seat::SanFrancisco, defender);
         let opposing = position.put_review_card_in_play(Seat::NewYork, opposing);
-        position.field_review = Some(FieldReview {
-            fixture,
-            field: Field::reviewed(defender, opposing, runner, &mut position.events),
-        });
+        position.field_review = Some(Field::reviewed(
+            defender,
+            opposing,
+            runner,
+            &mut position.events,
+        ));
         position
     }
 
@@ -500,8 +481,8 @@ impl Position {
     }
 
     fn acting_manager(&self) -> Option<Seat> {
-        if let Some(review) = &self.field_review {
-            return review.field.manager();
+        if let Some(field) = &self.field_review {
+            return field.manager();
         }
         if let Some(field) = &self.opening {
             return field
@@ -519,13 +500,7 @@ impl Position {
         self.clubs.iter().map(|club| club.in_play.len()).sum()
     }
 
-    fn revision(&self) -> u64 {
-        // Keep revisions exact in JSON clients. Submissions also carry the series identity.
-        let prefix = u64::from_str_radix(&self.series[..12], 16).expect("valid series identity");
-        prefix * 16 + self.events.len() as u64
-    }
-
-    fn observe(&self, seat: Seat) -> Observation {
+    fn observe(&self, series: &str, revision: u64, seat: Seat) -> Observation {
         let buyer_balance = self.buyer.map(|buyer| self.balances[buyer.index()]);
         let offers = std::array::from_fn(|index| {
             let player = Player::public(self.row[index]);
@@ -538,8 +513,8 @@ impl Position {
             }
         });
         let acting_manager = self.acting_manager();
-        let decision = if let Some(review) = &self.field_review {
-            review.field.decision(seat)
+        let decision = if let Some(field) = &self.field_review {
+            field.decision(seat)
         } else if let Some(field) = &self.opening {
             if field.manager().is_some() {
                 field.decision(seat)
@@ -574,8 +549,8 @@ impl Position {
             None
         };
         Observation {
-            series: self.series.clone(),
-            revision: self.revision(),
+            series: series.to_owned(),
+            revision,
             seat,
             order_chooser: self.order_chooser(),
             first_buyer: self.first_buyer,
@@ -602,20 +577,23 @@ impl Position {
             field: self
                 .field_review
                 .as_ref()
-                .map(|review| &review.field)
                 .or(self.opening.as_ref())
                 .map(Field::view),
         }
     }
 
-    fn apply(&mut self, action: Action) -> Result<(), Refusal> {
-        if let Some(review) = &mut self.field_review {
+    fn apply(&mut self, choice: ManagerChoice) -> Result<(), Refusal> {
+        let seat = self.acting_manager().ok_or(Refusal::WrongDecision)?;
+        if choice.seat != seat {
+            return Err(Refusal::WrongSeat);
+        }
+        let action = choice.action;
+        if let Some(field) = &mut self.field_review {
             return match action {
-                Action::CancelHit { target } => review.field.cancel_hit(target, &mut self.events),
+                Action::CancelHit { target } => field.cancel_hit(target, &mut self.events),
                 _ => Err(Refusal::WrongDecision),
             };
         }
-        let seat = self.acting_manager().ok_or(Refusal::WrongDecision)?;
         if let Some(field) = &mut self.opening {
             return match action {
                 Action::CancelHit { target } => field.cancel_hit(target, &mut self.events),
@@ -711,200 +689,102 @@ impl Position {
     }
 }
 
-impl Event {
-    fn action(self) -> Option<Action> {
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(tag = "review", rename_all = "snake_case")]
+enum StartingSetup {
+    BuyRound { fixture: BuyRoundFixture },
+    Glove { fixture: GloveReview },
+}
+
+impl StartingSetup {
+    fn position(self, private_seed: u64) -> Position {
         match self {
-            Self::OrderChosen { first, .. } => Some(Action::ChooseOrder { first }),
-            Self::Signed { slot, card, .. } => Some(Action::Sign { slot, card }),
-            Self::Demoted { card, .. } => Some(Action::Demote { card }),
-            Self::Passed { .. } => Some(Action::Pass),
-            Self::GameStarted { .. } => Some(Action::StartGame),
-            Self::CardPlayed { card, .. } => Some(Action::PlayCard { card }),
-            Self::GloveCancelled {
-                threat,
-                chosen: true,
-                ..
-            } => Some(Action::CancelHit {
-                target: threat.target,
-            }),
-            Self::GloveCancelled { chosen: false, .. }
-            | Self::FastballCancelled { .. }
-            | Self::ImmediateHit { .. }
-            | Self::HitResolved { .. }
-            | Self::ThreatsPlaced { .. } => None,
+            Self::BuyRound { fixture } => Position::new(private_seed, fixture),
+            Self::Glove { fixture } => Position::new_glove_review(private_seed, fixture),
+        }
+    }
+
+    fn glove_review(self) -> Option<GloveReview> {
+        match self {
+            Self::BuyRound { .. } => None,
+            Self::Glove { fixture } => Some(fixture),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(tag = "event", rename_all = "snake_case")]
-enum LegacyEvent {
-    Signed {
-        card: Card,
-        slot: u8,
-        paid: u8,
-        replacement: Card,
-    },
-    Demoted {
-        card: Card,
-    },
+struct ManagerChoice {
+    seat: Seat,
+    action: Action,
 }
 
-impl LegacyEvent {
-    fn with_seat(self, seat: Seat) -> Event {
-        match self {
-            Self::Signed {
-                card,
-                slot,
-                paid,
-                replacement,
-            } => Event::Signed {
-                seat,
-                card,
-                slot,
-                paid,
-                replacement,
-            },
-            Self::Demoted { card } => Event::Demoted { seat, card },
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct LegacyPosition {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct SavedSeries {
     series: String,
+    setup: StartingSetup,
     private_seed: u64,
-    phase: Phase,
-    balance: u8,
-    row: [Card; 6],
-    free_agent_deck: Vec<Card>,
-    clubs: [Club; 2],
-    events: Vec<LegacyEvent>,
+    choices: Vec<ManagerChoice>,
+    position: Position,
 }
 
-impl LegacyPosition {
-    fn restore(&self) -> Result<Position, String> {
-        let expected_phase = match self.events.as_slice() {
-            [] => Phase::Shopping,
-            [LegacyEvent::Signed { .. }] => Phase::Demotion,
-            [LegacyEvent::Signed { .. }, LegacyEvent::Demoted { .. }] => Phase::Complete,
-            _ => return Err("Invalid legacy Buy Round event sequence.".into()),
-        };
-        let seat = Seat::SanFrancisco;
-        let restore = |refills: &[u8]| {
-            let mut position = Position::setup(
-                self.series.clone(),
-                self.private_seed,
-                BuyRoundFixture::Reviewed,
-                refills,
-            );
-            if !self.events.is_empty() {
-                // A saved acquisition records SF buying first under the original slice.
-                position.apply(Action::ChooseOrder { first: seat })?;
-                for event in &self.events {
-                    let action = event
-                        .with_seat(seat)
-                        .action()
-                        .expect("legacy events are choices");
-                    position.apply(action)?;
-                }
-            }
-            Ok::<_, Refusal>(position)
-        };
-        let original = restore(&[FIRST_REFILL]).map_err(|error| error.to_string())?;
-        let events = self.events.iter().map(|event| event.with_seat(seat));
-        if self.phase != expected_phase
-            || self.balance != original.balances[seat.index()]
-            || self.row != original.row
-            || self.free_agent_deck != original.free_agent_deck
-            || self.clubs != original.clubs
-            || !original.events.iter().copied().skip(1).eq(events)
-        {
-            return Err("The legacy Buy Round save disagrees with its decisions.".into());
+impl SavedSeries {
+    fn new(series: String, setup: StartingSetup, private_seed: u64) -> Self {
+        Self {
+            series,
+            setup,
+            private_seed,
+            choices: Vec::new(),
+            position: setup.position(private_seed),
         }
-        restore(BuyRoundFixture::Reviewed.refills()).map_err(|error| error.to_string())
     }
-}
 
-#[derive(Deserialize, Serialize)]
-#[serde(untagged)]
-enum SavedPosition {
-    Current(Position),
-    Legacy(LegacyPosition),
-}
-
-impl SavedPosition {
-    fn into_position(self) -> Result<Position, Refusal> {
-        match self {
-            Self::Current(position) => Ok(position),
-            Self::Legacy(position) => position.restore().map_err(Refusal::Save),
-        }
+    fn revision(&self) -> u64 {
+        // Keep revisions exact in JSON clients. Submissions also carry the series identity.
+        let prefix = u64::from_str_radix(&self.series[..12], 16).expect("valid series identity");
+        prefix * 16 + self.choices.len() as u64
     }
 }
 
 struct SeriesFormat;
 
 impl save::Format for SeriesFormat {
-    type Payload = SavedPosition;
+    type Payload = SavedSeries;
     const LIMIT: u64 = 64 * 1024;
 
-    fn identity(&self, payload: &SavedPosition) -> save::Identity {
-        let format = match payload {
-            SavedPosition::Current(position) if position.field_review.is_some() => "glove-review-1",
-            SavedPosition::Current(position) if position.opening.is_some() => "expert-series-1",
-            SavedPosition::Current(_) => "expert-buy-round-2",
-            SavedPosition::Legacy(_) => "expert-buy-round-1",
-        };
-        [("game", "baseball-highlights-unfolded"), ("format", format)]
-            .into_iter()
-            .collect()
+    fn identity(&self, _: &SavedSeries) -> save::Identity {
+        [
+            ("game", "baseball-highlights-unfolded"),
+            ("format", "series-replay-1"),
+        ]
+        .into_iter()
+        .collect()
     }
 
     fn accepts(&self, identity: &save::Identity) -> bool {
         identity.get("game") == Some("baseball-highlights-unfolded")
-            && matches!(
-                identity.get("format"),
-                Some(
-                    "expert-buy-round-1"
-                        | "expert-buy-round-2"
-                        | "glove-review-1"
-                        | "expert-series-1"
-                )
-            )
+            && identity.get("format") == Some("series-replay-1")
     }
 
-    fn validate(&self, payload: &SavedPosition) -> Result<(), String> {
-        let series = match payload {
-            SavedPosition::Current(stored) => &stored.series,
-            SavedPosition::Legacy(stored) => &stored.series,
-        };
-        if series.len() != 32 || !series.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("Invalid series identity".into());
+    fn validate(&self, payload: &SavedSeries) -> Result<(), String> {
+        if payload.series.len() != 32
+            || !payload.series.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err("Invalid series identity.".into());
         }
-        let stored = match payload {
-            SavedPosition::Current(stored) => stored,
-            SavedPosition::Legacy(stored) => return stored.restore().map(|_| ()),
-        };
-        // Verify the zones, event sequence and deck order against the admitted position.
-        let mut expected = match &stored.field_review {
-            Some(review) => Position::new_glove_review(
-                stored.series.clone(),
-                stored.private_seed,
-                review.fixture,
-            ),
-            None => Position::new(stored.series.clone(), stored.private_seed, stored.fixture),
-        };
-        for action in stored.events.iter().copied().filter_map(Event::action) {
-            expected.apply(action).map_err(|error| error.to_string())?;
+        let mut expected = payload.setup.position(payload.private_seed);
+        for (index, &choice) in payload.choices.iter().enumerate() {
+            expected
+                .apply(choice)
+                .map_err(|error| format!("Cannot replay manager choice {}. {error}", index + 1))?;
         }
-        (expected == *stored)
+        (expected == payload.position)
             .then_some(())
             .ok_or_else(|| "The saved position disagrees with its decisions.".into())
     }
 }
 
 pub struct Game {
-    position: Position,
+    record: SavedSeries,
     path: PathBuf,
     baseline: save::Baseline,
 }
@@ -914,14 +794,12 @@ impl Game {
         Self::open_buy_round_fixture(path, BuyRoundFixture::Reviewed)
     }
 
-    /// Start a fresh fixture at the end of its completed mini-game, or reopen its save.
+    /// Start a fresh fixture at the end of its completed mini-game, or reopen a Buy Round save.
     pub fn open_buy_round_fixture(
         path: impl AsRef<Path>,
         fixture: BuyRoundFixture,
     ) -> Result<Self, Refusal> {
-        Self::open_position(path.as_ref(), |series, seed| {
-            Position::new(series, seed, fixture)
-        })
+        Self::open_position(path.as_ref(), StartingSetup::BuyRound { fixture })
     }
 
     /// Start or resume the bounded Glove review using a separate save.
@@ -929,70 +807,59 @@ impl Game {
         path: impl AsRef<Path>,
         fixture: GloveReview,
     ) -> Result<Self, Refusal> {
-        let game = Self::open_position(path.as_ref(), |series, seed| {
-            Position::new_glove_review(series, seed, fixture)
-        })?;
-        if game
-            .position
-            .field_review
-            .as_ref()
-            .map(|review| review.fixture)
-            != Some(fixture)
-        {
-            return Err(Refusal::Save(
-                "This save belongs to a different position.".into(),
-            ));
-        }
-        Ok(game)
+        Self::open_position(path.as_ref(), StartingSetup::Glove { fixture })
     }
 
-    fn open_position(
-        path: &Path,
-        create: impl FnOnce(String, u64) -> Position,
-    ) -> Result<Self, Refusal> {
-        let path = path.to_owned();
+    fn open_position(path: &Path, setup: StartingSetup) -> Result<Self, Refusal> {
         let io = |error: save::Error| Refusal::Save(error.to_string());
-        let (position, baseline) = match save::load(&SeriesFormat, &path).map_err(io)? {
-            Some((stored, baseline)) => (stored.into_position()?, baseline),
+        let (record, baseline) = match save::load(&SeriesFormat, path).map_err(io)? {
+            Some((record, baseline)) => {
+                if record.setup.glove_review() != setup.glove_review() {
+                    return Err(Refusal::Save(
+                        "This save belongs to a different review mode. Use the matching launch options.".into(),
+                    ));
+                }
+                (record, baseline)
+            }
             None => {
                 let seed = || getrandom::u64().map_err(|error| Refusal::Save(error.to_string()));
-                let position = create(format!("{:016x}{:016x}", seed()?, seed()?), seed()?);
+                let record =
+                    SavedSeries::new(format!("{:016x}{:016x}", seed()?, seed()?), setup, seed()?);
                 let mut baseline = save::Baseline::default();
                 save::write(
                     &SeriesFormat,
-                    &path,
+                    path,
                     &mut baseline,
-                    &SavedPosition::Current(position.clone()),
+                    &record,
                     save::Write::Create,
                 )
                 .map_err(io)?;
-                (position, baseline)
+                (record, baseline)
             }
         };
         Ok(Self {
-            position,
-            path,
+            record,
+            path: path.to_owned(),
             baseline,
         })
     }
 
     pub fn observe(&self, seat: Seat) -> Observation {
-        self.position.observe(seat)
+        self.record
+            .position
+            .observe(&self.record.series, self.revision(), seat)
     }
 
     pub fn glove_review(&self) -> Option<GloveReview> {
-        self.position
-            .field_review
-            .as_ref()
-            .map(|review| review.fixture)
+        self.record.setup.glove_review()
     }
 
     pub fn revision(&self) -> u64 {
-        self.position.revision()
+        self.record.revision()
     }
 
     pub fn has_field(&self) -> bool {
-        self.position.field_review.is_some() || self.position.opening.is_some()
+        self.record.position.field_review.is_some() || self.record.position.opening.is_some()
     }
 
     /// Refresh a second view of the saved series without acquiring write authority.
@@ -1004,45 +871,43 @@ impl Game {
         if baseline == self.baseline {
             return Ok(false);
         }
-        let position = stored.into_position()?;
-        if position.series != self.position.series
-            || position.field_review.as_ref().map(|review| review.fixture) != self.glove_review()
+        if stored.series != self.record.series
+            || stored.setup != self.record.setup
+            || stored.private_seed != self.record.private_seed
         {
             return Err(Refusal::WrongSeries);
         }
-        if !position.events.starts_with(&self.position.events) {
+        if !stored.choices.starts_with(&self.record.choices) {
             return Err(Refusal::StaleDecision);
         }
-        self.position = position;
+        self.record = stored;
         self.baseline = baseline;
         Ok(true)
     }
 
-    pub fn submit(&mut self, choice: Submission) -> Result<(), Refusal> {
-        if choice.series != self.position.series {
+    pub fn submit(&mut self, submission: Submission) -> Result<(), Refusal> {
+        if submission.series != self.record.series {
             return Err(Refusal::WrongSeries);
         }
-        if choice.revision != self.position.revision() {
+        if submission.revision != self.revision() {
             return Err(Refusal::StaleDecision);
         }
-        let acting_manager = self
-            .position
-            .acting_manager()
-            .ok_or(Refusal::WrongDecision)?;
-        if choice.seat != acting_manager {
-            return Err(Refusal::WrongSeat);
-        }
-        let mut next = self.position.clone();
-        next.apply(choice.action)?;
+        let choice = ManagerChoice {
+            seat: submission.seat,
+            action: submission.action,
+        };
+        let mut next = self.record.clone();
+        next.position.apply(choice)?;
+        next.choices.push(choice);
         save::write(
             &SeriesFormat,
             &self.path,
             &mut self.baseline,
-            &SavedPosition::Current(next.clone()),
+            &next,
             save::Write::Replace,
         )
         .map_err(|error| Refusal::Save(error.to_string()))?;
-        self.position = next;
+        self.record = next;
         Ok(())
     }
 }

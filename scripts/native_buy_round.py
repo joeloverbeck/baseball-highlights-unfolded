@@ -228,8 +228,12 @@ def capture(table, path, *, piles=None):
     capture_when(table, path, matches_piles)
 
 
-def position(save):
+def record(save):
     return json.loads(save.read_bytes())["payload"]
+
+
+def position(save):
+    return record(save)["position"]
 
 
 def require(condition, description):
@@ -241,6 +245,7 @@ def smoke(executable, assets, evidence):
     save = evidence / "series.json"
     piles = {"Free Agent Deck", "Lineup"}
     with launch(executable, save, assets, evidence / "first.log") as (game, window, table):
+        series = record(save)["series"]
         before = position(save)
         require(before["phase"] == "Order" and before["balances"] == [6, 7],
                 "Expected an order decision with SF $6 and NY $7")
@@ -273,7 +278,7 @@ def smoke(executable, assets, evidence):
         wait_for(lambda: position(save)["phase"] == "Shopping", "ST-004 to enter the Minor Leagues")
         demoted = position(save)
         sf = demoted["clubs"][0]
-        require(demoted["series"] == before["series"], "Resumed a different series")
+        require(record(save)["series"] == series, "Resumed a different series")
         require(sf["minor_leagues"][-1]["identity"] == "ST-004", "The selected card was not demoted")
         require(len(sf["lineup"]) + len(sf["in_play"]) == 15, "SF did not return to 15 active players")
         capture(table, evidence / "sf-demoted.png", piles=piles | {"Minor Leagues"})
