@@ -1,12 +1,9 @@
 //! Admission for the owner-local original collection and its approved proxy faces.
-use crate::{
-    CardId,
-    series::{FIRST_REFILL, NY_IN_PLAY, OPENING_ROW, SF_IN_PLAY},
-};
+use crate::{CardId, series::buy_round_face_ids};
 use image::DynamicImage;
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     path::{Path, PathBuf},
 };
 use unfolded_assets::{read_bounded, regular_file, verify_bytes};
@@ -91,13 +88,11 @@ impl Collection {
     }
 
     pub fn buy_round_faces(&self) -> Result<HashMap<CardId, DynamicImage>, String> {
-        SF_IN_PLAY
+        buy_round_face_ids()
+            .map(CardId::printed_face)
+            .collect::<BTreeSet<_>>()
             .into_iter()
-            .chain(NY_IN_PLAY)
-            .chain(OPENING_ROW)
-            .chain([FIRST_REFILL])
-            .map(CardId::original)
-            .map(|identity| Ok((identity.printed_face(), self.face(identity)?)))
+            .map(|identity| Ok((identity, self.face(identity)?)))
             .collect()
     }
 

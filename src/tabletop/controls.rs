@@ -1,6 +1,6 @@
 use super::{FIELD, HEADER, Prints, Session};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, Observation, Offer, Player, Submission,
+    Action, Card, Decision, Event, Observation, Offer, Player, Revenue, Seat, Submission,
 };
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
@@ -20,8 +20,9 @@ const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Selection {
-    Offer(u8),
-    InPlay(Card),
+    Offer { slot: u8, card: Card },
+    PublicCard(Card),
+    History,
 }
 
 #[derive(Resource, Default)]
@@ -74,8 +75,17 @@ fn click(
         Input::Submit(submission) => match session.game.submit(submission.clone()) {
             Ok(()) => {
                 ui.selection = match submission.action {
-                    Action::Sign { slot, .. } => Some(Selection::Offer(slot)),
-                    Action::Demote { .. } => None,
+                    Action::Sign { slot, .. } => {
+                        let replacement = session.game.observe(session.seat).offers
+                            [usize::from(slot - 1)]
+                        .player
+                        .card;
+                        Some(Selection::Offer {
+                            slot,
+                            card: replacement,
+                        })
+                    }
+                    Action::ChooseOrder { .. } | Action::Demote { .. } | Action::Pass => None,
                 };
                 ui.error = None;
             }
@@ -191,22 +201,26 @@ fn hits(card: Player) -> String {
     }
 }
 
-fn price(offer: &Offer, balance: u8) -> String {
+fn price(offer: &Offer, balance: Option<u8>) -> String {
     let cost = offer.cost;
-    match offer.balance_after {
-        Some(left) => format!("${cost}  /  ${left} left"),
-        None => format!("${cost}  /  ${} short", cost - balance),
+    match (offer.balance_after, balance) {
+        (Some(left), _) => format!("${cost}  /  ${left} left"),
+        (None, Some(balance)) => format!("${cost}  /  ${} short", cost - balance),
+        (None, None) => format!("${cost}"),
     }
 }
 
 fn offer_tile(
     parent: &mut ChildSpawnerCommands,
     offer: &Offer,
-    balance: u8,
+    balance: Option<u8>,
     prints: &Prints,
     selection: Option<Selection>,
 ) {
-    let slot = Selection::Offer(offer.slot);
+    let slot = Selection::Offer {
+        slot: offer.slot,
+        card: offer.player.card,
+    };
     let id = button(
         parent,
         SeatName::Component(format!("inspect-slot-{}", offer.slot)),
@@ -225,8 +239,8 @@ fn offer_tile(
         picture(
             tile,
             prints.faces[&offer.player.printed_face].clone(),
-            78.,
-            108.,
+            61.,
+            84.,
         );
         tile.spawn(col(3.)).with_children(|info| {
             text(info, offer.player.name, 19., INK);
@@ -237,7 +251,7 @@ fn offer_tile(
     });
 }
 
-fn in_play(
+fn public_cards(
     parent: &mut ChildSpawnerCommands,
     players: &[Player],
     prints: &Prints,
@@ -245,7 +259,7 @@ fn in_play(
 ) {
     parent.spawn(row(6.)).with_children(|rail| {
         for &player in players {
-            let item = Selection::InPlay(player.card);
+            let item = Selection::PublicCard(player.card);
             let id = button(
                 rail,
                 SeatName::Component(format!("inspect-{}", player.card.identity)),
@@ -261,7 +275,7 @@ fn in_play(
                 },
             );
             rail.commands().entity(id).with_children(|tile| {
-                picture(tile, prints.faces[&player.printed_face].clone(), 33., 46.);
+                picture(tile, prints.faces[&player.printed_face].clone(), 28., 39.);
                 tile.spawn(col(2.)).with_children(|label| {
                     text(label, player.card.identity.to_string(), 14., INK);
                     text(label, player.name, 13., MUTED);
@@ -281,19 +295,33 @@ fn inspector(
         Node { width: px(282.), flex_shrink: 0., align_items: AlignItems::Center, padding: UiRect::all(px(12.)), border_radius: BorderRadius::all(px(6.)), ..col(8.) },
         BackgroundColor(PAPER),
     )).with_children(|panel| {
+        if selection == Some(Selection::History) {
+            text(panel, "Buy Round history", 20., INK);
+            for &event in &view.events {
+                text(panel, event_text(event), 15., INK);
+            }
+            short_button(panel, SeatName::Component("close-history".into()), "Close history".into(), Input::Close, CREAM);
+            return;
+        }
         let (player, action) = match selection {
-            Some(Selection::Offer(slot)) => {
+            Some(Selection::Offer { slot, card })
+                if view.offers[usize::from(slot - 1)].player.card == card => {
                 let offer = &view.offers[usize::from(slot - 1)];
                 let permitted = matches!(&view.decision, Some(Decision::Sign { affordable }) if affordable.contains(&offer.player.card));
-                text(panel, price(offer, view.balance), 16., MUTED);
+                text(panel, price(offer, view.buyer.map(|_| view.balance)), 16., MUTED);
                 (offer.player, permitted.then(|| (format!("Sign {} for ${}", offer.player.name, offer.cost), Action::Sign { slot, card: offer.player.card })))
             }
-            Some(Selection::InPlay(card)) => {
-                let Some(player) = view.rosters[0].in_play.iter().find(|player| player.card == card) else { return };
+            Some(Selection::PublicCard(card)) => {
+                let Some(player) = view.rosters.iter()
+                    .flat_map(|roster| roster.in_play.iter().chain(&roster.dugout))
+                    .find(|player| player.card == card) else {
+                        text(panel, "This player is no longer in a public pile.", 18., MUTED);
+                        return;
+                    };
                 let permitted = matches!(&view.decision, Some(Decision::Demote { eligible }) if eligible.contains(&card));
                 ( *player, permitted.then(|| ("Send to the Minor Leagues".into(), Action::Demote { card })) )
             }
-            None => {
+            _ => {
                 text(panel, "Select a player to inspect the full face.", 18., MUTED);
                 return;
             }
@@ -306,6 +334,7 @@ fn inspector(
             let name = match action {
                 Action::Sign { slot, card } => format!("sign-{slot}-{}", card.instance),
                 Action::Demote { card } => format!("demote-{}-{}", card.identity, card.instance),
+                _ => unreachable!("the inspector only submits signing or demotion"),
             };
             short_button(panel, SeatName::Choice(name), label, Input::Submit(view.submission(action)), GOLD);
         }
@@ -315,7 +344,13 @@ fn inspector(
 
 fn event_text(event: Event) -> String {
     match event {
+        Event::OrderChosen { chooser, first } => format!(
+            "{} chose {} to buy first.",
+            chooser.abbreviation(),
+            first.abbreviation(),
+        ),
         Event::Signed {
+            seat,
             card,
             paid,
             replacement,
@@ -324,11 +359,100 @@ fn event_text(event: Event) -> String {
             let player = Player::describe(card).expect("a signed player is public");
             let reveal = Player::describe(replacement).expect("a refill is public");
             format!(
-                "SF signed {} for ${paid}. {} entered the same slot.",
-                player.name, reveal.name
+                "{} signed {} for ${paid}. {} entered the same slot.",
+                seat.abbreviation(),
+                player.name,
+                reveal.name,
             )
         }
-        Event::Demoted { card } => format!("SF sent {} to the Minor Leagues.", card.identity),
+        Event::Demoted { seat, card } => format!(
+            "{} sent {} to the Minor Leagues.",
+            seat.abbreviation(),
+            card.identity,
+        ),
+        Event::Passed { seat, unspent } => format!(
+            "{} finished buying. ${unspent} expired.",
+            seat.abbreviation(),
+        ),
+    }
+}
+
+fn revenue_text(revenue: &Revenue) -> String {
+    let amounts = revenue
+        .contributions
+        .iter()
+        .map(|entry| format!("{} ${}", entry.card.identity, entry.amount))
+        .collect::<Vec<_>>()
+        .join("  +  ");
+    format!(
+        "{} revenue   {amounts}  =  ${}",
+        revenue.seat.abbreviation(),
+        revenue.total
+    )
+}
+
+fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
+    if let Some(buyer) = view.buyer {
+        let phase = if view.demotion_pending {
+            "chooses a demotion"
+        } else {
+            "shops"
+        };
+        book.spawn(Node {
+            align_items: AlignItems::Center,
+            ..row(12.)
+        })
+        .with_children(|turn| {
+            text(
+                turn,
+                format!("{} {phase}", buyer.abbreviation()),
+                19.,
+                CREAM,
+            );
+            if matches!(view.decision, Some(Decision::Sign { .. })) {
+                short_button(
+                    turn,
+                    SeatName::Choice("pass".into()),
+                    "Finish buying".into(),
+                    Input::Submit(view.submission(Action::Pass)),
+                    GOLD,
+                );
+            }
+        });
+    } else if view.first_buyer.is_none() {
+        let reason = if view.revenue[0].total == view.revenue[1].total {
+            "mini-game loser"
+        } else {
+            "lower revenue"
+        };
+        text(
+            book,
+            format!(
+                "{} chooses purchase order ({reason}).",
+                view.order_chooser.abbreviation()
+            ),
+            19.,
+            CREAM,
+        );
+        if matches!(view.decision, Some(Decision::ChooseOrder)) {
+            book.spawn(row(9.)).with_children(|choices| {
+                for first in [Seat::SanFrancisco, Seat::NewYork] {
+                    let action = Action::ChooseOrder { first };
+                    short_button(
+                        choices,
+                        SeatName::Choice(format!(
+                            "buy-first-{}",
+                            first.abbreviation().to_lowercase()
+                        )),
+                        format!("{} buys first", first.abbreviation()),
+                        Input::Submit(view.submission(action)),
+                        GOLD,
+                    );
+                }
+            });
+        }
+    } else {
+        text(book, "Buy Round complete", 19., CREAM);
     }
 }
 
@@ -371,35 +495,53 @@ pub fn draw(
             BackgroundColor(DARK),
         )).with_children(|head| {
             text(head, "Expert   /   Game 1 Buy Round", 24., CREAM);
-            text(head, format!("{} manager   /   SF balance ${}", view.seat.abbreviation(), view.balance), 20., GOLD);
+            text(head, format!("{} manager   /   SF ${}   /   NY ${}", view.seat.abbreviation(), view.balances[0], view.balances[1]), 20., GOLD);
         });
         root.spawn((Node { height: px(FIELD), flex_shrink: 0., ..default() }, Pickable::IGNORE));
         root.spawn((
             Node { flex_grow: 1., padding: UiRect::axes(px(16.), px(9.)), ..row(12.) },
             BackgroundColor(DARK),
         )).with_children(|body| {
-            body.spawn(Node { flex_grow: 1., min_width: px(0.), ..col(8.) }).with_children(|book| {
-                text(book, "Buy Row", 23., CREAM);
+            body.spawn(Node { flex_grow: 1., min_width: px(0.), ..col(5.) }).with_children(|book| {
+                for revenue in &view.revenue {
+                    text(book, revenue_text(revenue), 14., FIELD_LABEL);
+                }
+                purchase_turn(book, &view);
+                book.spawn(Node { align_items: AlignItems::Center, ..row(12.) })
+                    .with_children(|heading| {
+                        text(heading, "Buy Row", 23., CREAM);
+                        text(heading, format!("Free Agent Deck  {}", view.free_agent_deck), 15., FIELD_LABEL);
+                        if !view.events.is_empty() {
+                            short_button(heading, SeatName::Component("round-history".into()), "Round history".into(), Input::Inspect(Selection::History), CREAM);
+                        }
+                    });
                 for offers in view.offers.chunks(3) {
                     book.spawn(row(8.)).with_children(|tiles| {
                         for offer in offers {
-                            offer_tile(tiles, offer, view.balance, &prints, ui.selection);
+                            offer_tile(tiles, offer, view.buyer.map(|_| view.balance), &prints, ui.selection);
                         }
                     });
                 }
-                let sf = &view.rosters[0];
-                if view.events.is_empty() {
-                    text(book, "SF shops first.", 17., GOLD);
+                if let Some(&event) = view.events.last() {
+                    text(book, event_text(event), 16., GOLD);
                 }
-                for &event in &view.events {
-                    text(book, event_text(event), 17., GOLD);
+                for roster in &view.rosters {
+                    text(book, format!("{}   /   Lineup {}   /   Dugout {}   /   Minor Leagues {}   /   Active roster {}",
+                        roster.seat.abbreviation(), roster.lineup, roster.dugout.len(), roster.minor_leagues, roster.active,
+                    ), 15., FIELD_LABEL);
+                    if !roster.dugout.is_empty() {
+                        public_cards(book, &roster.dugout, &prints, ui.selection);
+                    }
                 }
-                text(book, format!("Free Agent Deck  {}    /    SF Lineup  {}    /    SF Minor Leagues  {}    /    Active roster  {}",
-                    view.free_agent_deck, sf.lineup, sf.minor_leagues, sf.active), 15., FIELD_LABEL);
-                if matches!(view.events.as_slice(), [Event::Signed { .. }]) {
-                    let title = if view.seat == view.buyer { "In Play / Choose one player to demote" } else { "SF In Play / Demotion pending" };
+                if let Some(buyer) = view.buyer.filter(|_| view.demotion_pending) {
+                    let roster = view.rosters.iter().find(|roster| roster.seat == buyer).expect("each manager has a roster");
+                    let title = if Some(view.seat) == view.buyer {
+                        "In Play / Choose one player to demote".to_owned()
+                    } else {
+                        format!("{} In Play / Demotion pending", buyer.abbreviation())
+                    };
                     text(book, title, 19., CREAM);
-                    in_play(book, &sf.in_play, &prints, ui.selection);
+                    public_cards(book, &roster.in_play, &prints, ui.selection);
                 }
                 if let Some(error) = &ui.error {
                     text(book, error, 17., GOLD);

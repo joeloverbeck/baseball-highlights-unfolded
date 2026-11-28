@@ -24,6 +24,7 @@ const DECK: f32 = 3.2;
 const LINEUP: f32 = 5.7;
 const IN_PLAY: f32 = 8.2;
 const MINORS: f32 = 10.7;
+const OTHER_DUGOUT: f32 = 1.5;
 const CARD: TurningCard = TurningCard::new(WIDTH, LENGTH, card::CORNER_FRACTION, THICKNESS, 0.001);
 
 #[derive(Component)]
@@ -238,7 +239,12 @@ pub fn draw(
     }
     let latest = shown.is_some().then(|| view.events.last()).flatten();
     *shown = Some(view.revision);
-    let roster = &view.rosters[0];
+    let presented = view.buyer.unwrap_or(view.seat);
+    let roster = view
+        .rosters
+        .iter()
+        .find(|roster| roster.seat == presented)
+        .expect("each manager has a roster");
     for offer in &view.offers {
         let rest = Transform::from_translation(slot_at(offer.slot));
         let moving = matches!(latest, Some(Event::Signed { slot, .. }) if *slot == offer.slot)
@@ -298,16 +304,30 @@ pub fn draw(
             stock.front(top.printed_face),
         );
     }
+    for (pile_roster, x) in view.rosters.iter().zip([IN_PLAY, OTHER_DUGOUT]) {
+        if let Some(top) = pile_roster.dugout.last() {
+            pile(
+                &mut commands,
+                &mut meshes,
+                &stock,
+                x,
+                pile_roster.dugout.len(),
+                stock.front(top.printed_face),
+            );
+        }
+    }
     let source = match latest {
-        Some(Event::Signed { card, slot, .. }) => {
+        Some(Event::Signed {
+            seat, card, slot, ..
+        }) if *seat == presented => {
             Some((*card, slot_at(*slot), pile_top_at(LINEUP, roster.lineup)))
         }
-        Some(Event::Demoted { card }) => Some((
+        Some(Event::Demoted { seat, card }) if *seat == presented => Some((
             *card,
             pile_top_at(IN_PLAY, roster.in_play.len() + 1),
             pile_top_at(MINORS, roster.minor_leagues),
         )),
-        None => None,
+        _ => None,
     };
     if let Some((card, start, end)) = source {
         let path = transfer(
