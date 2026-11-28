@@ -8,7 +8,10 @@ use std::{
 };
 use unfolded_assets::{read_bounded, regular_file, verify_bytes};
 
-const MANIFEST_HASH: &str = "c1c528e5ca696ba82c35465b4fb98d57bf830f27376c2cd77582047c54d04ede";
+const ORIGINAL_MANIFEST_HASH: &str =
+    "c1c528e5ca696ba82c35465b4fb98d57bf830f27376c2cd77582047c54d04ede";
+const PHOTOCRAFT_MANIFEST_HASH: &str =
+    "8d47e5902757a8d475b831e6f0ea03744c9b29d4d7e06193a8525fe596644481";
 const LEDGER: &str = include_str!("../docs/foundation/card-content.csv");
 const BACK: &str = "images/card-backs/backurl-omruwvLU2jpg.jpg";
 
@@ -29,12 +32,15 @@ impl Collection {
     pub fn open(root: &Path) -> Result<Self, String> {
         let manifest = regular_file(root, "SHA256SUMS").map_err(|error| error.to_string())?;
         let bytes = read_bounded(&manifest, 160_000).map_err(|error| error.to_string())?;
-        verify_bytes(&bytes, bytes.len() as u64, MANIFEST_HASH).map_err(|_| {
-            format!(
-                "{} differs from the audited original collection.",
+        if [ORIGINAL_MANIFEST_HASH, PHOTOCRAFT_MANIFEST_HASH]
+            .iter()
+            .all(|digest| verify_bytes(&bytes, bytes.len() as u64, digest).is_err())
+        {
+            return Err(format!(
+                "{} differs from the audited card collections.",
                 manifest.display()
-            )
-        })?;
+            ));
+        }
         let text = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
         let hashes = text
             .lines()

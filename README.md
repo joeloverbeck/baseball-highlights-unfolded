@@ -6,7 +6,7 @@ The native review opens the Expert Buy Round and follows its purchases into the 
 
 ## Open the reviewed Buy Round
 
-On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from the checkout. The game reads the audited collection from `~/Pictures/Baseball Highlights: 2045 Resources`. Use `-- --assets DIRECTORY` for another copy of that extraction. The game reports any missing or changed required face before opening the table.
+On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from the checkout. The game reads the audited collection from `~/Pictures/Baseball Highlights: 2045 Resources`. Use `-- --assets DIRECTORY` to open another audited card collection. The game reports any missing or changed required face before opening the table.
 
 SF earns $6 and NY earns $7. In the SF manager seat, choose **SF buys first** or **NY buys first**. To replay the reviewed round, choose SF, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Select **Finish buying** to pass the turn.
 
