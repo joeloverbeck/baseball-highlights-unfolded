@@ -62,4 +62,10 @@ Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, AGENT-3
 
 ## Issue #7 local handoff
 
-After #6 merged at `b18e5a6`, the unfinished [Glove target work](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/7) was in `~/.cache/agent-tmp/baseball-ticket-7`. The owning clone is `~/.cache/agent-tmp/baseball-spec-4`. Branch `feat/spec-4-glove` is at `49c7be647431c310e689492167a3630f0ee721ea`. It holds uncommitted source changes and four untracked files, including `tests/glove.rs` and the field image. On activation, inspect that checkout and transfer the Glove changes against current `main`. The draft predates the merged Buy Round and desktop-seat changes. This is an owner-local handoff. Builds use the normal repository inputs.
+The unfinished [Glove target work](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/7) is preserved in the owner-local `local/issue-7/glove.bundle`, under the checkout's ignored `local/` directory. Branch `issue-7-checkpoint` contains commit `97109a0f445fb0d4ef66977e37421e9283c3f53b` on base `49c7be647431c310e689492167a3630f0ee721ea`. The bundle includes the eight modified files and four formerly untracked files. A fresh clone of the bundle passed `git fsck` and matched all twelve draft files byte for byte.
+
+On activation, restore the checkpoint from the repository root and compare it with current `main` before transferring the Glove changes. The draft predates the merged Buy Round and desktop-seat changes.
+
+```sh
+git clone --branch issue-7-checkpoint local/issue-7/glove.bundle local/issue-7/restore
+```
