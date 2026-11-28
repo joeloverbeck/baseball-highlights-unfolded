@@ -31,6 +31,7 @@ class Click:
     name: str
     label: str
     point: tuple[int, int]
+    save_digest: str
 
 
 def file_digest(path):
@@ -99,13 +100,13 @@ def observe(request):
     return reply
 
 
-def activate(request, seat, trace, kind, name):
+def activate(request, seat, trace, save, kind, name):
     before = observe(request)
     control = next((item for item in before["table"]["controls"] if item[kind] == name), None)
     require(control is not None and control["on_screen"], f"{seat} cannot reach {kind} {name}")
     point = tuple(round(axis) for axis in control["position"])
     after = request("activate", "activated", revision=before["revision"], **{kind: name})
-    trace.append(Click(seat, kind, name, control["label"], point))
+    trace.append(Click(seat, kind, name, control["label"], point, file_digest(save)))
     return after["observation"]
 
 
@@ -139,10 +140,10 @@ def replay_managers(executable, assets, evidence, save, trace):
         ny = exits.enter_context(manager(executable, save, assets, evidence, transcript, "ny"))
 
         def choose_sf(kind, name):
-            return activate(sf, "sf", trace, kind, name)
+            return activate(sf, "sf", trace, save, kind, name)
 
         def choose_ny(kind, name):
-            return activate(ny, "ny", trace, kind, name)
+            return activate(ny, "ny", trace, save, kind, name)
 
         choose_sf("choice", "buy-first-sf")
         choose_sf("component", "inspect-slot-2")
@@ -154,6 +155,7 @@ def replay_managers(executable, assets, evidence, save, trace):
         )
         clubs = position(save)["clubs"]
         sf_drawn = choose_sf("choice", "start-game-two")
+        shutil.copyfile(save, evidence / "sf-hand-position.json")
         ny_drawn = observe(ny)["observation"]
         require(
             sf_drawn["standing"] == ny_drawn["standing"] == {"game": 2, "home": "new_york", "wins": [0, 1]},
@@ -220,6 +222,12 @@ def replay_desktop(executable, assets, evidence, save, trace):
                 wait_for(lambda: save.read_bytes() != before, label)
             else:
                 require(save.read_bytes() == before, f"{label} changed the save during inspection")
+            actual_digest = file_digest(save)
+            require(
+                actual_digest == entry.save_digest,
+                f"{label} ({entry.name}) produced save SHA-256 {actual_digest}, "
+                f"expected {entry.save_digest}",
+            )
 
             if entry.name == "start-game-two":
                 capture(table, evidence / "desktop-sf-hand.png")
