@@ -94,7 +94,12 @@ Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, SEM-1, REP-1–3, AUTH-1–3, 
 
 The [game-two continuation](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/8) starts from the completed Buy Round in the same save. SF plays first as Visitor, and both teams draw six from the top of their post-buy Lineups. NY hosts and carries its game-one win. The review covers the first three plays from hand, including any Glove decision they create. On Deck, pinch hitting, the Visitor Save, extra innings and the rest of game two belong to issue #3.
 
-Issue #22 regenerated the scratch starting position at the same SF purchase-order choice in the current exact-replay format. Its SHA-256 is `319eeef67f4b8f98769de7560493e5b293810dd96bd1be11b6156c615811b8d6`. The original issue #8 run used the earlier save with SHA-256 `9a000386da0ca3b9df47ab4caa86ed2276b2d92641a88d3920aa6ebd1836dad4`. [Current scratch save](../../tests/fixtures/expert-game-two-start.json) · [Original issue #8 save](https://github.com/joeloverbeck/baseball-highlights-unfolded/blob/2f4a6cfee1200d57ba07be91d68e00c469c5e06c/tests/fixtures/expert-game-two-start.json)
+Issue #22 regenerated the scratch starting position at the same SF purchase-order choice in the current exact-replay format. The original issue #8 run used the earlier save.
+
+| Save | SHA-256 |
+| --- | --- |
+| [Current scratch save](../../tests/fixtures/expert-game-two-start.json) | `319eeef67f4b8f98769de7560493e5b293810dd96bd1be11b6156c615811b8d6` |
+| [Original issue #8 save](https://github.com/joeloverbeck/baseball-highlights-unfolded/blob/2f4a6cfee1200d57ba07be91d68e00c469c5e06c/tests/fixtures/expert-game-two-start.json) | `9a000386da0ca3b9df47ab4caa86ed2276b2d92641a88d3920aa6ebd1836dad4` |
 
 The [README replay](../../README.md#follow-the-signings-into-game-two) works from a copy. The two signings and demotions preserve both 15-card rosters and each card's instance. In that replay NY's acquired Maris cancels ST-013's single, then threatens a single and a home run. SF's acquired Foxx cancels either box. The home run alone scores one. The single alone leaves the score at 0–0 and puts Maris on first. Foxx then threatens a double. RB 5–6 and Ref 2 supply the timing and two independently calculated projections.
 
