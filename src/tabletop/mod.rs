@@ -25,27 +25,24 @@ struct Session {
 pub struct Art {
     faces: HashMap<CardId, image::DynamicImage>,
     back: image::DynamicImage,
-    park: image::DynamicImage,
+    buy_park: image::DynamicImage,
+    field_park: image::DynamicImage,
 }
 
 impl Art {
     pub fn load(collection: &Collection, review: Option<GloveReview>) -> Result<Self, String> {
-        let (faces, park): (_, &[u8]) = match review {
-            Some(fixture) => (
-                collection.glove_review_faces(fixture)?,
-                include_bytes!("../../art/manager-review/park-field.png"),
-            ),
-            None => (
-                collection.buy_round_faces()?,
-                include_bytes!("../../art/manager-review/park-0.png"),
-            ),
+        let faces = match review {
+            Some(fixture) => collection.glove_review_faces(fixture)?,
+            None => collection.expert_series_faces()?,
         };
-        let park =
-            image::load_from_memory(park).map_err(|error| format!("Press Box study: {error}"))?;
+        let park = |bytes| {
+            image::load_from_memory(bytes).map_err(|error| format!("Press Box study: {error}"))
+        };
         Ok(Self {
             faces,
             back: collection.back()?,
-            park,
+            buy_park: park(include_bytes!("../../art/manager-review/park-0.png"))?,
+            field_park: park(include_bytes!("../../art/manager-review/park-field.png"))?,
         })
     }
 }
@@ -54,7 +51,8 @@ impl Art {
 struct Prints {
     faces: HashMap<CardId, Handle<Image>>,
     back: Handle<Image>,
-    park: Handle<Image>,
+    buy_park: Handle<Image>,
+    field_park: Handle<Image>,
 }
 
 fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
@@ -63,7 +61,8 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         |image: image::DynamicImage| images.add(Image::from_dynamic(image, true, default()));
     let prints = Prints {
         back: texture(art.back),
-        park: texture(art.park),
+        buy_park: texture(art.buy_park),
+        field_park: texture(art.field_park),
         faces: art
             .faces
             .into_iter()

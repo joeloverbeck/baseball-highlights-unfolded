@@ -91,6 +91,10 @@ impl Collection {
         self.public_faces(buy_round_face_ids())
     }
 
+    pub fn expert_series_faces(&self) -> Result<HashMap<CardId, DynamicImage>, String> {
+        self.public_faces(buy_round_face_ids().chain((1..=15).chain(46..=60).map(CardId::original)))
+    }
+
     pub fn glove_review_faces(
         &self,
         fixture: GloveReview,

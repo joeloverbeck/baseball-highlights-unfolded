@@ -1,4 +1,4 @@
-use crate::{Card, Decision, Event, Player, Refusal, Seat};
+use crate::{Card, Decision, Event, Player, Refusal, Seat, cards::Immediate};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -67,6 +67,7 @@ pub enum Hit {
     Double,
     Triple,
     HomeRun,
+    Walk,
 }
 
 impl Hit {
@@ -86,6 +87,7 @@ impl Hit {
             Self::Double => "Double",
             Self::Triple => "Triple",
             Self::HomeRun => "Home run",
+            Self::Walk => "Walk",
         }
     }
 
@@ -95,6 +97,7 @@ impl Hit {
             Self::Double => 2,
             Self::Triple => 3,
             Self::HomeRun => 4,
+            Self::Walk => 1,
         }
     }
 }
@@ -151,18 +154,32 @@ pub struct Diamond {
 
 impl Diamond {
     fn resolve(&mut self, threat: Threat) -> u16 {
+        self.resolve_hit(threat.hit, threat.batter, false)
+    }
+
+    fn resolve_hit(&mut self, hit: Hit, batter: Runner, clutch: bool) -> u16 {
+        if hit == Hit::Walk {
+            let mut incoming = batter;
+            for base in &mut self.bases {
+                match base.replace(incoming) {
+                    Some(displaced) => incoming = displaced,
+                    None => return 0,
+                }
+            }
+            self.score += 1;
+            return 1;
+        }
         let before = self.score;
         let mut blocker = None;
-        let distance = threat.hit.distance();
+        let distance = hit.distance();
         for base in (0..self.bases.len()).rev() {
             let Some(runner) = self.bases[base].take() else {
                 continue;
             };
             let extra = usize::from(
-                runner.speed == RunnerSpeed::Fast
-                    || (runner.speed == RunnerSpeed::Average
-                        && base == 1
-                        && threat.hit == Hit::Single),
+                clutch
+                    || runner.speed == RunnerSpeed::Fast
+                    || (runner.speed == RunnerSpeed::Average && base == 1 && hit == Hit::Single),
             );
             let destination = (base + distance + extra).min(blocker.map_or(3, |next| next - 1));
             if destination == 3 {
@@ -172,10 +189,10 @@ impl Diamond {
                 blocker = Some(destination);
             }
         }
-        if threat.hit == Hit::HomeRun {
+        if hit == Hit::HomeRun {
             self.score += 1;
         } else {
-            self.bases[distance - 1] = Some(threat.batter);
+            self.bases[distance - 1] = Some(batter);
         }
         self.score - before
     }
@@ -184,7 +201,8 @@ impl Diamond {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct Play {
     defender: Card,
-    opposing: Card,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    opposing: Option<Card>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -200,7 +218,8 @@ pub struct FieldView {
     pub batting: Seat,
     /// The SF diamond followed by the NY diamond.
     pub diamonds: [Diamond; 2],
-    pub play: FieldPlay,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub play: Option<FieldPlay>,
     pub threatened: Vec<Threat>,
     pub glove_pending: bool,
 }
@@ -220,11 +239,23 @@ pub(crate) struct Field {
     acting: Seat,
     diamonds: [Diamond; 2],
     threatened: Vec<Threat>,
-    play: Play,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    play: Option<Play>,
     glove_pending: bool,
 }
 
 impl Field {
+    pub(crate) fn opening(home: Seat) -> Self {
+        Self {
+            home,
+            acting: home.opponent(),
+            diamonds: [Diamond::default(); 2],
+            threatened: Vec::new(),
+            play: None,
+            glove_pending: false,
+        }
+    }
+
     pub(crate) fn reviewed(
         defender: Card,
         opposing: Card,
@@ -236,7 +267,10 @@ impl Field {
             acting: Seat::SanFrancisco,
             diamonds: [Diamond::default(); 2],
             threatened: Threat::on(opposing),
-            play: Play { defender, opposing },
+            play: Some(Play {
+                defender,
+                opposing: Some(opposing),
+            }),
             glove_pending: false,
         };
         if let Some(card) = runner {
@@ -253,18 +287,95 @@ impl Field {
                 ],
             };
         }
-        assert!(Player::public(defender).has_glove());
-        match field.threatened.as_slice() {
-            [] => field.resolve(events),
-            [only] => {
-                field
-                    .cancel(only.target, false, events)
-                    .expect("the only hit box is present");
-                field.resolve(events);
-            }
-            _ => field.glove_pending = true,
-        }
+        assert!(matches!(
+            Player::public(defender).immediate(),
+            Immediate::Glove
+        ));
+        field.resolve_glove(events);
         field
+    }
+
+    pub(crate) fn acting(&self) -> Seat {
+        self.acting
+    }
+
+    pub(crate) fn play_card(&mut self, card: Card, events: &mut Vec<Event>) -> Result<(), Refusal> {
+        let opposing = self.play.as_ref().map(|play| play.defender);
+        self.play = Some(Play {
+            defender: card,
+            opposing,
+        });
+        let player = Player::public(card);
+        let opposing = opposing.map(Player::public);
+        let batting = self.acting.index();
+        let immediate_hit = match player.immediate() {
+            Immediate::Glove => {
+                self.resolve_glove(events);
+                return Ok(());
+            }
+            Immediate::Walk => {
+                for hit in &mut self.threatened {
+                    hit.hit = Hit::Walk;
+                }
+                None
+            }
+            Immediate::Fastball if opposing.is_some_and(Player::is_natural) => {
+                if !self.threatened.is_empty() {
+                    self.threatened.clear();
+                    events.push(Event::FastballCancelled { seat: self.acting });
+                }
+                None
+            }
+            Immediate::Clutch(hit)
+                if self.diamonds[batting].bases[1..]
+                    .iter()
+                    .any(Option::is_some) =>
+            {
+                Some((hit, true))
+            }
+            Immediate::QuickEye if opposing.is_some_and(Player::is_cyborg) => {
+                Some((Hit::Single, false))
+            }
+            Immediate::PickOff | Immediate::DoublePlay => {
+                let bases = self.diamonds[self.acting.opponent().index()].bases;
+                // The admitted opening ends before these teams can target a base runner.
+                if bases.iter().flatten().any(|runner| {
+                    matches!(player.immediate(), Immediate::PickOff)
+                        || runner.speed != RunnerSpeed::Fast
+                }) {
+                    return Err(Refusal::WrongDecision);
+                }
+                None
+            }
+            _ => None,
+        };
+        if let Some((hit, clutch)) = immediate_hit {
+            let runner = Runner {
+                card,
+                speed: RunnerSpeed::of(player),
+            };
+            let runs = self.diamonds[batting].resolve_hit(hit, runner, clutch);
+            events.push(Event::ImmediateHit {
+                seat: self.acting,
+                card,
+                hit,
+                runs,
+            });
+        }
+        self.resolve(events);
+        Ok(())
+    }
+
+    fn resolve_glove(&mut self, events: &mut Vec<Event>) {
+        match self.threatened.as_slice() {
+            [] => self.resolve(events),
+            [only] => {
+                self.cancel(only.target, false, events)
+                    .expect("the only hit box is present");
+                self.resolve(events);
+            }
+            _ => self.glove_pending = true,
+        }
     }
 
     pub(crate) fn manager(&self) -> Option<Seat> {
@@ -277,10 +388,12 @@ impl Field {
             acting: self.acting,
             batting: self.acting.opponent(),
             diamonds: self.diamonds,
-            play: FieldPlay {
-                defender: Player::public(self.play.defender),
-                batter: Player::public(self.play.opposing),
-            },
+            play: self.play.as_ref().and_then(|play| {
+                Some(FieldPlay {
+                    defender: Player::public(play.defender),
+                    batter: Player::public(play.opposing?),
+                })
+            }),
             threatened: self.threatened.clone(),
             glove_pending: self.glove_pending,
         }
@@ -358,7 +471,7 @@ impl Field {
                 runs,
             });
         }
-        let card = self.play.defender;
+        let card = self.play.as_ref().expect("a card was played").defender;
         self.threatened = Threat::on(card);
         events.push(Event::ThreatsPlaced {
             seat: self.acting,

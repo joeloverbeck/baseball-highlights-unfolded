@@ -22,6 +22,7 @@ pub(super) const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
 pub(super) enum Selection {
     Offer { slot: u8, card: Card },
     PublicCard(Card),
+    HandCard(Card),
     History,
     Glove(HitBox),
 }
@@ -89,6 +90,8 @@ fn click(
                     Action::ChooseOrder { .. }
                     | Action::Demote { .. }
                     | Action::Pass
+                    | Action::StartGame
+                    | Action::PlayCard { .. }
                     | Action::CancelHit { .. } => None,
                 };
                 ui.error = None;
@@ -207,7 +210,7 @@ pub(super) fn short_button(
         .with_children(|button| text(button, label, 16., INK));
 }
 
-fn hits(card: Player) -> String {
+pub(super) fn hits(card: Player) -> String {
     if card.threatened_hits.is_empty() {
         "No threatened hits".into()
     } else {
@@ -265,15 +268,16 @@ fn offer_tile(
     });
 }
 
-fn public_cards(
+pub(super) fn card_rail(
     parent: &mut ChildSpawnerCommands,
     players: &[Player],
     prints: &Prints,
     selection: Option<Selection>,
+    selection_for: fn(Card) -> Selection,
 ) {
     parent.spawn(row(6.)).with_children(|rail| {
         for &player in players {
-            let item = Selection::PublicCard(player.card);
+            let item = selection_for(player.card);
             let id = button(
                 rail,
                 SeatName::Component(format!("inspect-{}", player.card.identity)),
@@ -388,9 +392,7 @@ fn event_text(event: Event) -> String {
             "{} finished buying. ${unspent} expired.",
             seat.abbreviation(),
         ),
-        Event::GloveCancelled { .. } | Event::HitResolved { .. } | Event::ThreatsPlaced { .. } => {
-            unreachable!("only Buy Round events reach the Buy Round panel")
-        }
+        _ => unreachable!("only Buy Round events reach the Buy Round panel"),
     }
 }
 
@@ -469,7 +471,32 @@ fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
             });
         }
     } else {
-        text(book, "Buy Round complete", 19., CREAM);
+        book.spawn(Node {
+            align_items: AlignItems::Center,
+            ..row(12.)
+        })
+        .with_children(|turn| {
+            if view.decision == Some(Decision::StartGame) {
+                text(turn, "Buy Round complete", 19., CREAM);
+                short_button(
+                    turn,
+                    SeatName::Choice("start-game-two".into()),
+                    "Draw hands for game two".into(),
+                    Input::Submit(view.submission(Action::StartGame)),
+                    GOLD,
+                );
+            } else if let Some(manager) = view.acting_manager {
+                text(
+                    turn,
+                    format!(
+                        "Buy Round complete / Waiting for {} to draw",
+                        manager.abbreviation()
+                    ),
+                    19.,
+                    CREAM,
+                );
+            }
+        });
     }
 }
 
@@ -558,7 +585,7 @@ pub fn draw(
                         roster.seat.abbreviation(), roster.lineup, roster.dugout.len(), roster.minor_leagues, roster.active,
                     ), 15., FIELD_LABEL);
                     if !roster.dugout.is_empty() {
-                        public_cards(book, &roster.dugout, &prints, ui.selection);
+                        card_rail(book, &roster.dugout, &prints, ui.selection, Selection::PublicCard);
                     }
                 }
                 if let Some(buyer) = view.buyer.filter(|_| view.demotion_pending) {
@@ -569,7 +596,7 @@ pub fn draw(
                         format!("{} In Play / Demotion pending", buyer.abbreviation())
                     };
                     text(book, title, 19., CREAM);
-                    public_cards(book, &roster.in_play, &prints, ui.selection);
+                    card_rail(book, &roster.in_play, &prints, ui.selection, Selection::PublicCard);
                 }
                 if let Some(error) = &ui.error {
                     text(book, error, 17., GOLD);
@@ -656,7 +683,7 @@ impl seat::Game for AgentTable {
         }
         Hit {
             name: None,
-            description: json!({ "surface": if world.resource::<Session>().game.glove_review().is_some() {
+            description: json!({ "surface": if world.resource::<Session>().game.has_field() {
                 "Field"
             } else {
                 "Buy Round"

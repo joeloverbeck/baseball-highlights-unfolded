@@ -296,7 +296,7 @@ fn signing_foxx_refills_one_slot_and_resumes_the_demotion() {
         .unwrap();
     let complete = opponent.observe(Seat::NewYork);
     assert_eq!(complete.balances, [0, 0]);
-    assert_eq!(complete.acting_manager, None);
+    assert_eq!(complete.acting_manager, Some(Seat::SanFrancisco));
     assert_eq!(complete.buyer, None);
     assert_eq!(complete.decision, None);
     for roster in &complete.rosters {

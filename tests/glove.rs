@@ -21,8 +21,9 @@ fn both_maris_glove_outcomes_are_visible_before_committing() {
                 .map(|runner| runner.map(|pawn| pawn.speed)),
             [None, Some(RunnerSpeed::Average), None]
         );
-        assert_eq!(field.play.defender.card.identity.to_string(), "ST-001");
-        assert_eq!(field.play.batter.card.identity.to_string(), "FA-067");
+        let play = field.play.unwrap();
+        assert_eq!(play.defender.card.identity.to_string(), "ST-001");
+        assert_eq!(play.batter.card.identity.to_string(), "FA-067");
         assert_eq!(ny.decision, None);
         let Some(Decision::Glove { targets }) = sf.decision.as_ref() else {
             panic!("Expected SF's Glove choice");

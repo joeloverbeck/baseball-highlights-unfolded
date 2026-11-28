@@ -10,5 +10,5 @@ pub use field::{
 };
 pub use series::{
     Action, BuyRoundFixture, Contribution, Decision, Event, Game, Observation, Offer, Refusal,
-    Revenue, Roster, Seat, Submission,
+    Revenue, Roster, Seat, Standing, Submission,
 };

@@ -91,10 +91,25 @@ const SINGLES: &[&str] = &["Single", "Single"];
 const PICK_OFF: &str = "Pick Off (remove one runner)";
 const GLOVE: &str = "Glove (cancel one hit)";
 const DOUBLE_PLAY: &str = "Double Play (remove up to two non-fast runners)";
+const WALK: &str = "Walk (change all hits to walks)";
+const FASTBALL: &str = "Fastball (cancel a Natural's hits)";
+const CLUTCH_DOUBLE: &str = "Clutch (double with a runner on second or third)";
+const CLUTCH_SINGLE: &str = "Clutch (single with a runner on second or third)";
+const QUICK_EYE: &str = "Quick Eye (single against a Cyborg)";
+
+pub(crate) enum Immediate {
+    Glove,
+    Walk,
+    Fastball,
+    Clutch(crate::Hit),
+    QuickEye,
+    PickOff,
+    DoublePlay,
+    None,
+}
 
 impl Player {
-    // Rules facts for the public faces in the reviewed position and its refill.
-    // Other cards are present in the physical zones but have no playable rules here.
+    // Printed facts for the SF and NY opening hands and the reviewed Free Agents.
     pub(crate) fn public(card: Card) -> Self {
         Self::describe(card).expect("the reviewed position only presents known card faces")
     }
@@ -102,43 +117,28 @@ impl Player {
     pub fn describe(card: Card) -> Option<Self> {
         let printed_face = card.identity.printed_face();
         let (name, revenue, immediate_action, threatened_hits) = match printed_face.serial() {
-            1 => ("Rookie Natural", 0, GLOVE, SINGLE),
+            1 | 46 => ("Rookie Natural", 0, GLOVE, SINGLE),
             2 | 47 => ("Rookie Cyborg", 2, PICK_OFF, &[][..]),
             4 | 49 => ("Rookie Natural", 2, "", SINGLE),
             5 | 50 => ("Rookie Natural", 1, GLOVE, &[][..]),
+            6 | 51 => ("Rookie Cyborg", 1, WALK, &[][..]),
             8 | 53 => ("Rookie Robot", 1, "", DOUBLE),
-            52 => ("Rookie Robot", 2, "", DOUBLE),
-            11 => (
-                "Veteran Natural",
-                0,
-                "Clutch (double with a runner on second or third)",
-                SINGLE,
-            ),
+            7 | 52 => ("Rookie Robot", 2, "", DOUBLE),
+            10 | 54 => ("Rookie Robot", 1, "", SINGLES),
+            11 => ("Veteran Natural", 0, CLUTCH_DOUBLE, SINGLE),
+            12 => ("Veteran Cyborg", 2, FASTBALL, &[][..]),
+            13 => ("Veteran Natural", 2, GLOVE, SINGLE),
             14 => ("Veteran Robot", 0, "", &["Home run"][..]),
+            15 => ("Veteran Robot", 2, "", SINGLES),
             56 => ("Veteran Natural", 1, DOUBLE_PLAY, SINGLE),
-            57 => (
-                "Veteran Cyborg",
-                1,
-                "Fastball (cancel a Natural's hits)",
-                SINGLE,
-            ),
-            58 => (
-                "Veteran Robot",
-                2,
-                "Quick Eye (single against a Cyborg)",
-                DOUBLE,
-            ),
+            57 => ("Veteran Cyborg", 1, FASTBALL, SINGLE),
+            58 => ("Veteran Robot", 2, QUICK_EYE, DOUBLE),
             59 => ("Veteran Natural", 0, "", &["Home run"][..]),
             60 => ("Veteran Robot", 2, "", &["Triple"][..]),
             61 => ("Bucky Cano", 2, DOUBLE_PLAY, SINGLES),
             62 => ("Peewee Rizzuto", 1, GLOVE, SINGLE),
             63 => ("Ichiro Matsui", 1, GLOVE, SINGLES),
-            64 => (
-                "Brooks Nettles",
-                1,
-                "Clutch (single with a runner on second or third)",
-                SINGLES,
-            ),
+            64 => ("Brooks Nettles", 1, CLUTCH_SINGLE, SINGLES),
             65 => ("Frankie Foxx", 2, GLOVE, DOUBLE),
             66 => ("Maury Aparicio", 1, DOUBLE_PLAY, SINGLE),
             67 => ("Mickey Maris", 0, GLOVE, &["Single", "Home run"][..]),
@@ -149,13 +149,13 @@ impl Player {
             _ => return None,
         };
         let speed = match printed_face.serial() {
-            52 | 58 | 65 | 68 | 96 => "Slow",
+            7 | 10 | 52 | 54 | 58 | 65 | 68 | 96 => "Slow",
             62 | 63 | 66 | 82 => "Fast",
             _ => "Average",
         };
         let pinch_hitter = matches!(
             printed_face.serial(),
-            2 | 5 | 14 | 47 | 50 | 58 | 59 | 62 | 65 | 66
+            2 | 5 | 6 | 12 | 14 | 47 | 50 | 51 | 58 | 59 | 62 | 65 | 66
         );
         Some(Self {
             card,
@@ -169,8 +169,30 @@ impl Player {
         })
     }
 
-    pub(crate) fn has_glove(self) -> bool {
-        self.immediate_action == GLOVE
+    pub(crate) fn immediate(self) -> Immediate {
+        match self.immediate_action {
+            GLOVE => Immediate::Glove,
+            WALK => Immediate::Walk,
+            FASTBALL => Immediate::Fastball,
+            CLUTCH_DOUBLE => Immediate::Clutch(crate::Hit::Double),
+            CLUTCH_SINGLE => Immediate::Clutch(crate::Hit::Single),
+            QUICK_EYE => Immediate::QuickEye,
+            PICK_OFF => Immediate::PickOff,
+            DOUBLE_PLAY => Immediate::DoublePlay,
+            "" => Immediate::None,
+            _ => unreachable!("unknown Immediate Action"),
+        }
+    }
+
+    pub(crate) fn is_natural(self) -> bool {
+        matches!(
+            self.printed_face.serial(),
+            1 | 4 | 5 | 11 | 13 | 46 | 49 | 50 | 56 | 59 | 61..=69
+        )
+    }
+
+    pub(crate) fn is_cyborg(self) -> bool {
+        matches!(self.printed_face.serial(), 2 | 6 | 12 | 47 | 51 | 57)
     }
 
     pub(crate) fn cost(self) -> u8 {
