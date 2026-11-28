@@ -392,20 +392,29 @@ fn pile(
                 ));
             }
         });
+    let label_width = (144. * scale).min(2. * rect.center().x);
     parent
         .spawn((
             Node {
-                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
                 ..place(
-                    rect.center().x - 60. * scale,
+                    rect.center().x - label_width / 2.,
                     rect.max.y + 4. * scale,
-                    120. * scale,
-                    18. * scale,
+                    label_width,
+                    34. * scale,
                 )
             },
             Pickable::IGNORE,
         ))
-        .with_children(|label| text(label, format!("{name}  {count}"), 13. * scale, CREAM));
+        .with_children(|label| {
+            if name == "Free Agent Deck" {
+                text(label, name, 13. * scale, CREAM);
+                text(label, count.to_string(), 13. * scale, CREAM);
+            } else {
+                text(label, format!("{name}  {count}"), 13. * scale, CREAM);
+            }
+        });
 }
 
 fn club(
@@ -448,7 +457,7 @@ fn club(
             text(
                 head,
                 format!(
-                    "{} active   ·   ${} left",
+                    "{} active      ${} left",
                     roster.active,
                     view.balances[usize::from(roster.seat == Seat::NewYork)]
                 ),
@@ -680,7 +689,7 @@ pub(super) fn draw(
             {
                 text(
                     status,
-                    format!("   Lowest price ${cheapest}   ·   ${} left", view.balance),
+                    format!("   Lowest price ${cheapest}   ${} left", view.balance),
                     15. * s,
                     GOLD,
                 );
@@ -963,14 +972,39 @@ fn disclosure(
     );
 
     let action = if let Some(offer) = offer {
-        root.spawn((
-            Node {
-                justify_content: JustifyContent::Center,
-                ..place(face.min.x, face.max.y + 26. * s, face.width(), 26. * s)
-            },
-            Pickable::IGNORE,
-        ))
-        .with_children(|amount| text(amount, budget(offer, view.balance), 13. * s, GOLD));
+        if !layout.demotion {
+            root.spawn((
+                Node {
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    column_gap: px(4. * s),
+                    ..place(face.min.x, face.max.y + 26. * s, face.width(), 24. * s)
+                },
+                Pickable::IGNORE,
+            ))
+            .with_children(|amount| {
+                if let Some(left) = offer.balance_after {
+                    text(amount, format!("${}", view.balance), 13. * s, GOLD);
+                    panel(
+                        amount,
+                        Node {
+                            width: px(7. * s),
+                            height: px(1.4 * s),
+                            ..default()
+                        },
+                        GOLD,
+                    );
+                    text(
+                        amount,
+                        format!("${} = ${left} left", offer.cost),
+                        13. * s,
+                        GOLD,
+                    );
+                } else {
+                    text(amount, budget(offer, view.balance), 13. * s, GOLD);
+                }
+            });
+        }
         can_sign(view, offer).then(|| {
             (
                 format!("sign-{}-{}", offer.slot, player.card.instance),

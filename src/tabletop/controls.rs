@@ -475,10 +475,17 @@ impl seat::Game for AgentTable {
             }
             (session.game.observe(session.seat), refreshed.is_err())
         };
-        let revenue_inspection =
-            revenue::inspected_contributor(&view, world.resource::<Interface>().selection);
-        let dugout_inspection =
-            between_games::inspection(&view, world.resource::<Interface>().selection);
+        let selection = world.resource::<Interface>().selection;
+        let revenue_inspection = revenue::inspected_contributor(&view, selection);
+        let dugout_inspection = between_games::inspection(&view, selection);
+        let round_history =
+            (selection == Some(Selection::History) && view.field.is_none()).then(|| {
+                view.events
+                    .iter()
+                    .copied()
+                    .map(event_text)
+                    .collect::<Vec<_>>()
+            });
         let interaction = world.resource::<market::Interaction>();
         let market_inspection = interaction.reading(&view);
         let focus = interaction.focus();
@@ -504,6 +511,7 @@ impl seat::Game for AgentTable {
                 "controls": controls, "focus": focused,
                 "supported_keys": market::KEYS.iter().map(|key| key.name).collect::<Vec<_>>(),
                 "market_inspection": market_inspection, "cards_in_motion": cards_in_motion,
+                "round_history": round_history,
                 "refresh_error": refresh_error, "revenue_inspection": revenue_inspection,
                 "dugout_inspection": dugout_inspection,
             }),
