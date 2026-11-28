@@ -10,6 +10,8 @@ Use the project's PhotoCraft MCP to crop and export each card extracted from a s
 
 PhotoCraft reads from the checkout and exports under `art/`. Copy verified sources to a Git-ignored working directory under `art/` and export the crops there. Record the PhotoCraft version, source digest, source card and printing identity, reviewed pixel rectangle and export digest in the owner-local collection. Keep source files, crops and proofs private. Stage the exported PNGs with their catalog and SHA-256 manifest, then inspect the staged collection through the ordinary desktop launch with `--assets` and a scratch save before changing the default. The runtime consumes verified image files.
 
+In the first Ubuntu handoff for private visual review, give the absolute folder, exact filenames and intended review size. Include a copyable command such as `xdg-open '/absolute/path/to/review-folder'` alongside the preview links.
+
 For a working directory at `art/.card-crops/`, open a sheet with `doc_open(path="art/.card-crops/sheet.jpg")`. After running `image.crop` with the measured pixel bounds, export with `doc_save(path=".card-crops/card.png")`. The output lands at `art/.card-crops/card.png`.
 
 Stage with `python3 scripts/stage_card_crops.py final SOURCE REVIEW EXPORTS OUTPUT`. The helper compares the exported printed IDs against the required faces loaded by the Expert and Glove paths. `REVIEW` contains the private source mappings and crop provenance. Use `probe` for a partial package that fills the other required faces from the original collection.
@@ -59,6 +61,39 @@ The November 28 research pack matches 38 ledger identities. Its source archive, 
 | PR-515 | Shared reference for Visitor travel stadium (Workshop 2704) and Home travel stadium (2705). Each existing source keeps its four Workshop instances. |
 
 The ledger’s `present:photograph`, `present:licensed-app` and `present:private` entries record artwork in the private collection. `evidence:foil` records a photographed printing, and `present:components` points to the existing component records. The CSV and per-face provenance in the private collection record the source image, crop and digest. Issue #2 tracks coverage. [ST-019 source photo](https://boardgamegeek.com/image/2845196/baseball-highlights-2045) · [ST-055 iPad screenshot gallery](https://appshunter.io/ios/app/baseball-highlights-2045/id1003138996)
+
+#### Restore the default collection
+
+Run this from the checkout. If the staged pack is on another machine, point `baseball_pack_source` at a complete owner-local backup of the approved recovered collection. The command verifies the manifest and every listed file before moving the staged copy into place. It requires an unused destination.
+
+```sh
+(
+    set -eu
+    baseball_pack_source="$PWD/local/card-crop-review/face-pack-2026-11-28/assets-corrected"
+    baseball_pack_destination="$HOME/Pictures/Baseball Highlights: 2045 Recovered"
+    if [ -e "$baseball_pack_destination" ] || [ -L "$baseball_pack_destination" ]; then
+        printf 'The destination already exists at %s.\n' "$baseball_pack_destination" >&2
+        exit 1
+    fi
+    mkdir -p -- "$HOME/Pictures"
+    baseball_pack_stage=$(mktemp -d -- "$HOME/Pictures/.baseball-recovered.XXXXXX")
+    cp -R -- "$baseball_pack_source/." "$baseball_pack_stage/"
+    (
+        cd -- "$baseball_pack_stage"
+        printf '%s  SHA256SUMS\n' 'd858a56885c312cd45c22c45868d81692acacfe5f92d2ba7a591a801d68d40a3' |
+            sha256sum --check --quiet
+        sha256sum --check --quiet SHA256SUMS
+    )
+    mv -T --no-clobber -- "$baseball_pack_stage" "$baseball_pack_destination"
+    test ! -e "$baseball_pack_stage"
+)
+```
+
+To launch with the earlier PhotoCraft collection and its donor artwork, run this from the checkout.
+
+```sh
+cargo run --locked -- --assets "$HOME/Pictures/Baseball Highlights: 2045 PhotoCraft"
+```
 
 ## Remaining content
 
