@@ -229,6 +229,25 @@ def replay_desktop(executable, assets, evidence, save, trace):
                 f"expected {entry.save_digest}",
             )
 
+            if entry.seat == "sf" and entry.name.startswith("sign-"):
+                pending = position(save)
+                require(
+                    pending["phase"] == "Demotion"
+                    and pending["balances"] == [2, 7]
+                    and pending["row"][4]["identity"] == "FA-067",
+                    "Expected the pending Foxx demotion, $2 and Maris in slot 5",
+                )
+                game, _, _ = windows["sf"]
+                close(game, window)
+                windows["sf"] = exits.enter_context(launch(
+                    executable, save, assets, evidence / "sf-desktop-resumed.log",
+                    seat="sf", origin=(0, 0),
+                ))
+                _, _, resumed_table = windows["sf"]
+                capture(resumed_table, evidence / "desktop-sf-resumed.png",
+                        piles={"Free Agent Deck", "Lineup"})
+                require(file_digest(save) == entry.save_digest, "Restart changed the pending demotion")
+
             if entry.name == "start-game-two":
                 capture(table, evidence / "desktop-sf-hand.png")
             if entry.name == "play-FA-065":

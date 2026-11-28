@@ -64,7 +64,7 @@ def blue_pawn(image, point):
 
 def check_resolution(save, cancelled):
     payload = position(save)
-    field = payload["field_review"]["field"]
+    field = payload["field_review"]
     sf, ny = field["diamonds"]
     bases = [runner["card"]["identity"] if runner else None for runner in ny["bases"]]
     expected = (4, [None, None, None]) if cancelled == 1 else (3, ["FA-067", None, None])
@@ -136,9 +136,18 @@ def commit(executable, assets, evidence, save, box, pending=None):
         committed = save.read_bytes()
         click(window, COMMIT)
         require(save.read_bytes() == committed, "The same click committed the Glove twice")
-        capture_review(table, evidence / f"sf-resolved-{box}.png",
-                     lambda im: not blue_pawn(im, (640, 227))
-                     and blue_pawn(im, (703, 275)) == (box == 2))
+        resolved = capture_review(table, evidence / f"sf-resolved-{box}.png",
+                                  lambda im: not blue_pawn(im, (640, 227))
+                                  and blue_pawn(im, (703, 275)) == (box == 2))
+        close(sf, window)
+
+    with review_window(executable, save, assets, evidence / f"sf-reopened-{box}.log") as (sf, window, table):
+        focus(window)
+        live_field = resolved.crop(LIVE)
+        capture_review(table, evidence / f"sf-reopened-{box}.png",
+                       lambda im: not ImageChops.difference(live_field, im.crop(LIVE)).getbbox())
+        require(save.read_bytes() == committed, "Restart changed the committed Glove")
+        check_resolution(save, box)
         close(sf, window)
 
 

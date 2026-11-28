@@ -14,6 +14,20 @@ Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey
 
 The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` with a fresh path to start at the purchase-order choice. Two desktop windows using the same save can follow each other’s turns. Close and relaunch to resume whichever choice is pending. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output.
 
+This development build reopens saves it can reproduce with its current rules and save format. A refused save stays in place. To start a fresh series, use `--save FILE` with a new path.
+
+## Recover the previous decision
+
+If the active save is missing or damaged, open its previous committed decision in a fresh save.
+
+```sh
+cargo run --locked -- --recover-from /path/to/original.json --save /path/to/recovered.json
+```
+
+The game checks `original.json.previous` against the current rules and review mode before creating `recovered.json`. Use a destination with neither an active nor a previous record. Add `--review-glove` for a standalone Glove save. The original files stay available to you. For later launches and the other seat, open `--save /path/to/recovered.json` directly.
+
+Each new decision rotates the active save into its `.previous` record. If the existing `.previous` record is unusable, the game reports the failed write and keeps the last committed position and both files.
+
 ## Follow the signings into game two
 
 Use the recorded starting position to repeat the same deals in two Ubuntu windows. Run this block in the SF terminal.

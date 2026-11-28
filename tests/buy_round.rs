@@ -10,68 +10,6 @@ fn choose_order(game: &mut Game, chooser: Seat, first: Seat) {
 }
 
 #[test]
-fn a_v1_pending_demotion_survives_the_first_v2_save() {
-    // The v1 binary at 5f4853b generated this scratch save by signing Foxx
-    // in slot 5 and exiting before demotion. It contains no user data or artwork.
-    let fixture = include_bytes!("fixtures/expert-buy-round-v1-pending.json");
-    let old: serde_json::Value = serde_json::from_slice(fixture).unwrap();
-    let temporary = tempfile::tempdir().unwrap();
-    let path = temporary.path().join("series.json");
-    fs::write(&path, fixture).unwrap();
-
-    let mut game = Game::open(&path).unwrap();
-    let pending = game.observe(Seat::SanFrancisco);
-    assert_eq!(fs::read(&path).unwrap(), fixture);
-    assert_eq!(pending.series, old["payload"]["series"].as_str().unwrap());
-    assert_eq!(pending.balances, [2, 7]);
-    assert_eq!(pending.offers[4].player.card.identity.serial(), 67);
-    let Some(Decision::Demote { eligible }) = &pending.decision else {
-        panic!("The saved Foxx signing requires a demotion");
-    };
-    let card = eligible
-        .iter()
-        .find(|card| card.identity.serial() == 4)
-        .unwrap();
-    assert_eq!(card.instance, 82);
-    game.submit(pending.submission(Action::Demote { card: *card }))
-        .unwrap();
-
-    let written: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    assert_eq!(written["identity"]["format"], "expert-buy-round-2");
-    assert_eq!(
-        fs::read(path.with_extension("json.previous")).unwrap(),
-        fixture
-    );
-    let before = &old["payload"];
-    let after = &written["payload"];
-    assert_eq!(after["row"], before["row"]);
-    for seat in [0, 1] {
-        assert_eq!(
-            after["clubs"][seat]["lineup"],
-            before["clubs"][seat]["lineup"]
-        );
-    }
-    assert_eq!(
-        after["clubs"][0]["minor_leagues"][0],
-        serde_json::to_value(card).unwrap()
-    );
-    let mut expected_deck = before["free_agent_deck"].as_array().unwrap().clone();
-    let bench = expected_deck
-        .iter()
-        .position(|card| card["identity"] == "FA-068")
-        .unwrap();
-    let bench = expected_deck.remove(bench);
-    expected_deck.push(bench);
-    assert_eq!(after["free_agent_deck"].as_array().unwrap(), &expected_deck);
-
-    let resumed = Game::open(&path).unwrap().observe(Seat::SanFrancisco);
-    assert_eq!(resumed, game.observe(Seat::SanFrancisco));
-    assert_eq!(resumed.balances, [2, 7]);
-    assert_eq!(resumed.rosters[0].active, 15);
-    assert!(matches!(resumed.decision, Some(Decision::Sign { .. })));
-}
-
-#[test]
 fn revenue_chooses_who_sets_purchase_order() {
     let temporary = tempfile::tempdir().unwrap();
     let game = Game::open(temporary.path().join("series.json")).unwrap();
@@ -200,11 +138,15 @@ fn signing_foxx_refills_one_slot_and_resumes_the_demotion() {
     assert_eq!(ny_after.decision, None);
     assert_eq!(after.rosters[0].lineup, 10);
     let (_, stored) = unfolded_record_replacement::save::unseal(&fs::read(&path).unwrap()).unwrap();
-    let lineup = stored["clubs"][0]["lineup"].as_array().unwrap();
-    assert_eq!(lineup.last(), Some(&serde_json::to_value(foxx).unwrap()));
-    for id in ["ST-003", "ST-009"] {
-        assert!(lineup.iter().any(|card| card["identity"] == id));
-    }
+    let choices = stored["choices"]
+        .as_array()
+        .expect("recorded manager choices");
+    assert_eq!(choices.len(), 2);
+    assert_eq!(choices[1]["seat"], "san_francisco");
+    assert_eq!(
+        choices[1]["action"],
+        serde_json::to_value(purchase.action).unwrap()
+    );
     let [
         Event::OrderChosen {
             chooser: Seat::SanFrancisco,
@@ -234,6 +176,7 @@ fn signing_foxx_refills_one_slot_and_resumes_the_demotion() {
 
     let mut game = Game::open(&path).unwrap();
     assert_eq!(game.observe(Seat::SanFrancisco), after);
+    assert_eq!(game.observe(Seat::NewYork), ny_after);
     assert_eq!(game.submit(purchase), Err(Refusal::StaleDecision));
     assert_eq!(fs::read(&path).unwrap(), saved);
     let Some(Decision::Demote { eligible }) = &after.decision else {
@@ -395,11 +338,6 @@ fn the_same_buyer_can_sign_the_refill_after_resuming() {
     assert_eq!(purchases, [(65, 4, 67), (67, 7, 68)]);
     assert_eq!(done.rosters[1].active, 15);
     assert_eq!(done.rosters[1].minor_leagues, 2);
-    // Read the committed stack order at the save boundary. Neither seat can see it.
-    let saved: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    let lineup = saved["payload"]["clubs"][1]["lineup"].as_array().unwrap();
-    assert_eq!(lineup[lineup.len() - 2]["identity"], "FA-065");
-    assert_eq!(lineup[lineup.len() - 1]["identity"], "FA-067");
     assert!(sf.refresh().unwrap());
     let other = sf.observe(Seat::SanFrancisco);
     assert_eq!(other.events, done.events);
@@ -409,6 +347,14 @@ fn the_same_buyer_can_sign_the_refill_after_resuming() {
     assert_eq!(other.decision, None);
     assert_eq!(other.rosters[1].hand, None);
     assert_eq!(other.rosters[1].on_deck, None);
+
+    game.submit(done.submission(Action::Pass)).unwrap();
+    let sf = game.observe(Seat::SanFrancisco);
+    game.submit(sf.submission(Action::Pass)).unwrap();
+    let sf = game.observe(Seat::SanFrancisco);
+    game.submit(sf.submission(Action::StartGame)).unwrap();
+    let ny = Game::open(&path).unwrap().observe(Seat::NewYork);
+    assert_eq!(&ny.rosters[1].hand.as_ref().unwrap()[..2], &[maris, foxx]);
 }
 
 #[test]
@@ -531,7 +477,7 @@ fn fresh_series_have_private_orders_and_the_same_reviewed_offers() {
     let (second, second_record) = series("second.json");
     assert_ne!(first_record["private_seed"], second_record["private_seed"]);
     let order = |position: &serde_json::Value| {
-        position["free_agent_deck"]
+        position["position"]["free_agent_deck"]
             .as_array()
             .unwrap()
             .iter()

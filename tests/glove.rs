@@ -4,11 +4,16 @@ use baseball_highlights_unfolded::{Action, Decision, Game, GloveReview, Hit, Run
 fn both_maris_glove_outcomes_are_visible_before_committing() {
     for box_number in [1, 2] {
         let directory = tempfile::tempdir().unwrap();
-        let mut game =
-            Game::open_glove_review(directory.path().join("series.json"), GloveReview::Maris)
-                .unwrap();
+        let path = directory.path().join("series.json");
+        let open = || Game::open_glove_review(&path, GloveReview::Maris).unwrap();
+        let before = open().observe(Seat::SanFrancisco);
+        let initial_bytes = std::fs::read(&path).unwrap();
+        let mut game = open();
+        let mut observer = open();
         let sf = game.observe(Seat::SanFrancisco);
-        let ny = game.observe(Seat::NewYork);
+        let ny = observer.observe(Seat::NewYork);
+        assert_eq!(sf, before);
+        assert_eq!(game.observe(Seat::NewYork), ny);
         let field = sf.field.as_ref().unwrap();
         assert_eq!(field, ny.field.as_ref().unwrap());
         assert_eq!(field.home, Seat::NewYork);
@@ -45,13 +50,22 @@ fn both_maris_glove_outcomes_are_visible_before_committing() {
         assert_eq!(&bases[1..], [None; 2]);
         assert_eq!(game.observe(Seat::SanFrancisco), sf);
         assert_eq!(game.observe(Seat::NewYork), ny);
+        assert_eq!(std::fs::read(&path).unwrap(), initial_bytes);
 
         let selected = &targets[box_number - 1];
         game.submit(sf.submission(Action::CancelHit {
             target: selected.target,
         }))
         .unwrap();
-        let after = game.observe(Seat::NewYork);
+        assert!(observer.refresh().unwrap());
+        let after = observer.observe(Seat::NewYork);
+        assert_eq!(after, game.observe(Seat::NewYork));
+        let reopened = open();
+        assert_eq!(
+            reopened.observe(Seat::SanFrancisco),
+            game.observe(Seat::SanFrancisco)
+        );
+        assert_eq!(reopened.observe(Seat::NewYork), after);
         let field = after.field.unwrap();
         assert_eq!(field.diamonds, selected.diamonds);
         assert_eq!(field.threatened.len(), 1);
@@ -80,8 +94,8 @@ fn a_pending_glove_survives_restart_and_refuses_wrong_seat_and_retries() {
     let action = Action::CancelHit { target };
     drop(game);
 
-    let mut game = Game::open(&path).unwrap();
-    let mut second_window = Game::open(&path).unwrap();
+    let mut game = Game::open_glove_review(&path, GloveReview::Maris).unwrap();
+    let mut second_window = Game::open_glove_review(&path, GloveReview::Maris).unwrap();
     assert_eq!(game.observe(Seat::SanFrancisco), before);
     assert_eq!(game.observe(Seat::NewYork), observer);
     let initial_bytes = std::fs::read(&path).unwrap();
@@ -121,7 +135,12 @@ fn a_pending_glove_survives_restart_and_refuses_wrong_seat_and_retries() {
         Err(Refusal::WrongDecision)
     );
     assert_eq!(std::fs::read(&path).unwrap(), committed_bytes);
-    assert_eq!(Game::open(&path).unwrap().observe(Seat::NewYork), after);
+    assert_eq!(
+        Game::open_glove_review(&path, GloveReview::Maris)
+            .unwrap()
+            .observe(Seat::NewYork),
+        after
+    );
     let visible = serde_json::to_value(after).unwrap();
     assert!(visible["rosters"][0].get("hand").is_none());
     assert!(visible["rosters"][0].get("on_deck").is_none());
@@ -167,7 +186,12 @@ fn zero_or_one_legal_target_resolves_without_asking_the_manager() {
             (GloveReview::NoTarget, [Event::ThreatsPlaced { .. }]) => {}
             _ => panic!("Unexpected public resolution: {:?}", view.events),
         }
-        assert_eq!(Game::open(&path).unwrap().observe(Seat::SanFrancisco), view);
+        assert_eq!(
+            Game::open_glove_review(&path, review)
+                .unwrap()
+                .observe(Seat::SanFrancisco),
+            view
+        );
     }
 }
 
@@ -246,5 +270,10 @@ fn rulebook_example_resolves_wiffles_surviving_boxes_before_mcgwire_threatens() 
             (Hit::Double, RunnerSpeed::Fast)
         ]
     );
-    assert_eq!(Game::open(&path).unwrap().observe(Seat::NewYork), resolved);
+    assert_eq!(
+        Game::open_glove_review(&path, GloveReview::Rulebook)
+            .unwrap()
+            .observe(Seat::NewYork),
+        resolved
+    );
 }
