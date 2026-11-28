@@ -5,6 +5,7 @@ use baseball_highlights_unfolded::{
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
     prelude::*,
+    ui::prelude::AccessibleLabel,
     window::PrimaryWindow,
 };
 use serde_json::json;
@@ -130,6 +131,7 @@ pub(super) fn text(
 ) {
     parent.spawn((
         Text::new(words),
+        Label,
         TextFont {
             font_size: FontSize::Px(size),
             ..default()
@@ -165,6 +167,7 @@ fn button(
     color: Color,
     node: Node,
 ) -> Entity {
+    let label = label.into();
     parent
         .spawn((
             Pickable::default(),
@@ -174,9 +177,10 @@ fn button(
             },
             BackgroundColor(color),
             Hovered::default(),
+            AccessibleLabel::new(label.clone()),
             Control {
                 name,
-                label: label.into(),
+                label,
                 input,
                 color,
             },
@@ -271,12 +275,12 @@ pub(super) fn card_rail(
     selection_for: fn(Card) -> Selection,
 ) {
     parent.spawn(row(6.)).with_children(|rail| {
-        for &player in players {
+        for (position, &player) in players.iter().enumerate() {
             let item = selection_for(player.card);
             let id = button(
                 rail,
                 SeatName::Component(format!("inspect-{}", player.card.identity)),
-                format!("Inspect {}", player.card.identity),
+                format!("Inspect {}, position {}", player.name, position + 1),
                 Input::Inspect(item),
                 if selection == Some(item) { GOLD } else { PAPER },
                 Node {
@@ -289,10 +293,7 @@ pub(super) fn card_rail(
             );
             rail.commands().entity(id).with_children(|tile| {
                 picture(tile, prints.front(player.card.identity), 28., 39.);
-                tile.spawn(col(2.)).with_children(|label| {
-                    text(label, player.card.identity.to_string(), 14., INK);
-                    text(label, player.name, 13., MUTED);
-                });
+                text(tile, player.name, 14., INK);
             });
         }
     });
@@ -332,7 +333,7 @@ fn inspector(
                         return;
                     };
                 let permitted = matches!(&view.decision, Some(Decision::Demote { eligible }) if eligible.contains(&card));
-                ( *player, permitted.then(|| ("Send to the Minor Leagues".into(), Action::Demote { card })) )
+                ( *player, permitted.then(|| (format!("Send {} to Minors", player.name), Action::Demote { card })) )
             }
             _ => {
                 text(panel, "Select a player to inspect the full face.", 18., MUTED);
@@ -341,7 +342,7 @@ fn inspector(
         };
         text(panel, player.name, 20., INK);
         let pinch = if player.pinch_hitter { " / PH" } else { "" };
-        text(panel, format!("{} / {} / ${} revenue{pinch}", player.card.identity, player.speed, player.revenue), 14., MUTED);
+        text(panel, format!("{} / ${} revenue{pinch}", player.speed, player.revenue), 14., MUTED);
         picture(panel, prints.front(player.card.identity), 232., 322.);
         if let Some((label, action)) = action {
             let name = match action {
@@ -378,11 +379,15 @@ fn event_text(event: Event) -> String {
                 reveal.name,
             )
         }
-        Event::Demoted { seat, card } => format!(
-            "{} sent {} to the Minor Leagues.",
-            seat.abbreviation(),
-            card.identity,
-        ),
+        Event::Demoted { seat, card } => {
+            let player = Player::describe(card).expect("a demoted player was public");
+            format!(
+                "{} sent {} (${} revenue) to the Minor Leagues.",
+                seat.abbreviation(),
+                player.name,
+                player.revenue,
+            )
+        }
         Event::Passed { seat, unspent } => format!(
             "{} finished buying. ${unspent} expired.",
             seat.abbreviation(),

@@ -42,7 +42,6 @@ fn face(spawner: &mut ChildSpawnerCommands, prints: &Prints, player: Player, cap
         text(card, caption, 15., MUTED);
         picture(card, prints.front(player.card.identity), 148., 205.);
         text(card, player.name, 17., INK);
-        text(card, player.card.identity.to_string(), 13., MUTED);
     });
 }
 
@@ -122,18 +121,29 @@ fn compare(
 
 fn field_event(event: Event) -> Option<String> {
     match event {
-        Event::GloveCancelled { seat, threat, .. } => Some(format!(
-            "{} cancelled box {} / {}.",
-            seat.abbreviation(),
-            threat.target.number,
-            threat.hit.label()
-        )),
-        Event::CardPlayed { seat, card } => Some(format!(
-            "{} played {} / {}.",
-            seat.abbreviation(),
-            Player::describe(card)?.name,
-            card.identity,
-        )),
+        Event::GloveCancelled { seat, threat, .. } => {
+            let player = Player::describe(threat.target.card)?;
+            Some(format!(
+                "{} used Glove to cancel {}’s {} (box {}).",
+                seat.abbreviation(),
+                player.name,
+                threat.hit.label().to_lowercase(),
+                threat.target.number,
+            ))
+        }
+        Event::CardPlayed { seat, card } => {
+            let player = Player::describe(card)?;
+            let ability = if player.immediate_action.is_empty() {
+                String::new()
+            } else {
+                format!(" with {}", player.immediate_action)
+            };
+            Some(format!(
+                "{} played {}{ability}.",
+                seat.abbreviation(),
+                player.name
+            ))
+        }
         Event::FastballCancelled { seat } => Some(format!(
             "{} cancelled all hits with Fastball.",
             seat.abbreviation()
@@ -161,11 +171,18 @@ fn field_event(event: Event) -> Option<String> {
         Event::ThreatsPlaced { seat, card, count } => {
             let player = Player::describe(card)?;
             let threats = if count == 0 {
-                "no hits".to_string()
+                "has no threatened hits".to_owned()
             } else {
-                player.threatened_hits.join(" then ")
+                format!(
+                    "threatens {}",
+                    player.threatened_hits.join(" then ").to_lowercase()
+                )
             };
-            Some(format!("{} threatens {threats}.", seat.abbreviation()))
+            Some(format!(
+                "{}’s {} {threats}.",
+                seat.abbreviation(),
+                player.name
+            ))
         }
         _ => None,
     }
@@ -196,7 +213,7 @@ fn play_choice(
         short_button(
             panel,
             Name::Choice(format!("play-{}", player.card.identity)),
-            format!("Play {} / {}", player.name, player.card.identity),
+            format!("Play {}", player.name),
             Input::Submit(view.submission(Action::PlayCard { card: player.card })),
             GOLD,
         );
