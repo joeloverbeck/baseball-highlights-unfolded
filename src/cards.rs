@@ -14,6 +14,7 @@ impl CardId {
         self.0
     }
 
+    /// Identity supplying the printed gameplay fields for this card.
     pub fn printed_face(self) -> Self {
         Self(match self.0 {
             3 => 4,

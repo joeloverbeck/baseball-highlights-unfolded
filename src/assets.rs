@@ -12,8 +12,11 @@ const ORIGINAL_MANIFEST_HASH: &str =
     "c1c528e5ca696ba82c35465b4fb98d57bf830f27376c2cd77582047c54d04ede";
 const PHOTOCRAFT_MANIFEST_HASH: &str =
     "8d47e5902757a8d475b831e6f0ea03744c9b29d4d7e06193a8525fe596644481";
+const RECOVERED_MANIFEST_HASH: &str =
+    "d858a56885c312cd45c22c45868d81692acacfe5f92d2ba7a591a801d68d40a3";
 const LEDGER: &str = include_str!("../docs/foundation/card-content.csv");
 const BACK: &str = "images/card-backs/backurl-omruwvLU2jpg.jpg";
+const RECOVERED_STARTERS: &str = "catalog/recovered-starters.json";
 
 #[derive(Deserialize)]
 struct CatalogEntry {
@@ -25,17 +28,25 @@ struct CatalogEntry {
 pub struct Collection {
     root: PathBuf,
     hashes: HashMap<String, String>,
-    faces: HashMap<CardId, CatalogEntry>,
+    faces: HashMap<CardId, String>,
+}
+
+/// Choose the face for this logical card from the artwork admitted by the collection.
+pub fn display_face_id<T>(faces: &HashMap<CardId, T>, identity: CardId) -> CardId {
+    if faces.contains_key(&identity) {
+        identity
+    } else {
+        identity.printed_face()
+    }
 }
 
 impl Collection {
     pub fn open(root: &Path) -> Result<Self, String> {
         let manifest = regular_file(root, "SHA256SUMS").map_err(|error| error.to_string())?;
         let bytes = read_bounded(&manifest, 160_000).map_err(|error| error.to_string())?;
-        if [ORIGINAL_MANIFEST_HASH, PHOTOCRAFT_MANIFEST_HASH]
-            .iter()
-            .all(|digest| verify_bytes(&bytes, bytes.len() as u64, digest).is_err())
-        {
+        let matches = |digest| verify_bytes(&bytes, bytes.len() as u64, digest).is_ok();
+        let recovered = matches(RECOVERED_MANIFEST_HASH);
+        if !recovered && !matches(ORIGINAL_MANIFEST_HASH) && !matches(PHOTOCRAFT_MANIFEST_HASH) {
             return Err(format!(
                 "{} differs from the audited card collections.",
                 manifest.display()
@@ -83,10 +94,24 @@ impl Collection {
                 if entry.back != BACK {
                     return Err(format!("{identity} lacks the original common back."));
                 }
-                if collection.faces.insert(identity, entry).is_some() {
+                if collection.faces.insert(identity, entry.face).is_some() {
                     return Err(format!(
                         "{identity} has multiple catalog faces and needs an explicit source."
                     ));
+                }
+            }
+        }
+        if recovered {
+            let recovered_faces: HashMap<CardId, String> =
+                serde_json::from_slice(&collection.bytes(RECOVERED_STARTERS, 4000)?)
+                    .map_err(|error| format!("Recovered starter catalog: {error}"))?;
+            for (identity, face) in recovered_faces {
+                let donor = identity.printed_face();
+                if identity == donor || !collection.faces.contains_key(&donor) {
+                    return Err(format!("Unexpected recovered starter {identity}."));
+                }
+                if collection.faces.insert(identity, face).is_some() {
+                    return Err(format!("Duplicate face source for {identity}."));
                 }
             }
         }
@@ -113,7 +138,7 @@ impl Collection {
         identities: impl Iterator<Item = CardId>,
     ) -> Result<HashMap<CardId, DynamicImage>, String> {
         identities
-            .map(CardId::printed_face)
+            .map(|identity| display_face_id(&self.faces, identity))
             .collect::<BTreeSet<_>>()
             .into_iter()
             .map(|identity| Ok((identity, self.face(identity)?)))
@@ -121,12 +146,12 @@ impl Collection {
     }
 
     pub fn face(&self, identity: CardId) -> Result<DynamicImage, String> {
-        let printed = identity.printed_face();
-        let entry = self
+        let printed = display_face_id(&self.faces, identity);
+        let path = self
             .faces
             .get(&printed)
             .ok_or_else(|| format!("Missing card face for {identity} ({printed})."))?;
-        self.decode(&entry.face)
+        self.decode(path)
             .map_err(|error| format!("{identity} ({printed}): {error}"))
     }
 

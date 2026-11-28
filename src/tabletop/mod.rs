@@ -2,7 +2,10 @@ mod controls;
 mod field;
 mod stage;
 
-use baseball_highlights_unfolded::{CardId, Game, GloveReview, Seat, assets::Collection};
+use baseball_highlights_unfolded::{
+    CardId, Game, GloveReview, Seat,
+    assets::{Collection, display_face_id},
+};
 use bevy::{prelude::*, time::TimeUpdateStrategy};
 use std::{collections::HashMap, time::Duration};
 use unfolded_tabletop::{
@@ -53,6 +56,12 @@ struct Prints {
     back: Handle<Image>,
     buy_park: Handle<Image>,
     field_park: Handle<Image>,
+}
+
+impl Prints {
+    fn front(&self, identity: CardId) -> Handle<Image> {
+        self.faces[&display_face_id(&self.faces, identity)].clone()
+    }
 }
 
 fn install(app: &mut App, game: Game, seat: Seat, art: Art) {

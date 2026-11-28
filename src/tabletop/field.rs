@@ -40,7 +40,7 @@ fn runners(diamond: &Diamond) -> Vec<String> {
 fn face(spawner: &mut ChildSpawnerCommands, prints: &Prints, player: Player, caption: &str) {
     spawner.spawn(col(5.)).with_children(|card| {
         text(card, caption, 15., MUTED);
-        picture(card, prints.faces[&player.printed_face].clone(), 148., 205.);
+        picture(card, prints.front(player.card.identity), 148., 205.);
         text(card, player.name, 17., INK);
         text(card, player.card.identity.to_string(), 13., MUTED);
     });
