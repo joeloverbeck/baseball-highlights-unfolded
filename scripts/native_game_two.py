@@ -362,7 +362,10 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
                 capture_when(observed_bounds, evidence / "ny-dugout-before-start.png", dugouts)
                 require(file_digest(save) == before, "Reading SF's Dugout changed the save")
                 xdotool("windowraise", window, "windowfocus", "--sync", window)
-            press(window, target)
+            if entry.name.startswith("glove-hit-box-") or entry.name == "commit-glove-target":
+                click(window, target)
+            else:
+                press(window, target)
             label = f"{entry.seat.upper()} / {entry.label}"
             if entry.kind == "choice":
                 wait_for(lambda: file_digest(save) != before, label)
@@ -388,6 +391,7 @@ def replay_desktop(executable, assets, evidence, save, trace, size):
                 live_glove = pending.crop(park)
             if entry.name.startswith("glove-hit-box-"):
                 number = int(entry.name[-1])
+                capture(f"glove-preview-{number}-pressed", lambda image: selection_is(image, number))
                 move(window, (5, 4))
                 preview = capture(f"glove-preview-{number}", lambda image: selection_is(image, number))
                 require(ImageChops.difference(live_glove, preview.crop(park)).getbbox() is None,
