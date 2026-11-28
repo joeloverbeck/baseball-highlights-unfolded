@@ -3,7 +3,7 @@ name: code-review
 description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
 ---
 
-Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+Two-axis review of the diff between an immutable candidate and a fixed point:
 
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
@@ -14,13 +14,13 @@ The issue tracker should have been provided to you. If not, tell the user to run
 
 ## Process
 
-### 1. Pin the fixed point
+### 1. Pin the fixed point and candidate
 
 Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). If they didn't specify one, ask for it.
 
-Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+Resolve the fixed point and a committed candidate to full SHAs. Confirm the diff is non-empty. Capture `git diff <fixed-sha>...<candidate-sha>` and `git log <fixed-sha>..<candidate-sha> --oneline`.
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here, not inside two parallel sub-agents.
+For uncommitted work, capture a scoped patch against the merge base that includes in-scope new files. Record the merge-base SHA, patch path, and SHA-256. Give both reviewers the same pinned SHAs or patch identity and command to read it. Have each reviewer verify a patch's digest before reading. Use a candidate commit when reviewers need to build or execute it.
 
 ### 2. Identify the spec source
 
@@ -74,6 +74,8 @@ Issue both sub-agent calls together, in the foreground, and aggregate the report
 If the spec is missing, skip the Spec sub-agent and note this in the final report.
 
 ### 5. Aggregate
+
+Bind both reports to the reviewed candidate. If fixes follow review, identify the new candidate and show the diff from the reviewed candidate to the repaired one.
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
 

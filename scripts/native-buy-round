@@ -2,5 +2,12 @@
 set -eu
 
 cd -- "$(dirname -- "$0")/.."
+for dependency in Xvfb xvfb-run xauth xdotool; do
+    if ! command -v "$dependency" >/dev/null 2>&1; then
+        printf 'Native Buy Round requires %s.\n' "$dependency" >&2
+        exit 1
+    fi
+done
+
 timeout 10m xvfb-run -a -e /dev/stderr -s '-screen 0 1440x900x24 -dpi 96' \
     python3 scripts/native_buy_round.py "$@"

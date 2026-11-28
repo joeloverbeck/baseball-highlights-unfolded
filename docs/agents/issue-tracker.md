@@ -2,6 +2,8 @@
 
 Use GitHub Issues and PRs in `joeloverbeck/baseball-highlights-unfolded`. Publish specs and tickets as issues. Link each spec, its source audit, blockers, evidence, owner decisions and merged revisions. Keep per-card coverage in [the card ledger](../foundation/card-content.csv). Keep private artwork outside issue and PR attachments. The owner separately activates implementation after readiness.
 
+When pausing work in a local checkout, record its path, branch, base SHA, and whether it has uncommitted edits in the existing handoff. Include the owning clone when the worktree belongs to another clone. Check that location and its Git status when resuming.
+
 ## GitHub CLI
 
 - Check the target before writing with `gh repo view --json nameWithOwner`.

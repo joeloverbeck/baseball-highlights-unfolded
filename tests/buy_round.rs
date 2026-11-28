@@ -10,6 +10,68 @@ fn choose_order(game: &mut Game, chooser: Seat, first: Seat) {
 }
 
 #[test]
+fn a_v1_pending_demotion_survives_the_first_v2_save() {
+    // The v1 binary at 5f4853b generated this scratch save by signing Foxx
+    // in slot 5 and exiting before demotion. It contains no user data or artwork.
+    let fixture = include_bytes!("fixtures/expert-buy-round-v1-pending.json");
+    let old: serde_json::Value = serde_json::from_slice(fixture).unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    let path = temporary.path().join("series.json");
+    fs::write(&path, fixture).unwrap();
+
+    let mut game = Game::open(&path).unwrap();
+    let pending = game.observe(Seat::SanFrancisco);
+    assert_eq!(fs::read(&path).unwrap(), fixture);
+    assert_eq!(pending.series, old["payload"]["series"].as_str().unwrap());
+    assert_eq!(pending.balances, [2, 7]);
+    assert_eq!(pending.offers[4].player.card.identity.serial(), 67);
+    let Some(Decision::Demote { eligible }) = &pending.decision else {
+        panic!("The saved Foxx signing requires a demotion");
+    };
+    let card = eligible
+        .iter()
+        .find(|card| card.identity.serial() == 4)
+        .unwrap();
+    assert_eq!(card.instance, 82);
+    game.submit(pending.submission(Action::Demote { card: *card }))
+        .unwrap();
+
+    let written: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert_eq!(written["identity"]["format"], "expert-buy-round-2");
+    assert_eq!(
+        fs::read(path.with_extension("json.previous")).unwrap(),
+        fixture
+    );
+    let before = &old["payload"];
+    let after = &written["payload"];
+    assert_eq!(after["row"], before["row"]);
+    for seat in [0, 1] {
+        assert_eq!(
+            after["clubs"][seat]["lineup"],
+            before["clubs"][seat]["lineup"]
+        );
+    }
+    assert_eq!(
+        after["clubs"][0]["minor_leagues"][0],
+        serde_json::to_value(card).unwrap()
+    );
+    let mut expected_deck = before["free_agent_deck"].as_array().unwrap().clone();
+    let bench = expected_deck
+        .iter()
+        .position(|card| card["identity"] == "FA-068")
+        .unwrap();
+    let bench = expected_deck.remove(bench);
+    expected_deck.push(bench);
+    assert_eq!(after["free_agent_deck"].as_array().unwrap(), &expected_deck);
+
+    let resumed = Game::open(&path).unwrap().observe(Seat::SanFrancisco);
+    assert_eq!(resumed, game.observe(Seat::SanFrancisco));
+    assert_eq!(resumed.balances, [2, 7]);
+    assert_eq!(resumed.rosters[0].active, 15);
+    assert!(matches!(resumed.decision, Some(Decision::Sign { .. })));
+}
+
+#[test]
 fn revenue_chooses_who_sets_purchase_order() {
     let temporary = tempfile::tempdir().unwrap();
     let game = Game::open(temporary.path().join("series.json")).unwrap();
