@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game two · match design review</title>
+<style>
+* { box-sizing: border-box }
+body { margin: 0; background: #12191a; color: #fff5df; font: 16px system-ui, sans-serif }
+nav { display: flex; gap: 1.7rem; align-items: center; justify-content: center; min-height: 3.5rem }
+label { display: flex; align-items: center; gap: .6rem }
+select { font: inherit; border-radius: 4px; padding: .3em; color: inherit; background: #283637 }
+select:focus-visible { outline: 3px solid white }
+main { display: grid; justify-items: center }
+img { display: block; max-width: 100%; max-height: calc(100dvh - 3.5rem); object-fit: contain }
+</style>
+<nav aria-label="Match design">
+  <label>Layout <select id="layout">
+    <option value="field-dugout">Field &amp; Dugout</option>
+    <option value="scorebook">Scorebook</option>
+    <option value="home-stand">Home Stand</option>
+  </select></label>
+  <label>Decision <select id="decision">
+    <option value="hand">SF plays first</option>
+    <option value="glove">Foxx uses Glove</option>
+  </select></label>
+</nav>
+<main><a id="original" href="private/field-dugout-hand.png" title="Open the full-size image"><img id="scene" src="private/field-dugout-hand.png" alt="Field and Dugout. Game two in New York. San Francisco chooses its first player from six faces."></a></main>
+<script>
+const layout = document.querySelector('#layout');
+const decision = document.querySelector('#decision');
+const scene = document.querySelector('#scene');
+function show() {
+  document.querySelector('#original').href = scene.src = 'private/' + layout.value + '-' + decision.value + '.png';
+  scene.alt = layout.selectedOptions[0].text + '. ' + (decision.value === 'hand' ?
+    'San Francisco chooses its first player from six faces.' :
+    'Foxx can cancel the single and Maris scores, or cancel the home run and Maris reaches first.');
+}
+layout.addEventListener('change', show);
+decision.addEventListener('change', show);
+</script>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Combined match · game two</title>
+<style>
+*{box-sizing:border-box} :root{color-scheme:dark}
+body{margin:0;background:#101a20;color:#fff1da;font:16px system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.65rem}
+select,header button{background:#293f43;color:inherit;font:inherit;border-radius:4px;padding:.35em}
+#view{position:relative;overflow:hidden}#stage{position:absolute;width:1920px;height:1000px;transform-origin:0 0}
+#frame{display:block;width:1920px;height:1000px}#stage button,#help{position:absolute}
+.hot{background:transparent;border:0;cursor:help}.target{background:transparent;border:0;border-radius:8px;cursor:pointer}
+.target:hover,.target[aria-pressed=true],.hot[aria-describedby]{outline:4px solid #ffcf8c;outline-offset:2px}
+button:focus-visible,select:focus-visible{outline:4px solid white;outline-offset:2px}
+#help{z-index:3;width:464px;filter:drop-shadow(0 3px 8px #0006)}
+.act{z-index:4;background:#ffce8f;color:#17332e;border:0;border-radius:6px;font:bold 23px system-ui;cursor:pointer}
+.act.small{font-size:17px}#note{text-align:center;min-height:1.5em;margin:0;color:#c5d1c8;font-size:.9rem}
+</style>
+<header><label>Position <select id="position">
+ <option value="hand">Opening hand · game two</option>
+ <option value="empty">Foxx’s Glove · bases empty</option>
+ <option value="second">Glove practice · runner on second</option>
+</select></label><button type="button" id="reset">Reset position</button></header>
+<main id="view"><div id="stage">
+ <img id="frame" alt=""><img id="help" role="tooltip" hidden alt=""><div id="playGap" style="position:absolute" hidden></div>
+ <button id="commit" class="act" hidden></button>
+</div></main>
+<p id="note" role="status"></p>
+<script>
+const $=id=>document.getElementById(id);
+const stage=$('stage'),help=$('help'),commit=$('commit'),position=$('position');
+const hand=[['Frankie Foxx','S',true],['Veteran Natural','A',false],['Rookie Robot','S',false],['Rookie Natural','A',false],['Veteran Cyborg','A',true],['Rookie Cyborg','A',true]];
+const explanations={S:'Slow runner. Once on base, advances the hit distance.',A:'Average runner. From second, a single scores this runner.'};
+let picked=null, resolved=false, reading=null, hideTimer, handPlay=null;
+function bounds(el,x,y,w,h){Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'})}
+function resize(){const k=Math.min(innerWidth/1920,(innerHeight-document.querySelector('header').offsetHeight-$('note').offsetHeight-4)/1000);stage.style.transform='scale('+k+')';stage.style.left=(innerWidth-1920*k)/2+'px';$('view').style.height=1000*k+'px'}
+function clearReading(){clearTimeout(hideTimer);reading?.removeAttribute('aria-describedby');reading=null;help.hidden=true;$('playGap').hidden=true;handPlay?.remove();handPlay=null}
+function leave(){clearTimeout(hideTimer);hideTimer=setTimeout(()=>{if(!help.matches(':hover') && !$('playGap').matches(':hover') && !reading?.matches(':hover,:focus-visible') && !handPlay?.matches(':hover,:focus-visible'))clearReading()},300)}
+function card(name,speed,ph,x,y,w){
+ const h=Math.round(w*1.39),button=document.createElement('button');button.type='button';button.className='hot';button.setAttribute('aria-label','Inspect '+name);bounds(button,x,y,w,h);stage.append(button);
+ function inspect(){
+  clearReading();reading=button;button.setAttribute('aria-describedby','help');help.src='../symbols/print-'+speed+(ph?'-PH':'')+'-help.png';help.alt=explanations[speed]+(ph?' PH. From your hand, discard this player for your On Deck card or the unseen Lineup top.':'');
+  const hh=ph?276:129;
+  bounds(help,position.value==='hand'?653:666,y+Math.max(0,h-hh),464,hh);help.hidden=false;
+  if(position.value==='hand'){
+   const spaceBelowFace=20; // Six units of focus outline plus fourteen units of visible space.
+   bounds($('playGap'),x,y+h,w,spaceBelowFace);$('playGap').hidden=false;
+   handPlay=document.createElement('button');handPlay.className='act small';handPlay.textContent='Play';
+   handPlay.setAttribute('aria-label','Play '+name);bounds(handPlay,x,y+h+spaceBelowFace,w,32);
+   button.after(handPlay);handPlay.addEventListener('pointerenter',()=>clearTimeout(hideTimer));
+   handPlay.addEventListener('pointerleave',leave);handPlay.addEventListener('blur',leave);
+   handPlay.onclick=()=>{$('note').textContent='Opening play selected in this study · '+name+'.';};
+  }
+ }
+ button.addEventListener('focus',inspect);button.addEventListener('pointerenter',inspect);button.addEventListener('click',inspect);button.addEventListener('pointerleave',leave);button.addEventListener('blur',leave);
+}
+function frame(){let key=position.value+(resolved?'-after-'+picked:'');$('frame').src='private/combined-'+key+'.png';
+ $('frame').alt=position.value==='hand'?'SF plays first in New York with six cards in hand.':resolved?'Glove resolved. The live score and runner positions show the selected outcome.':'Live score and stadium alongside both public cards and the two Glove projections.'}
+function render(){
+ clearReading();stage.querySelectorAll('.hot,.target').forEach(b=>b.remove());commit.hidden=true;frame();
+ if(position.value==='hand'){hand.forEach(([n,s,ph],i)=>card(n,s,ph,1130+i%3*252,i<3?258:633,222));$('note').textContent='Hover or focus a player to read the printed symbols.';return;}
+ const practice=position.value==='second';
+ card('Mickey Maris','A',false,1150,285,202);card(practice?'Rookie Natural':'Frankie Foxx',practice?'A':'S',!practice,1496,285,202);
+ if(resolved){$('note').textContent='Glove committed in this study. Reset the position to compare the other choice.';return;}
+ ['single','home run'].forEach((hit,i)=>{
+  const b=document.createElement('button');b.type='button';b.className='target';b.setAttribute('aria-pressed','false');
+  const outcome=practice?(i?'NY scores once. Maris reaches first.':'NY scores twice. Bases empty.'):(i?'Maris reaches first. Score stays tied.':'Maris scores. Bases empty.');
+  b.setAttribute('aria-label','Preview canceling the '+hit+'. '+outcome);bounds(b,1120+i*392,619,380,247);stage.append(b);
+  b.onclick=()=>{clearReading();picked=i;stage.querySelectorAll('.target').forEach(t=>t.setAttribute('aria-pressed',String(t===b)));commit.textContent='Use Glove · Cancel '+hit;commit.hidden=false;bounds(commit,1120+i*392,880,380,47);b.after(commit);$('note').textContent='Preview selected. The live score and runners hold until you use Glove.';};
+ });
+ $('note').textContent='Select a projected outcome, then use Glove to see the play resolve.';
+}
+function reset(){picked=null;resolved=false;render();resize()}
+commit.onclick=()=>{if(picked===null)return;resolved=true;render();$('reset').focus()};
+help.addEventListener('pointerenter',()=>clearTimeout(hideTimer));help.addEventListener('pointerleave',leave);
+$('playGap').addEventListener('pointerenter',()=>clearTimeout(hideTimer));$('playGap').addEventListener('pointerleave',leave);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')clearReading()});
+position.onchange=reset;$('reset').onclick=reset;window.addEventListener('resize',resize);reset();
+</script>
+</html>

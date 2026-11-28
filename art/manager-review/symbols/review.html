@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player symbols · market, hand and In Play</title>
+<style>
+* { box-sizing:border-box }
+:root { color-scheme: dark }
+body { margin:0; background:#111b20; color:#f9efdb; font:16px system-ui,sans-serif }
+header { display:flex; gap:1.5rem; align-items:center; justify-content:center; flex-wrap:wrap; padding:.6rem }
+select { padding:.35em; font:inherit; background:#274148; color:inherit }
+label { display:flex; gap:.5rem; align-items:center }
+#view { width:100%; overflow:hidden; position:relative }
+#table { position:absolute; transform-origin:0 0; background:#16282f }
+#board { position:absolute; left:0; top:0; width:1920px; height:1000px; pointer-events:none }
+.face { position:absolute; border:0; background:transparent; cursor:help }
+.face:focus-visible { outline:3px solid #fff2cd; outline-offset:2px }
+#ring { position:absolute; pointer-events:none; border:4px solid #ffc080; border-radius:6px }
+#help { position:absolute; z-index:3; display:block; filter:drop-shadow(0 3px 7px #0005) }
+#action { position:absolute; z-index:4; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; color:#ffc080; font-weight:700 }
+#action button { display:flex; align-items:center; gap:8px; background:#ffcd8e; color:#15352f; font:bold 24px system-ui; border:0; border-radius:8px; width:100%; padding:4px 14px; cursor:pointer; height:54px }
+#action button:focus-visible { outline:4px solid #fff7dc; outline-offset:3px }
+#action .play { height:32px; font-size:17px; border-radius:4px }
+#action img { width:44px; height:44px }
+#math { font-size:19px; margin:0 0 8px 55px }
+#help[hidden],#action[hidden],#ring[hidden] { display:none }
+#notice { min-height:1.5em; margin:0; text-align:center; color:#dacbb4; font-size:.9rem }
+</style>
+<header>
+ <label>Help placement <select id="treatment"><option value="print">Beside the card</option><option value="outline">Below the table</option><option value="patch">Side column</option></select></label>
+ <label>Decision <select id="context"><option value="market">Buy a free agent</option><option value="hand">Play from hand</option><option value="play">Inspect In Play</option></select></label>
+</header>
+<main id="view" aria-label="Card symbol study"><div id="table">
+ <img id="board" alt=""><div id="ring" hidden></div>
+ <img role="tooltip" id="help" alt="" hidden>
+ <div id="action" hidden><span id="math"></span><button type="button" id="commit"></button></div>
+</div></main>
+<p id="notice" role="status">Hover or focus a card to read its symbols. Escape closes the explanation.</p>
+<script>
+const byId = id => document.getElementById(id);
+const table = byId('table'), view = byId('view'), help = byId('help'), action = byId('action');
+const ring = byId('ring'), commit = byId('commit'), context = byId('context'), treatment = byId('treatment');
+const market = [
+ ['Bucky Cano','A',false,7],['Peewee Rizzuto','F',true,4],['Ichiro Matsui','F',false,6],
+ ['Brooks Nettles','A',false,6],['Frankie Foxx','S',true,4],['Maury Aparicio','F',true,5]
+].map(([name,speed,ph,price],i)=>({name,speed,ph,price,x:202+i*279,y:203,w:252,h:350}));
+const hand = [
+ ['Frankie Foxx','S',true],['Veteran Natural','A',false],['Rookie Robot','S',false],
+ ['Rookie Natural','A',false],['Veteran Cyborg','A',true],['Rookie Cyborg','A',true]
+].map(([name,speed,ph],i)=>({name,speed,ph,x:1130+i%3*252,y:i<3?258:633,w:222,h:309}));
+const played = [
+ {name:'Mickey Maris',speed:'A',ph:false,x:1155,y:296,w:176,h:245},
+ {name:'Frankie Foxx',speed:'S',ph:true,x:1500,y:296,w:176,h:245}
+];
+const boards = {
+ market:['private/market.png',market],
+ hand:['../match/private/combined-hand.png',hand],
+ play:['../match/private/field-dugout-glove.png',played]
+};
+const meanings = {
+ S:'Slow runner. Once on base, advances the hit distance when the path is clear.',
+ A:'Average runner. Advances the hit distance. From second, a single brings this runner home.',
+ F:'Fast runner. Once on base, advances one extra base on a hit when the path is clear.'
+};
+const pinch = 'Pinch-hit option. From your hand, discard this player to play your On Deck card or the unseen top of your Lineup.';
+let active, hideTimer, targets = [], pinned = false;
+const place = (el,x,y,w,h)=>Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+function size() {
+ const w=treatment.value==='patch'?2330:1920, h=treatment.value==='outline'?1186:1000;
+ const space=Math.max(240,innerHeight-document.querySelector('header').offsetHeight-byId('notice').offsetHeight-4);
+ const scale=Math.min(innerWidth/w,space/h);
+ Object.assign(table.style,{width:w+'px',height:h+'px',left:(innerWidth-w*scale)/2+'px',transform:'scale('+scale+')'});
+ view.style.height=h*scale+'px';
+}
+function dismiss() {
+ clearTimeout(hideTimer); if(active) active.el.removeAttribute('aria-describedby');
+ active=null; pinned=false; help.hidden=action.hidden=ring.hidden=true;
+}
+function leave() {
+ clearTimeout(hideTimer);
+ hideTimer=setTimeout(()=>{
+  if(!pinned && !active?.el.matches(':hover, :focus-visible') && !help.matches(':hover') &&
+     !action.matches(':hover, :focus-within')) dismiss();
+ },300);
+}
+function inspect(t) {
+ clearTimeout(hideTimer);
+ if(active!==t){dismiss();byId('notice').textContent='Hover or focus a card to read its symbols. Escape closes the explanation.';}
+ active=t;const c=t.card, mode=treatment.value; const code=c.speed+(c.ph?'-PH':'');
+ help.src=mode+'-'+code+'-help.png'; help.alt=meanings[c.speed]+(c.ph?' '+pinch:'');
+ t.el.setAttribute('aria-describedby','help');
+ let w,h,x,y;
+ if(mode==='print'){
+  w=464; h=c.ph?276:129;
+  const floor=context.value==='market'?c.y+c.h+62:c.y+c.h+40;
+  const sameRow=Math.min(c.y+Math.max(0,c.h-h),1000-h-8);
+  const groupLeft=Math.min(...targets.map(t=>t.card.x));
+  const candidates=[[c.x+c.w+9,sameRow],[c.x-w-9,sameRow],
+    [groupLeft-w-14,sameRow],[c.x-w-9,floor],[c.x+c.w+9,floor]];
+  const clear=([cx,cy])=>cx>=8 && cy>=8 && cx+w<=1912 && cy+h<=992 &&
+    targets.every(({card:a})=>cx+w<=a.x || cx>=a.x+a.w || cy+h<=a.y || cy>=a.y+a.h+6);
+  [x,y]=candidates.find(clear);
+ }else if(mode==='outline'){
+  w=c.ph?866:430; h=166; x=Math.max(12,Math.min(1920-w-12,c.x+c.w/2-w/2)); y=1010;
+ }else{w=382; h=c.ph?372:171; x=1935; y=Math.min(820-h/2,Math.max(20,c.y+c.h/2-h/2));}
+ place(help,x,y,w,h);place(ring,c.x-4,c.y-4,c.w+8,c.h+8);ring.hidden=help.hidden=false;
+ action.hidden=context.value==='play' || (context.value==='market' && c.price>6);
+ if(!action.hidden){
+  t.el.after(action);
+  const signing=context.value==='market';
+  place(action,c.x,c.y+c.h+(signing?6:0),c.w,signing?99:52);
+  byId('math').textContent=signing?'$6 − $'+c.price+' = $'+(6-c.price)+' left':'';
+  byId('math').hidden=!signing;
+  commit.className=signing?'':'play';commit.replaceChildren();
+  if(signing){const pen=new Image();pen.src='../signing/autograph.png';pen.alt='';commit.append(pen);}
+  commit.append(signing?'Sign':'Play');
+  commit.setAttribute('aria-label',(signing?'Sign ':'Play ')+c.name+(signing?' for $'+c.price:''));
+ }
+}
+function loadScene(initial=true){
+ dismiss();
+ targets.forEach(t=>t.el.remove()); targets=[];
+ const [image,cards]=boards[context.value];byId('board').src=image;
+ byId('board').alt=context.value==='market'?'San Francisco shops with six dollars.':context.value==='hand'?'San Francisco chooses its opening player.':'Maris threatens a single and a home run. Foxx has played Glove.';
+ for(const card of cards){
+  const el=document.createElement('button');el.className='face';el.type='button';el.setAttribute('aria-label','Inspect '+card.name);
+  const t={card,el};targets.push(t);place(el,card.x,card.y,card.w,card.h+(context.value==='market'?46:0));
+  el.addEventListener('pointerenter',()=>inspect(t));el.addEventListener('focus',()=>inspect(t));
+  el.addEventListener('click',()=>{inspect(t);pinned=true;});el.addEventListener('pointerleave',leave);
+  el.addEventListener('blur',leave);table.append(el);
+ }
+ size();
+ if(initial)inspect(targets.find(t=>t.card.name==='Frankie Foxx'));
+}
+for(const el of [help,action]){el.addEventListener('pointerenter',()=>clearTimeout(hideTimer));el.addEventListener('pointerleave',leave);}
+action.addEventListener('focusout',leave);
+commit.addEventListener('click',()=>{if(active)byId('notice').textContent='Review control selected · '+commit.getAttribute('aria-label')+'.';});
+context.addEventListener('change',()=>loadScene());treatment.addEventListener('change',()=>{size();inspect(active||targets[0]);});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(action.contains(document.activeElement))active?.el.focus();dismiss();}});
+window.addEventListener('resize',size);loadScene();
+</script>
+</html>

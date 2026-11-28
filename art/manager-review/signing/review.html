@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free agent market · design review</title>
+<style>
+* { box-sizing: border-box }
+body { margin: 0; background: #12191a; color: #fff5df; font: 16px system-ui, sans-serif }
+nav { display: flex; gap: .5rem; align-items: center; justify-content: center; min-height: 3.5rem }
+button { background: #283637; color: inherit; font: inherit; border: 1px solid #69706b; border-radius: 5px; padding: .4em 1em; cursor: pointer }
+button[aria-pressed="true"] { color: #152a2b; background: #ffcf91 }
+button:focus-visible { outline: 3px solid white; outline-offset: 2px }
+main { display: grid; justify-items: center }
+img { display: block; max-width: 100%; max-height: calc(100dvh - 3.5rem); object-fit: contain }
+</style>
+<nav aria-label="Market design">
+  <button data-study="press-box" aria-pressed="true">Press Box · Autograph</button>
+  <button data-study="scouting-book" aria-pressed="false">Scouting Book · Stamp</button>
+  <button data-study="clubhouse" aria-pressed="false">Clubhouse · Jersey</button>
+</nav>
+<main><a id="original" href="private/press-box.png" title="Open the full-size image"><img id="market" src="private/press-box.png" alt="Press Box. Six market offers. San Francisco has six dollars. Frankie Foxx costs four and signing leaves two."></a></main>
+<script>
+const buttons = Array.from(document.querySelectorAll('nav button'));
+const image = document.querySelector('#market');
+const original = document.querySelector('#original');
+function show(button) {
+  for (const item of buttons) item.setAttribute('aria-pressed', String(item === button));
+  original.href = image.src = 'private/' + button.dataset.study + '.png';
+  image.alt = button.textContent + '. Six market offers. San Francisco has six dollars. Frankie Foxx costs four and signing leaves two.';
+}
+for (const [index, button] of buttons.entries()) {
+  button.addEventListener('click', () => show(button));
+  button.addEventListener('keydown', event => {
+    const offset = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
+    if (!offset) return;
+    event.preventDefault();
+    const next = buttons[(index + offset + buttons.length) % buttons.length];
+    next.focus();
+    show(next);
+  });
+}
+</script>
+</html>

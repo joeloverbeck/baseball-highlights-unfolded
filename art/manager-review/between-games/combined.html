@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Between games · combined study</title>
+<style>
+*{box-sizing:border-box} :root{color-scheme:dark}
+body{margin:0;background:#111b20;color:#fff4df;font:16px system-ui,sans-serif}
+header{display:flex;gap:1rem;align-items:center;justify-content:center;padding:.65rem}
+select,header button,dialog button{color:inherit;background:#283f42;font:inherit;padding:.35rem .6rem;border-radius:4px}
+button,a,select{cursor:pointer}button:focus-visible,a:focus-visible,select:focus-visible{outline:4px solid white;outline-offset:2px}
+#view{position:relative;overflow:hidden}#stage{position:absolute;width:1920px;height:1000px;transform-origin:0 0}
+#frame{display:block;width:100%;height:100%}.item{position:absolute}
+.hot{padding:0;background:transparent;border:0;border-radius:4px}
+.eligible{cursor:help}.eligible img{display:block;width:100%;height:100%;object-fit:contain}
+.eligible[aria-describedby],.eligible:focus-visible,.hot.action:hover{outline:4px solid #ffd094;outline-offset:2px}
+.minorAction{z-index:3;font:bold 22px system-ui;background:#ffce92;color:#17352e;border:0;border-radius:5px;display:flex;gap:7px;align-items:center;padding:0 8px}
+.minorAction img{width:39px;height:39px}.legend{z-index:2;filter:drop-shadow(0 2px 5px #0007)}
+.revised{background:#263e42;color:#bfd0ca;font:18px 'DejaVu Sans',sans-serif}
+#note{min-height:1.5em;text-align:center;margin:0;color:#ced5c8;font-size:.9rem}
+dialog{color:#fff3dc;background:#20363b;border:2px solid #ebc88f;border-radius:8px;max-width:96vw}
+dialog::backdrop{background:#071314bb}dialog h2{margin:.2rem 0 .5rem}
+#contents{display:flex;gap:9px;align-items:center;max-width:91vw;overflow:auto}
+#contents img{width:min(16vw,260px);height:auto;max-height:65vh;object-fit:contain}
+.flight{z-index:8;pointer-events:none;transform-origin:top left}
+</style>
+<header><label>Position <select id="phase">
+ <option value="order">Choose purchase order</option><option value="demote" selected>After SF signs Foxx</option><option value="start">After both clubs finish</option>
+</select></label><button id="reset">Reset position</button><button id="forward" hidden>Review after NY signs Maris and finishes</button>
+<a href="review.html" style="color:#ffe1ae">Compare three alternatives</a></header>
+<main id="view"><div id="stage"><img id="frame" alt=""></div></main>
+<p id="note" role="status"></p>
+<dialog id="dugout"><h2 id="club"></h2><div id="contents"></div><form method="dialog"><button>Close Dugout</button></form></dialog>
+<script>
+const $=id=>document.getElementById(id),stage=$('stage'),phase=$('phase');
+const sf=[
+ [1801,'Rookie Cyborg','A',true],[1803,'Rookie Natural','A',false],[1805,'Rookie Natural','A',true],
+ [1804,'Rookie Robot','A',false],[1726,'Veteran Natural','A',false],[1802,'Veteran Robot','A',true]
+];
+const ny=[[1716,'Rookie Natural'],[1701,'Veteran Cyborg'],[1710,'Veteran Robot'],[1700,'Veteran Natural'],[1720,'Veteran Robot']];
+const nyEarners=[ny[0],[1705,'Veteran Natural'],...ny.slice(1)];
+let state='demote',demoted=1,reading,legend,moveButton,bridge,timer,flight;
+function put(el,x,y,w,h){el.classList.add('item');Object.assign(el.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});stage.append(el);return el}
+function img(src,alt){const el=new Image();el.src=src;el.alt=alt;return el}
+function hot(label,x,y,w,h,fn){const b=document.createElement('button');b.type='button';b.className='hot action';b.setAttribute('aria-label',label);b.onclick=fn;return put(b,x,y,w,h)}
+function resize(){const scale=Math.min(innerWidth/1920,(innerHeight-document.querySelector('header').offsetHeight-$('note').offsetHeight-4)/1000);stage.style.transform='scale('+scale+')';stage.style.left=(innerWidth-1920*scale)/2+'px';$('view').style.height=scale*1000+'px'}
+function closeHelp(){clearTimeout(timer);reading?.removeAttribute('aria-describedby');reading=null;legend?.remove();bridge?.remove();moveButton?.remove();legend=bridge=moveButton=null}
+function leave(){clearTimeout(timer);timer=setTimeout(()=>{if(![reading,legend,bridge,moveButton].some(el=>el?.matches(':hover,:focus-visible')))closeHelp()},300)}
+function transit(el){el.addEventListener('pointerenter',()=>clearTimeout(timer));el.addEventListener('pointerleave',leave)}
+function stopFlight(){if(flight){const f=flight;flight=null;f.cancel()}}
+function sendDown(index){
+ if(state!=='demote')return;
+ state='after';demoted=index;const face=stage.querySelector('[data-player="'+index+'"]');
+ closeHelp();stage.querySelectorAll('.eligible').forEach(b=>b.disabled=true);
+ const x=40+index*240,y=532;const moving=put(img('private/'+sf[index][0]+'.png',''),x,y,221,307);moving.classList.add('flight');
+ face.style.visibility='hidden';
+ const finish=()=>{flight=null;show();stage.querySelector('[aria-label="Finish buying"]')?.focus()};
+ if(matchMedia('(prefers-reduced-motion:reduce)').matches){finish();return}
+ const back='../signing/private/deck.jpg';
+ const animation=moving.animate([{transform:'translate(0,0) scale(1)'},{transform:'translate(48px,-36px) scale(.92)'},{transform:'translate('+(1515-x)+'px,'+(792-y)+'px) scale(.303)'}],{duration:550,easing:'ease-in-out',fill:'forwards'});
+ flight=animation;const turning=moving.animate([{opacity:1},{opacity:.12,offset:.46},{opacity:1}],{duration:550});
+ const flip=setTimeout(()=>{moving.src=back},250);
+ animation.onfinish=()=>{clearTimeout(flip);finish()};animation.oncancel=()=>{clearTimeout(flip);turning.cancel()};
+}
+function roster(){
+ sf.forEach(([id,name,speed,ph],i)=>{
+  if(state!=='demote'&&i===demoted)return;
+  const x=40+i*240,y=532,w=221,h=307;
+  if(state!=='demote'){put(img('private/'+id+'.png',name),x,y,w,h);return}
+  const b=hot('Inspect '+name,x,y,w,h,inspect);b.className='item hot eligible';b.dataset.player=i;b.append(img('private/'+id+'.png',''));
+  function inspect(){
+   if(state!=='demote')return;closeHelp();reading=b;
+   legend=img('../symbols/print-'+speed+(ph?'-PH':'')+'-help.png','Average runner.'+(ph?' PH. Discard from hand to bring in a pinch hitter.':''));
+   legend.classList.add('legend');legend.id='legend';legend.setAttribute('role','tooltip');b.setAttribute('aria-describedby','legend');
+   const lw=464,lh=ph?276:129;put(legend,Math.max(30,Math.min(x,1450-lw)),y-lh-8,lw,lh);transit(legend);
+   bridge=put(document.createElement('div'),x,y+h,w,20);transit(bridge);
+   moveButton=document.createElement('button');moveButton.className='minorAction';moveButton.append(img('transfer-card.png',''),'Send to Minors');
+   moveButton.setAttribute('aria-label','Send '+name+' to the Minor Leagues');put(moveButton,x,y+h+20,240,48);b.after(moveButton);
+   moveButton.onclick=()=>sendDown(i);transit(moveButton);moveButton.onblur=leave;
+  }
+  b.addEventListener('pointerenter',inspect);b.addEventListener('focus',inspect);b.addEventListener('pointerleave',leave);b.onblur=leave;
+ });
+}
+function pile(team){
+ const cards=team==='SF'?sf.filter((_,i)=>i!==demoted):ny;
+ $('club').textContent=(team==='SF'?'San Francisco':'New York')+' Dugout · '+cards.length+' face up';
+ $('contents').replaceChildren(...cards.map(([id,name])=>img('private/'+id+'.png',name)));
+ $('dugout').showModal();
+}
+function receipt(team,cards,amounts,x,width){
+ cards.forEach(([id,name],i)=>{
+  const left=x+20+Math.floor(i/3)*(width-36)/2,top=557+i%3*55;
+  const b=hot(team+' · '+name+' earned $'+amounts[i],left,top,(width-90)/2,42,inspect);
+  function inspect(){
+   closeHelp();reading=b;legend=img('private/'+id+'.png',team+' '+name+', $'+amounts[i]+' earned.');
+   legend.id='legend';legend.classList.add('legend');b.setAttribute('aria-describedby','legend');
+   const px=left>960?left-220:left+(width-90)/2+8;
+   put(legend,px,top-185,210,292);transit(legend);
+  }
+  b.addEventListener('pointerenter',inspect);b.addEventListener('focus',inspect);b.onblur=leave;b.onpointerleave=leave;
+ });
+}
+function show(){
+ closeHelp();stage.querySelectorAll('.item').forEach(n=>n.remove());
+ $('frame').src='private/revised-'+state+'.png';$('forward').hidden=state!=='wait';
+ if(state==='order'){
+  $('frame').alt='SF earned six dollars and NY earned seven. SF chooses the purchase order.';
+  $('note').textContent='Hover or focus any contribution to inspect the player who earned it.';
+  receipt('SF',sf,[2,2,1,1,0,0],38,887);receipt('NY',nyEarners,[1,1,1,2,0,2],987,894);
+  hot('SF buys first',1060,836,282,68,()=>{$('note').textContent='SF buys first. The reviewed signing is Frankie Foxx for $4. Select After SF signs Foxx to inspect the demotion.'});
+  hot('NY buys first',1404,836,282,68,()=>{$('note').textContent='NY buys first with $7. The other review positions use the SF-first example.'});
+ }else if(state!=='start'){
+  $('frame').alt=state==='demote'?'SF has $2 after signing Foxx. Choose one of six In Play players.':state==='after'?'SF has 15 active players and one face-down Minor Leaguer.':'SF passed and its $2 expired. NY shops with $7.';
+  roster();$('note').textContent=state==='demote'?'Hover or focus one of SF’s In Play players, then choose Send to Minors.':state==='after'?sf[demoted][1]+' moved face down to the SF Minor Leagues. SF has $2 left.':'The SF seat is waiting. The review toolbar can skip ahead to the recorded NY signing and completion.';
+  if(state==='after')hot('Finish buying',47,912,235,57,()=>{state='wait';show();$('forward').focus()});
+ }else{
+  $('frame').alt='NY hosts game two and leads one to zero. SF plays first. Both teams finished buying.';
+  $('note').textContent='Inspect either public Dugout, then start game two.';
+  if(demoted!==1){const caption=document.createElement('div');caption.className='revised';caption.textContent=sf[demoted][1]+' to Minor Leagues';put(caption,262,519,342,52)}
+  hot('Inspect San Francisco Dugout',56,671,570,47,()=>pile('SF'));
+  hot('Inspect New York Dugout',1290,671,572,47,()=>pile('NY'));
+  hot('Start Game 2',754,629,409,82,()=>{location.href='../match/combined.html'});
+ }
+ resize();
+}
+$('forward').onclick=()=>{phase.value='start';state='start';show()};
+function reset(){stopFlight();state=phase.value;demoted=1;show()}
+phase.onchange=reset;$('reset').onclick=reset;window.addEventListener('resize',resize);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHelp();if(e.code==='Space'&&flight){e.preventDefault();flight.finish()}});
+reset();
+</script>
+</html>

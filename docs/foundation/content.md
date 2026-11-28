@@ -29,7 +29,7 @@ The 60-card free-agent deck contains FA-061 through FA-120, once each. All 536 c
 
 ### Starter-card proxies
 
-The owner approved the following existing faces and gameplay equivalents. In the ledger, `proxy:ST-nnn` identifies the donor of the printed stats and displayed face. The blank Workshop ID and instance count on the recipient mean its exact scan is absent. Keep its own ST identity in the roster, save, logs and inspection UI. If exact English art becomes available, verify it and replace the proxy for that identity. Gameplay implementation and verification are still pending for all eight.
+The owner approved the following existing faces and gameplay equivalents. In the ledger, `proxy:ST-nnn` identifies the donor of the printed stats and displayed face. The blank Workshop ID and instance count on the recipient mean its exact scan is absent. Preserve each logical identity in the roster, save and technical records. Across the app, identify players by card name in labels, actions, history and inspection. Keep collector numbers printed on the original artwork intact. If exact English art becomes available, verify it and replace the proxy for that identity. Gameplay implementation and verification are still pending for all eight.
 
 | Team | Logical identity → approved donor |
 |---|---|

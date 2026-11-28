@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Between games · design review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#121b1f;color:#fff3dc;font:16px system-ui,sans-serif}
+nav{display:flex;gap:1.8rem;justify-content:center;align-items:center;min-height:3.5rem}
+label{display:flex;gap:.6rem;align-items:center}select{font:inherit;color:inherit;background:#263b3e;padding:.3rem}
+main{display:grid;justify-items:center}img{display:block;max-width:100%;max-height:calc(100dvh - 3.5rem);object-fit:contain}
+</style>
+<nav aria-label="Review controls">
+ <label>Layout <select id="layout"><option value="scorecard">Scorecard</option><option value="club-ledger">Club Ledger</option><option value="clubhouse">Clubhouse</option></select></label>
+ <label>Position <select id="phase"><option value="order">Who buys first?</option><option value="demote">SF demotes a player</option><option value="start">Start game two</option></select></label>
+</nav>
+<main><a id="full" href="private/scorecard-order.png" title="Open the full-size image"><img id="view" src="private/scorecard-order.png" alt="Scorecard. SF earned six dollars and chooses who buys first."></a></main>
+<script>
+const layout=document.querySelector('#layout'),phase=document.querySelector('#phase'),view=document.querySelector('#view');
+const descriptions={order:'SF earned six dollars and NY earned seven. SF chooses who buys first.',
+ demote:'SF signed Foxx and has two dollars left. Maris refilled the slot. SF chooses an In Play player for the face-down Minor Leagues.',
+ start:'NY hosts game two and leads the series one to zero. Each club has fifteen active players and five in its face-up Dugout.'};
+function show(){document.querySelector('#full').href=view.src='private/'+layout.value+'-'+phase.value+'.png';view.alt=layout.selectedOptions[0].text+'. '+descriptions[phase.value];}
+layout.onchange=show;phase.onchange=show;
+</script>
+</html>
