@@ -1,6 +1,8 @@
 mod between_games;
+mod card_help;
 mod controls;
 mod field;
+mod market;
 mod revenue;
 mod stage;
 
@@ -33,6 +35,8 @@ pub struct Art {
     buy_park: image::DynamicImage,
     field_park: image::DynamicImage,
     pennant: image::DynamicImage,
+    card_symbols: [image::DynamicImage; 4],
+    autograph: image::DynamicImage,
 }
 
 impl Art {
@@ -50,6 +54,23 @@ impl Art {
             buy_park: park(include_bytes!("../../art/manager-review/park-0.png"))?,
             field_park: park(include_bytes!("../../art/manager-review/park-field.png"))?,
             pennant: park(include_bytes!("../../art/manager-review/match/pennant.png"))?,
+            card_symbols: [
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-S.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-A.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-F.png"
+                ))?,
+                park(include_bytes!(
+                    "../../art/manager-review/symbols/print-PH.png"
+                ))?,
+            ],
+            autograph: park(include_bytes!(
+                "../../art/manager-review/signing/autograph.png"
+            ))?,
         })
     }
 }
@@ -61,6 +82,8 @@ struct Prints {
     buy_park: Handle<Image>,
     field_park: Handle<Image>,
     pennant: Handle<Image>,
+    card_symbols: [Handle<Image>; 4],
+    autograph: Handle<Image>,
 }
 
 impl Prints {
@@ -78,6 +101,8 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         buy_park: texture(art.buy_park),
         field_park: texture(art.field_park),
         pennant: texture(art.pennant),
+        card_symbols: art.card_symbols.map(&mut texture),
+        autograph: texture(art.autograph),
         faces: art
             .faces
             .into_iter()
@@ -87,10 +112,19 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
     app.insert_resource(prints)
         .insert_resource(Session { game, seat })
         .init_resource::<controls::Interface>()
+        .init_resource::<market::Interaction>()
         .add_systems(Startup, (camera, stage::setup))
         .add_systems(
             Update,
-            (controls::draw, stage::draw, stage::animate, controls::hover).chain(),
+            (
+                controls::draw,
+                market::interact,
+                market::present,
+                stage::draw,
+                stage::animate,
+                controls::hover,
+            )
+                .chain(),
         )
         .add_systems(PostUpdate, stage::viewport);
 }

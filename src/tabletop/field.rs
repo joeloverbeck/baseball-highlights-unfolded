@@ -196,7 +196,7 @@ fn play_choice(
     selection: Option<Selection>,
 ) {
     text(panel, "Choose a card from your hand", 25., INK);
-    card_rail(panel, hand, prints, selection, Selection::HandCard);
+    card_rail(panel, hand, prints, selection, Selection::HandCard, 1);
     if let Some(player) = hand
         .iter()
         .find(|player| selection == Some(Selection::HandCard(player.card)))
