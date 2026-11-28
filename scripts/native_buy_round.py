@@ -284,6 +284,11 @@ def main():
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-buy-round."))
     print(f"Native Buy Round evidence in {evidence}", flush=True)
     try:
+        display = os.environ.get("DISPLAY")
+        if not display:
+            raise RuntimeError("Launch through scripts/native-buy-round to start the isolated display.")
+        xdotool("getdisplaygeometry")
+        ImageGrab.grab(bbox=(0, 0, 1, 1), xdisplay=display)
         smoke(build(), args.assets, evidence)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(error, file=sys.stderr)
