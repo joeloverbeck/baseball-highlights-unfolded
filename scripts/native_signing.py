@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 
-from PIL import ImageChops
+from PIL import Image, ImageChops, ImageStat
 
 from native_buy_round import build, check_display, close, launch, position, require, wait_for, xdotool
 from native_game_two import FIXTURE, activate, file_digest, manager, observe
@@ -263,6 +263,30 @@ def capture_motion(frame, evidence, stem, size, *, skip=False):
     return rest
 
 
+def check_face_down(image, size, seat):
+    boxes = card_boxes(image)
+    require(boxes, "Six offers must return to the complete Buy Row after demotion")
+    depth = min(size[0] / 1080, size[1] / 720)
+    midpoints = {
+        (1080, 720): {"sf": (91, 460), "ny": (615, 984)},
+        (3840, 2160): {"sf": (309, 1644), "ny": (2181, 3516)},
+    }
+    lineup, minors = midpoints[size][seat]
+
+    def center_pattern(x, y, half_width, half_height):
+        bounds = (round(x - half_width * depth), round(y - half_height * depth),
+                  round(x + half_width * depth), round(y + half_height * depth))
+        return image.crop(bounds).resize((23, 31), Image.Resampling.BILINEAR)
+
+    bottom = boxes[0][3]
+    deck = center_pattern(64.5 * depth, bottom - 69 * depth, 25, 35)
+    for x, label in ((lineup, "Lineup"), (minors, "Minor Leagues")):
+        pile = center_pattern(x, bottom + 185 * depth, 26, 36.5)
+        difference = ImageStat.Stat(ImageChops.difference(deck, pile))
+        require(sum(difference.mean) / 3 < 28,
+                f"{seat} {label} must use the visible back of the Free Agent Deck")
+
+
 def review_window(executable, assets, evidence, size, seat, save, *, keyboard, skip):
     width, height = size
     scale = min(width / 1080, height / 720)
@@ -304,8 +328,11 @@ def review_window(executable, assets, evidence, size, seat, save, *, keyboard, s
             press(window, action)
             require(position(save) == signed, "A double/signing click committed a second action")
             move(window, (width // 2, 40))
-        eligible = wait_for(lambda: card_boxes(frame()) if secondary_offers(frame()) else None,
-                            "priority demotion faces with the complete market")
+        def pending_faces():
+            image = frame()
+            return card_boxes(image) if secondary_offers(image) else None
+
+        eligible = wait_for(pending_faces, "priority demotion faces with the complete market")
         require(len(eligible) == 6, "Six visible demotions must fit above the market")
         frame().save(evidence / f"{seat}-pending-demotion.png")
         selected = 0 if keyboard else 1
@@ -321,10 +348,14 @@ def review_window(executable, assets, evidence, size, seat, save, *, keyboard, s
             frame().save(evidence / f"{seat}-send-to-minors.png")
             press(window, action)
         if skip:
+            # The committing key changes the save first. Wait for that board
+            # before sending Space to the transfer that belongs to it.
+            wait_for(lambda: len(finish_buttons(frame(), scale)) == 2, "the committed demotion board")
             xdotool("key", "space")
         demoted = wait_for(lambda: (current if (current := position(save)) != signed else None),
                            f"demotion of the exact {seat} player")
-        capture_motion(frame, evidence, f"{seat}-demotion", size, skip=skip)
+        landed = capture_motion(frame, evidence, f"{seat}-demotion", size, skip=skip)
+        check_face_down(landed, size, seat)
         require(demoted["clubs"][index]["minor_leagues"] == [card]
                 and card not in demoted["clubs"][index]["in_play"]
                 and sum(len(demoted["clubs"][index][zone]) for zone in ("lineup", "in_play")) == 15,
