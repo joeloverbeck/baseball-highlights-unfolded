@@ -60,12 +60,30 @@ The Rust suite now exercises the pending-demotion migration with a [scratch save
 
 Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, FID-1–4, SIM-4, INT-1/2/4 and LONG-1.
 
-## Issue #7 local handoff
+## Issue #7 implementation
 
-The unfinished [Glove target work](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/7) is preserved in the owner-local `local/issue-7/glove.bundle`, under the checkout's ignored `local/` directory. Branch `issue-7-checkpoint` contains commit `97109a0f445fb0d4ef66977e37421e9283c3f53b` on base `49c7be647431c310e689492167a3630f0ee721ea`. The bundle includes the eight modified files and four formerly untracked files. A fresh clone of the bundle passed `git fsck` and matched all twelve draft files byte for byte.
+[Preview and commit a Glove target](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/7) opens a separate reviewed position at NY 2–SF 1. NY has an average runner on second, Mickey Maris threatens a single followed by a home run, and SF has played ST-001. Each target identifies the public card instance and its printed box number. Preview selection lives in the SF window. Only commitment writes the cancellation, surviving hits and SF's new threats to the save, in that order. The high field camera settles directly to the committed position. The review ends after this play. Drawing Maris from the modified Lineup belongs to the game-two continuation.
 
-On activation, restore the checkpoint from the repository root and compare it with current `main` before transferring the Glove changes. The draft predates the merged Buy Round and desktop-seat changes.
+The owner-local bundle at `local/issue-7/glove.bundle` contains checkpoint `97109a0f445fb0d4ef66977e37421e9283c3f53b` on `49c7be647431c310e689492167a3630f0ee721ea`. The restored clone passed `git fsck`. The implementation adapted the checkpoint to `a84214d30f0f6542b377b95d4c5b0c5e30f012d0`, including the merged two-manager Buy Round and legacy-save reader.
+
+The native fixture uses the selected Press Box art. The verified export hides the study's sample runner ring and double bar, objects 29 and 30. The field uses simple geometry at the existing marker scale and draws the speed bars from each observed runner. Bespoke 3D pieces are outside the reviewed slice. This VectorCraft 0.24.1 command reproduced the shipped field PNG byte for byte.
 
 ```sh
-git clone --branch issue-7-checkpoint local/issue-7/glove.bundle local/issue-7/restore
+VECTORCRAFT_NO_PREFS=1 vectorcraft-cli --safe-mode run \
+  --in art/manager-review/park-0.vectorcraft \
+  --cmd object.hide --params '{"ids":[29,30]}' \
+  --scale 1 --export /tmp/park-field.png
+cmp /tmp/park-field.png art/manager-review/park-field.png
 ```
+
+| Repository | Inspected revision | Implementation finding |
+| --- | --- | --- |
+| unfolded-tabletop | `443ffe135ac3a17cf97c2e1bbc39807ae5fd637c` | The existing Cargo pin `1d1907d48ecc00fdc6a5e3f673bc5f97da60b53a` supplies `seat::Game`, `ui_target`, capture, validated record replacement and seeded shuffle. Both Baseball views reuse these facilities. |
+| Cuba Libre | `ace2696b89e8ba62d373dcf524347b69bdcc7872` | `tabletop::execution::previewed` and `tabletop::popover::preview_lines` project COIN choices. Baseball supplies its own target and runner consequences to the existing local inspection controls. |
+| Arkham | `cf7d92df0433d8c4a2a36621c8e668bee22fb968` | `gathering_tabletop::draws::Playback` and the motion adapter present committed draws using `CardMove`. The Glove field renders the committed runners directly. The existing Buy Round still uses shared card trajectories. |
+| Netrunner | `5727b703b2ef7ca5a3886b2874fe50b8d3ec3caa` | `tabletop::seat::Table::observe` limits diagnostics to the viewing seat. Both Baseball windows use the existing shared seat adapter with Baseball's Glove disclosure rules. |
+| Mudsong | `9630c8c0bd4567cbaf91f7c14ce81b116f275641` | `seeded_randomness` covers deterministic shuffle and draw. Baseball continues to reproduce physical card instances and hidden order with the pinned generator. |
+
+Issue #7 requires no shared extraction or sibling migration. The [manager-seat tests](../../tests/glove.rs) reproduce both Maris branches, restore the pending manager and hit boxes, reject wrong-seat, stale, duplicate and competing writes, and exercise one target and zero targets. The independent RB 11 example removes Wiffle’s middle box and resolves boxes 1 and 3 in order. Two slow runners occupy first and second before McGwire threatens a single and double. The [native smoke](../../scripts/native-glove) exercises the two reviewed Maris outcomes in the ordinary X11 window. A shared JSON-lines seat run also exercised preview, wrong-seat refusal, commitment, refresh of an already open NY seat and stale refusal. Physical input and readability on the owner's display remain for owner acceptance.
+
+Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, SEM-1, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, FID-1–4, INT-1/2/4 and LONG-1.

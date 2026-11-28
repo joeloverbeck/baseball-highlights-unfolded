@@ -1,7 +1,8 @@
 mod controls;
+mod field;
 mod stage;
 
-use baseball_highlights_unfolded::{CardId, Game, Seat, assets::Collection};
+use baseball_highlights_unfolded::{CardId, Game, GloveReview, Seat, assets::Collection};
 use bevy::{prelude::*, time::TimeUpdateStrategy};
 use std::{collections::HashMap, time::Duration};
 use unfolded_tabletop::{
@@ -28,10 +29,19 @@ pub struct Art {
 }
 
 impl Art {
-    pub fn load(collection: &Collection) -> Result<Self, String> {
-        let faces = collection.buy_round_faces()?;
-        let park = image::load_from_memory(include_bytes!("../../art/manager-review/park-0.png"))
-            .map_err(|error| format!("Press Box study: {error}"))?;
+    pub fn load(collection: &Collection, review: Option<GloveReview>) -> Result<Self, String> {
+        let (faces, park): (_, &[u8]) = match review {
+            Some(fixture) => (
+                collection.glove_review_faces(fixture)?,
+                include_bytes!("../../art/manager-review/park-field.png"),
+            ),
+            None => (
+                collection.buy_round_faces()?,
+                include_bytes!("../../art/manager-review/park-0.png"),
+            ),
+        };
+        let park =
+            image::load_from_memory(park).map_err(|error| format!("Press Box study: {error}"))?;
         Ok(Self {
             faces,
             back: collection.back()?,
@@ -84,9 +94,14 @@ fn camera(mut commands: Commands) {
 
 pub fn run(game: Game, seat: Seat, art: Art) -> Result<(), String> {
     let mut app = App::new();
+    let title = if game.glove_review().is_some() {
+        "Baseball Highlights / Glove Review"
+    } else {
+        "Baseball Highlights / Expert Buy Round"
+    };
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: "Baseball Highlights / Expert Buy Round".into(),
+            title: title.into(),
             resolution: (WIDTH, HEIGHT).into(),
             resize_constraints: WindowResizeConstraints {
                 min_width: 1080.,

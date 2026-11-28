@@ -81,8 +81,8 @@ def xdotool(*args, check=True):
 
 
 @contextmanager
-def launch(executable, save, assets, log, seat=None):
-    command = [executable, "--save", str(save)]
+def launch(executable, save, assets, log, seat=None, *, title=TITLE, args=()):
+    command = [executable, "--save", str(save), *args]
     if seat:
         command += ["--seat", seat]
     if assets:
@@ -98,7 +98,7 @@ def launch(executable, save, assets, log, seat=None):
                 raise RuntimeError(f"Game exited with status {game.returncode}. See {log}")
             match = xdotool(
                 "search", "--onlyvisible", "--all", "--pid", game.pid,
-                "--name", f"^{TITLE}$", check=False,
+                "--name", f"^{title}$", check=False,
             )
             return match.stdout.strip() if match.returncode == 0 else None
 
