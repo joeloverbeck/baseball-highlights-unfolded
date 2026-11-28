@@ -19,7 +19,7 @@ from PIL import ImageGrab
 TITLE = "Baseball Highlights / Expert Buy Round"
 GAME_SIZE = (1280, 800)
 # Coordinates in the ordinary launch at 96 DPI. A layout change may move them.
-SF_FIRST = (91, 287)
+SF_FIRST = (966, 641)
 RIZZUTO_OFFER = (493, 382)
 SLOT_FIVE = (493, 507)
 SIGN_FOXX = (1124, 659)
@@ -249,7 +249,8 @@ def smoke(executable, assets, evidence):
         before = position(save)
         require(before["phase"] == "Order" and before["balances"] == [6, 7],
                 "Expected an order decision with SF $6 and NY $7")
-        capture(table, evidence / "opening.png", piles=piles)
+        capture_when(table, evidence / "opening.png",
+                     lambda image: image.getpixel((SF_FIRST[0], SF_FIRST[1] - 13))[0] > 230)
         click(window, SF_FIRST)
         wait_for(lambda: position(save)["buyer"] == "san_francisco", "SF to buy first")
         click(window, RIZZUTO_OFFER)

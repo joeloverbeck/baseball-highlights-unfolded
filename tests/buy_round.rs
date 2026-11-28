@@ -75,25 +75,36 @@ fn san_francisco_can_offer_new_york_the_first_purchase() {
 #[test]
 fn the_mini_game_loser_chooses_when_revenue_ties() {
     let temporary = tempfile::tempdir().unwrap();
-    let mut game = Game::open_buy_round_fixture(
-        temporary.path().join("series.json"),
-        BuyRoundFixture::RevenueTie,
-    )
-    .unwrap();
-    let ny = game.observe(Seat::NewYork);
-    let sf = game.observe(Seat::SanFrancisco);
-    assert_eq!(ny.revenue.each_ref().map(|revenue| revenue.total), [6, 6]);
-    assert_eq!(ny.acting_manager, Some(Seat::NewYork));
-    assert_eq!(ny.decision, Some(Decision::ChooseOrder));
-    let choose = Action::ChooseOrder {
-        first: Seat::SanFrancisco,
-    };
-    assert_eq!(game.submit(sf.submission(choose)), Err(Refusal::WrongSeat));
-    game.submit(ny.submission(choose)).unwrap();
-    assert_eq!(
-        game.observe(Seat::SanFrancisco).buyer,
-        Some(Seat::SanFrancisco)
-    );
+    for first in [Seat::SanFrancisco, Seat::NewYork] {
+        let path = temporary.path().join(first.abbreviation());
+        let mut game = Game::open_buy_round_fixture(&path, BuyRoundFixture::RevenueTie).unwrap();
+        let ny = game.observe(Seat::NewYork);
+        let sf = game.observe(Seat::SanFrancisco);
+        assert_eq!(ny.revenue.each_ref().map(|revenue| revenue.total), [6, 6]);
+        assert_eq!(ny.revenue, sf.revenue);
+        assert_eq!(ny.acting_manager, Some(Seat::NewYork));
+        assert_eq!(sf.acting_manager, ny.acting_manager);
+        assert_eq!(ny.decision, Some(Decision::ChooseOrder));
+        assert_eq!(sf.decision, None);
+        let choose = Action::ChooseOrder { first };
+        let before = fs::read(&path).unwrap();
+        assert_eq!(game.submit(sf.submission(choose)), Err(Refusal::WrongSeat));
+        assert_eq!(fs::read(&path).unwrap(), before);
+        game.submit(ny.submission(choose)).unwrap();
+        let reopened = Game::open(&path).unwrap();
+        for seat in [Seat::SanFrancisco, Seat::NewYork] {
+            let view = reopened.observe(seat);
+            assert_eq!(view.buyer, Some(first));
+            assert_eq!(view.first_buyer, Some(first));
+            assert_eq!(
+                view.events.last(),
+                Some(&Event::OrderChosen {
+                    chooser: Seat::NewYork,
+                    first,
+                })
+            );
+        }
+    }
 }
 
 #[test]

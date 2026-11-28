@@ -15,6 +15,10 @@ if [ "${1-}" = --game-two ]; then
     shift
     script=scripts/native_game_two.py
     screen=2640x900x24
+elif [ "${1-}" = --order ]; then
+    shift
+    script=scripts/native_purchase_order.py
+    screen=4096x2304x24
 fi
 
 timeout 10m xvfb-run -a -e /dev/stderr -s "-screen 0 $screen -dpi 96" \

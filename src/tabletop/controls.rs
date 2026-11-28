@@ -1,6 +1,6 @@
-use super::{FIELD, HEADER, Prints, Session, field};
+use super::{FIELD, HEADER, Prints, Session, field, revenue};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Revenue, Seat, Submission,
+    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Submission,
 };
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
@@ -101,9 +101,23 @@ fn click(
     }
 }
 
-pub fn hover(mut buttons: Query<(&Hovered, &Control, &mut BackgroundColor), Changed<Hovered>>) {
-    for (hovered, control, mut color) in &mut buttons {
-        color.0 = if hovered.get() { GOLD } else { control.color };
+pub fn hover(
+    mut buttons: Query<
+        (
+            &Hovered,
+            &Control,
+            &mut BackgroundColor,
+            Has<revenue::ReadingControl>,
+        ),
+        Changed<Hovered>,
+    >,
+) {
+    for (hovered, control, mut color, reading) in &mut buttons {
+        color.0 = match (hovered.get(), reading) {
+            (true, true) => revenue::READ_HIGHLIGHT,
+            (true, false) => GOLD,
+            (false, _) => control.color,
+        };
     }
 }
 
@@ -157,7 +171,7 @@ pub(super) fn picture(
     ));
 }
 
-fn button(
+pub(super) fn button(
     parent: &mut ChildSpawnerCommands,
     name: SeatName,
     label: impl Into<String>,
@@ -391,20 +405,6 @@ fn event_text(event: Event) -> String {
     }
 }
 
-fn revenue_text(revenue: &Revenue) -> String {
-    let amounts = revenue
-        .contributions
-        .iter()
-        .map(|entry| format!("{} ${}", entry.card.identity, entry.amount))
-        .collect::<Vec<_>>()
-        .join("  +  ");
-    format!(
-        "{} revenue   {amounts}  =  ${}",
-        revenue.seat.abbreviation(),
-        revenue.total
-    )
-}
-
 fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
     if let Some(buyer) = view.buyer {
         let phase = if view.demotion_pending {
@@ -433,38 +433,6 @@ fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
                 );
             }
         });
-    } else if view.first_buyer.is_none() {
-        let reason = if view.revenue[0].total == view.revenue[1].total {
-            "mini-game loser"
-        } else {
-            "lower revenue"
-        };
-        text(
-            book,
-            format!(
-                "{} chooses purchase order ({reason}).",
-                view.order_chooser.abbreviation()
-            ),
-            19.,
-            CREAM,
-        );
-        if matches!(view.decision, Some(Decision::ChooseOrder)) {
-            book.spawn(row(9.)).with_children(|choices| {
-                for first in [Seat::SanFrancisco, Seat::NewYork] {
-                    let action = Action::ChooseOrder { first };
-                    short_button(
-                        choices,
-                        SeatName::Choice(format!(
-                            "buy-first-{}",
-                            first.abbreviation().to_lowercase()
-                        )),
-                        format!("{} buys first", first.abbreviation()),
-                        Input::Submit(view.submission(action)),
-                        GOLD,
-                    );
-                }
-            });
-        }
     } else {
         book.spawn(Node {
             align_items: AlignItems::Center,
@@ -540,6 +508,10 @@ pub fn draw(
         Node { width: percent(100.), height: percent(100.), ..col(0.) },
         Pickable::IGNORE,
     )).with_children(|root| {
+        if view.first_buyer.is_none() {
+            revenue::draw(root, &view, &prints, ui.selection, ui.error.as_deref());
+            return;
+        }
         root.spawn((
             Node { width: percent(100.), height: px(HEADER), align_items: AlignItems::Center, justify_content: JustifyContent::SpaceBetween, padding: UiRect::horizontal(px(18.)), ..default() },
             BackgroundColor(DARK),
@@ -554,7 +526,7 @@ pub fn draw(
         )).with_children(|body| {
             body.spawn(Node { flex_grow: 1., min_width: px(0.), ..col(5.) }).with_children(|book| {
                 for revenue in &view.revenue {
-                    text(book, revenue_text(revenue), 14., FIELD_LABEL);
+                    text(book, format!("{} earned ${}", revenue.seat.abbreviation(), revenue.total), 14., FIELD_LABEL);
                 }
                 purchase_turn(book, &view);
                 book.spawn(Node { align_items: AlignItems::Center, ..row(12.) })
@@ -630,6 +602,8 @@ impl seat::Game for AgentTable {
             }
             (session.game.observe(session.seat), refreshed.is_err())
         };
+        let revenue_inspection =
+            revenue::inspected_contributor(&view, world.resource::<Interface>().selection);
         let observation = serde_json::to_value(&view).expect("public observation serializes");
         let viewport = viewport(world);
         let controls: Vec<_> = controls(world).into_iter().filter_map(|(entity, control)| {
@@ -643,7 +617,7 @@ impl seat::Game for AgentTable {
         }).collect();
         Observed {
             observation,
-            table: json!({ "controls": controls, "refresh_error": refresh_error }),
+            table: json!({ "controls": controls, "refresh_error": refresh_error, "revenue_inspection": revenue_inspection }),
         }
     }
 
