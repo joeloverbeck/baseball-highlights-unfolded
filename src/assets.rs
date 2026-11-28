@@ -42,8 +42,15 @@ pub fn display_face_id<T>(faces: &HashMap<CardId, T>, identity: CardId) -> CardI
 
 impl Collection {
     pub fn open(root: &Path) -> Result<Self, String> {
-        let manifest = regular_file(root, "SHA256SUMS").map_err(|error| error.to_string())?;
-        let bytes = read_bounded(&manifest, 160_000).map_err(|error| error.to_string())?;
+        let manifest = root.join("SHA256SUMS");
+        let bytes = regular_file(root, "SHA256SUMS")
+            .and_then(|path| read_bounded(&path, 160_000))
+            .map_err(|error| {
+                format!(
+                    "Could not read the card artwork manifest at {} ({error}). Install the audited collection or use --assets DIRECTORY.",
+                    manifest.display()
+                )
+            })?;
         let matches = |digest| verify_bytes(&bytes, bytes.len() as u64, digest).is_ok();
         let recovered = matches(RECOVERED_MANIFEST_HASH);
         if !recovered && !matches(ORIGINAL_MANIFEST_HASH) && !matches(PHOTOCRAFT_MANIFEST_HASH) {
@@ -176,5 +183,25 @@ impl Collection {
         verify_bytes(&bytes, bytes.len() as u64, hash)
             .map_err(|error| format!("{}: {error}", path.display()))?;
         Ok(bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Collection;
+
+    #[test]
+    fn missing_collection_error_names_manifest_and_asset_override() {
+        let scratch = tempfile::tempdir().unwrap();
+        let root = scratch.path().join("Missing card collection");
+        let error = Collection::open(&root)
+            .err()
+            .expect("a missing collection must be refused");
+
+        assert!(
+            error.contains(&root.join("SHA256SUMS").display().to_string()),
+            "{error}"
+        );
+        assert!(error.contains("--assets DIRECTORY"), "{error}");
     }
 }
