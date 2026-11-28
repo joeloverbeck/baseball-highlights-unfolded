@@ -83,6 +83,13 @@ def no_choices(image):
     return all(image.getpixel(design_point(image.size, x, 638)) != PAPER for x in (1140, 1532))
 
 
+def stadium_rendered(image):
+    # The lower diamond paint and the bottom edge render after the UI during an X11 resize.
+    lower_paint = image.getpixel(design_point(image.size, 420, 680))
+    _, green, blue = image.getpixel(design_point(image.size, 800, 847.4))
+    return min(lower_paint) > 75 and blue > 35 and abs(green - blue) <= 4
+
+
 def blue_pawn(image, point):
     x, y = point
     samples = iter_unpack("BBB", image.crop((x - 5, y - 5, x + 6, y + 6)).tobytes())
@@ -334,7 +341,8 @@ def review_desktop(executable, assets, evidence, practice, box, size, pending, c
         require(save.read_bytes() == committed, "A repeated native click changed the save")
 
         def resolved(image):
-            return no_choices(image) and not pawn_at(image, 2) and pawn_at(image, 1) == (box == 2)
+            return (stadium_rendered(image) and no_choices(image) and not pawn_at(image, 2)
+                    and pawn_at(image, 1) == (box == 2))
 
         after = capture_review(bounds, evidence / "sf-resolved.png", resolved)
         park = design_rect(size, 39, 248, 1067, 530)
