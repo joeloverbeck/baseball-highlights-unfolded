@@ -12,7 +12,8 @@ from native_buy_round import (
     GAME_SIZE, build, capture, capture_when, check_display, click, close, launch, require, wait_for,
 )
 from native_game_two import FIXTURE, activate, file_digest, manager, observe
-from native_glove import focus
+from native_market import GOLD, annotation, card_boxes
+from native_signing import center, demotion_action, press, secondary_offers
 
 
 ROOKIES = (
@@ -73,18 +74,37 @@ def choose_starter(executable, assets, evidence, card):
     with launch(executable, desktop_save, assets, evidence / "desktop.log", seat="sf", origin=(0, 0)) as (
         game, window, bounds,
     ):
+        scale = min(GAME_SIZE[0] / 1080, GAME_SIZE[1] / 720)
+        in_play = [player["card"] for player in pending["rosters"][0]["in_play"]]
         capture_when(bounds, evidence / "opening.png", lambda image: image.getpixel((10, 20)) == (26, 41, 33))
+        action = None
         for entry in trace:
             before = desktop_save.read_bytes()
-            focus(window)
-            click(window, entry.point)
+            if entry.name == "buy-first-sf":
+                click(window, entry.point)
+            elif entry.name == "inspect-slot-5":
+                market_frame = capture_when(bounds, evidence / "market.png", card_boxes)
+                face = card_boxes(market_frame)[4]
+                press(window, center(face))
+                offer = capture_when(bounds, evidence / "offer.png",
+                                     lambda image: annotation(image, face, scale, GOLD, action=True))
+                action = annotation(offer, face, scale, GOLD, action=True)
+            elif entry.name == f"inspect-{card['identity']}":
+                pending_frame = capture_when(bounds, evidence / "pending.png",
+                                             lambda image: secondary_offers(image) and card_boxes(image))
+                face = card_boxes(pending_frame)[in_play.index(card)]
+                press(window, center(face))
+                selected = capture_when(bounds, evidence / "selected.png",
+                                        lambda image: demotion_action(image, face, scale))
+                action = demotion_action(selected, face, scale)
+            else:
+                require(action is not None, f"No rendered action for {entry.label}")
+                press(window, action)
+                action = None
             if entry.kind == "choice":
                 wait_for(lambda: desktop_save.read_bytes() != before, entry.label)
             require(file_digest(desktop_save) == entry.save_digest,
                     f"Native action {entry.label} diverged from manager-seat replay")
-            if entry.name == f"inspect-{card['identity']}":
-                focus(window)
-                capture(bounds, evidence / "selected.png")
         capture(bounds, evidence / "committed.png")
         close(game, window)
 
