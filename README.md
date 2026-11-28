@@ -49,11 +49,11 @@ In SF choose **SF buys first**. Inspect **Peewee Rizzuto** in slot 2 and **Frank
 
 In SF open both public Dugouts, then select the pennant **Start Game 2** control. NY hosts and leads the series 1–0. Inspect **Veteran Natural** in the top middle of SF’s hand and select **Play** below its face. In NY inspect **Mickey Maris** at the top left and select **Play**. Maris cancels SF’s single and threatens a single and a home run. In SF inspect **Frankie Foxx** at the top left and select **Play** again.
 
-Compare both Glove outcomes beside the live field. **Cancel single** previews one run for NY and empty bases. **Cancel home run** previews a 0–0 game with Maris on first. Select **Cancel home run**, then **Use Glove · Cancel home run**. Both windows show Maris on first with Foxx’s double waiting at home.
+Compare both Glove outcomes beside the live field. **Cancel single** previews one run for NY and empty bases. **Cancel home run** previews a 0–0 game with Maris on first. Select **Cancel home run**, then **Use Glove / Cancel home run**. Both windows show Maris on first with Foxx’s double waiting at home.
 
 ## Review the Glove decision
 
-Run `cargo run --locked -- --review-glove` to open the high field camera as SF. NY leads 2–1 with an Average runner on second. Select either outcome to preview it while the live field holds. Select **Cancel single**, then **Use Glove · Cancel single**, for NY 4–SF 1 with empty bases. Select **Cancel home run**, then **Use Glove · Cancel home run**, for NY 3–SF 1 with Mickey Maris on first. In either case SF’s single then waits at home, and the scorecard lists the committed events in order.
+Run `cargo run --locked -- --review-glove` to open the high field camera as SF. NY leads 2–1 with an Average runner on second. Select either outcome to preview it while the live field holds. Select **Cancel single**, then **Use Glove / Cancel single**, for NY 4–SF 1 with empty bases. Select **Cancel home run**, then **Use Glove / Cancel home run**, for NY 3–SF 1 with Mickey Maris on first. In either case SF’s single then waits at home, and the scorecard lists the committed events in order.
 
 Close and reopen the same save to resume. Add `--seat ny` in a second window to follow the public field as NY. The review has its own `glove-review.json` in the same state directory as the Buy Round. Use `--review-glove --save FILE` with a fresh path for the other outcome. The review ends after this play.
 
