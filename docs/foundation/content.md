@@ -2,6 +2,16 @@
 
 Owner-local root on Ubuntu: `~/Pictures/Baseball Highlights: 2045 Resources/`. The Workshop save is 1803946195. Its catalog maps TTS IDs to sheets, crop rectangles, PNG fronts, instances and a common JPEG back. The original SHA256SUMS verifies the extraction. Store supplemental PDFs in its rules directory. Use a configurable resource root and keep original files intact. A later import should accept a single ZIP, validate required files, versions and hashes, unpack to staging, and activate the complete package atomically. Report missing identities before admitting play. Publishing an asset pack in GitHub Releases requires established distribution rights.
 
+## Extract card artwork in PhotoCraft
+
+Use the project's PhotoCraft MCP to crop and export each card extracted from a sheet. The Workshop catalog locates the source sheet and cell. Measure the actual card bounds in the source pixels because the nominal grid can cut into a card or include its neighbor. Inspect all four edges and corners, confirm the printed identity and orientation against the ledger, and preserve the illustration, text and game symbols. Inspect the full bounds of standalone fronts or backs in PhotoCraft and keep the original file when its bounds are correct. Flag source damage that would require clipping the print or reconstructing it.
+
+PhotoCraft reads from the checkout and exports under `art/`. Copy verified sources to a Git-ignored working directory under `art/` and export the crops there. Record the PhotoCraft version, source digest, source card and printing identity, reviewed pixel rectangle and export digest in the owner-local collection. Keep source files, crops and proofs private. Stage the exported PNGs with their catalog and SHA-256 manifest, then inspect the staged collection through the ordinary desktop launch with `--assets` and a scratch save before changing the default. The runtime consumes verified image files.
+
+For a working directory at `art/.card-crops/`, open a sheet with `doc_open(path="art/.card-crops/sheet.jpg")`. After running `image.crop` with the measured pixel bounds, export with `doc_save(path=".card-crops/card.png")`. The output lands at `art/.card-crops/card.png`.
+
+Stage with `python3 scripts/stage_card_crops.py final SOURCE REVIEW EXPORTS OUTPUT`. The helper compares the exported printed IDs against the required faces loaded by the Expert and Glove paths. `REVIEW` contains the private source mappings and crop provenance. Use `probe` for a partial package that fills the other required faces from the original collection.
+
 ## Original set admission
 
 On 2026-11-27 inspection of the printed ID fields, deck instances and relevant sheet cells found the following. Each original team deck has 15 instances. Each has only 13 distinct printed identities. Numerically adjacent IDs represent separate physical cards even when their game statistics agree.
