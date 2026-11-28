@@ -9,6 +9,7 @@ For a checkpoint bundle, add its path, SHA-256 digest, and inventory of modified
 ## GitHub CLI
 
 - Check the target before writing with `gh repo view --json nameWithOwner`.
+- If the GitHub connector returns `403 Resource not accessible by integration` for an authorized write, use the authenticated `gh` CLI for that write. For PRs, pass `--repo` and use `--body-file` for the description.
 - Read a ticket and its discussion with `gh issue view <number> --json number,title,body,labels,comments`. Find work with `gh issue list --state open` and the relevant label filters.
 - Publish with `gh issue create --title "..." --body-file <file>`. Use a body file for multiline comments with `gh issue comment <number> --body-file <file>`.
 - Use native sub-issues and dependencies. Create with `--parent <parent>` and `--blocked-by <blocker>` as applicable. Link existing issues with `gh issue edit <parent> --add-sub-issue <child>` or `gh issue edit <child> --add-blocked-by <blocker>`. Use `gh issue view <child> --json blockedBy` to inspect blockers and check their state.
