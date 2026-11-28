@@ -14,7 +14,7 @@ screen=1440x900x24
 if [ "${1-}" = --game-two ]; then
     shift
     script=scripts/native_game_two.py
-    screen=2640x900x24
+    screen=4096x2304x24
 elif [ "${1-}" = --signing ]; then
     shift
     script=scripts/native_signing.py

@@ -12,16 +12,15 @@ import subprocess
 import sys
 import tempfile
 
+from PIL import ImageChops
+
 from native_buy_round import (
-    GAME_SIZE, build, capture, capture_when, check_display, click, close,
-    launch, position, require, wait_for, xdotool,
-)
-from native_glove import (
-    GOLD, OBSERVER_X, PAPER, blue_pawn, capture_review, focus, selection_is,
+    build, capture_when, check_display, close, launch, position, require, wait_for, xdotool,
 )
 
 
 FIXTURE = Path("tests/fixtures/expert-game-two-start.json")
+SIZES = (1080, 720), (3840, 2160)
 
 
 @dataclass(frozen=True)
@@ -154,6 +153,11 @@ def replay_managers(executable, assets, evidence, save, trace):
             "The Buy Round must end with 15 active players per team and zero balance",
         )
         clubs = position(save)["clubs"]
+        before = save.read_bytes()
+        for team in ("sf", "ny"):
+            choose_sf("component", f"open-dugout-{team}")
+            choose_sf("component", "close-dugout")
+        require(save.read_bytes() == before, "Opening the public Dugouts changed the save")
         sf_drawn = choose_sf("choice", "start-game-two")
         shutil.copyfile(save, evidence / "sf-hand-position.json")
         ny_drawn = observe(ny)["observation"]
@@ -202,86 +206,169 @@ def replay_managers(executable, assets, evidence, save, trace):
         )
 
 
-def replay_desktop(executable, assets, evidence, save, trace):
+def replay_desktop(executable, assets, evidence, save, trace, size):
+    from native_glove import choice_point, no_choices, pawn_at, selection_is
+    from native_market import GOLD, PAPER, annotation, card_boxes, client_bounds, move
+    from native_purchase_order import point
+    from native_signing import center, demotion_action, finish_buttons, press, secondary_offers
+    from native_stadium import action_span, check_park, faces_visible, geometry
+
+    width, height = size
+    scale = min(width / 1080, height / 720)
+    stadium_scale, park, hand_faces = geometry(size)
+    offer_faces = None
+    selected_face = None
+
+    def matchup(image):
+        return image.getpixel(point(size, 0.04, 0.26)) == (36, 60, 64)
+
+    def dugouts(image):
+        return not matchup(image) and all(
+            image.getpixel(point(size, x, 0.45)) not in ((21, 40, 47), (36, 60, 64), (64, 94, 99))
+            for x in (0.134, 0.317, 0.5, 0.683, 0.866)
+        )
+
+    def pending_demotion(image):
+        return secondary_offers(image) and card_boxes(image)
+
+    def open_window(exits, seat, name):
+        x = width + 32 if size == SIZES[0] and seat == "ny" else 0
+        game, window, _ = exits.enter_context(launch(
+            executable, save, assets, evidence / f"{name}.log", seat=seat, origin=(x, 0),
+        ))
+        xdotool("windowsize", "--sync", window, *size)
+        bounds = (x, 0, x + width, height)
+        wait_for(lambda: client_bounds(window) == bounds, f"actual {width} × {height} {seat} client")
+        (evidence / f"{name}-geometry.json").write_text(json.dumps({"bounds": bounds}) + "\n")
+        return game, window, bounds
+
+    def aim(entry, capture):
+        nonlocal offer_faces, selected_face
+        name = entry.name
+        seat = entry.seat
+        if name == "buy-first-sf":
+            control = point(size, 0.76, 0.80)
+            capture("purchase-order", lambda image: image.getpixel(point(size, 0.76, 0.78))[0] > 230)
+            return control
+        if name.startswith("inspect-slot-"):
+            slot = int(name.rsplit("-", 1)[-1]) - 1
+            if offer_faces is None:
+                market = capture(f"{seat}-market", card_boxes)
+                offer_faces = card_boxes(market)
+            selected_face = offer_faces[slot]
+            return center(selected_face)
+        if name.startswith("sign-"):
+            render = capture(f"{seat}-signing",
+                             lambda image: annotation(image, selected_face, scale, GOLD, action=True))
+            return annotation(render, selected_face, scale, GOLD, action=True)
+        if name == "pass":
+            render = capture(f"{seat}-ready-to-finish", lambda image: len(finish_buttons(image, scale)) == 2)
+            return finish_buttons(render, scale)[0]
+        if name.startswith("open-dugout-"):
+            capture("dugout-matchup", matchup)
+            return point(size, 0.19 if name.endswith("-sf") else 0.81, 0.72)
+        if name == "close-dugout":
+            capture("public-dugout", dugouts)
+            return point(size, 0.50, 0.87)
+        if name == "start-game-two":
+            capture("start-game-two", matchup)
+            return point(size, 0.50, 0.68)
+        if name.startswith("glove-hit-box-"):
+            number = int(name[-1])
+            before = None if number == 1 else 1
+            capture(f"before-preview-{number}", lambda image: selection_is(image, before))
+            return choice_point(size, number)
+        if name == "commit-glove-target":
+            capture("before-use-glove", lambda image: selection_is(image, 2))
+            return choice_point(size, 2, commit=True)
+
+        current = position(save)
+        club = current["clubs"][0 if seat == "sf" else 1]
+        identity = name.split("-", 1)[1]
+        if current["phase"] == "Demotion":
+            if entry.kind == "component":
+                index = next(i for i, card in enumerate(club["in_play"]) if card["identity"] == identity)
+                opened = capture(f"{seat}-eligible", pending_demotion)
+                selected_face = card_boxes(opened)[index]
+                return center(selected_face)
+            prepared = capture(f"{seat}-send-to-minors",
+                               lambda image: demotion_action(image, selected_face, scale))
+            return demotion_action(prepared, selected_face, scale)
+
+        require(name.startswith(("inspect-", "play-")), f"No physical route to {name}")
+        hand = club["hand"]
+        index = next(i for i, card in enumerate(hand) if card["identity"] == identity)
+        face = hand_faces[index]
+        if entry.kind == "component":
+            render = capture(f"{seat}-hand", lambda image: faces_visible(image, hand_faces[:len(hand)], stadium_scale))
+            check_park(render, park)
+            return center(face)
+        render = capture(f"{seat}-play", lambda image: action_span(image, face, stadium_scale))
+        start, end = action_span(render, face, stadium_scale)
+        return center(face)[0], (start + end) // 2
+
     with ExitStack() as exits:
-        windows = {
-            seat: exits.enter_context(launch(
-                executable, save, assets, evidence / f"{seat}-desktop.log",
-                seat=seat, origin=(x, 0),
-            ))
-            for seat, x in (("sf", 0), ("ny", OBSERVER_X))
-        }
-        for entry in trace:
-            _, window, table = windows[entry.seat]
-            before = save.read_bytes()
-            focus(window)
-            click(window, entry.point)
-            focus(window)
+        windows = {"sf": open_window(exits, "sf", "sf-desktop")}
+        if size == SIZES[0]:
+            windows["ny"] = open_window(exits, "ny", "ny-desktop")
+        live_glove = None
+        for step, entry in enumerate(trace, 1):
+            if entry.seat not in windows:
+                for game, window, _ in windows.values():
+                    close(game, window)
+                windows = {entry.seat: open_window(exits, entry.seat, f"{step:02}-{entry.seat}-desktop")}
+            game, window, bounds = windows[entry.seat]
+            xdotool("windowraise", window, "windowfocus", "--sync", window)
+
+            def capture(name, ready):
+                return capture_when(bounds, evidence / f"{step:02}-{name}.png", ready)
+
+            before = file_digest(save)
+            target = aim(entry, capture)
+            press(window, target)
             label = f"{entry.seat.upper()} / {entry.label}"
             if entry.kind == "choice":
-                wait_for(lambda: save.read_bytes() != before, label)
-            else:
-                require(save.read_bytes() == before, f"{label} changed the save during inspection")
-            actual_digest = file_digest(save)
-            require(
-                actual_digest == entry.save_digest,
-                f"{label} ({entry.name}) produced save SHA-256 {actual_digest}, "
-                f"expected {entry.save_digest}",
-            )
+                wait_for(lambda: file_digest(save) != before, label)
+            require(file_digest(save) == entry.save_digest,
+                    f"{label} ({entry.name}) diverged from the manager replay")
 
+            if entry.name.startswith("open-dugout-"):
+                capture(f"opened-{entry.name.removeprefix('open-')}", dugouts)
+            if entry.name.startswith("inspect-slot-"):
+                capture(f"{entry.seat}-offer-{entry.name.rsplit('-', 1)[-1]}",
+                        lambda image: annotation(image, selected_face, scale, PAPER))
+            if entry.name.startswith("sign-"):
+                offer_faces = None
             if entry.seat == "sf" and entry.name.startswith("sign-"):
-                pending = position(save)
-                require(
-                    pending["phase"] == "Demotion"
-                    and pending["balances"] == [2, 7]
-                    and pending["row"][4]["identity"] == "FA-067",
-                    "Expected the pending Foxx demotion, $2 and Maris in slot 5",
-                )
-                game, _, _ = windows["sf"]
+                capture("foxx-refill", pending_demotion)
                 close(game, window)
-                windows["sf"] = exits.enter_context(launch(
-                    executable, save, assets, evidence / "sf-desktop-resumed.log",
-                    seat="sf", origin=(0, 0),
-                ))
-                _, _, resumed_table = windows["sf"]
-                capture(resumed_table, evidence / "desktop-sf-resumed.png",
-                        piles={"Free Agent Deck", "Lineup"})
+                windows["sf"] = open_window(exits, "sf", "sf-desktop-resumed")
+                _, _, resumed = windows["sf"]
+                capture_when(resumed, evidence / "sf-resumed-pending-demotion.png", pending_demotion)
                 require(file_digest(save) == entry.save_digest, "Restart changed the pending demotion")
-
-            if entry.name == "start-game-two":
-                capture(table, evidence / "desktop-sf-hand.png")
             if entry.name == "play-FA-065":
-                capture_review(table, evidence / "desktop-glove-pending.png", lambda im: selection_is(im, None))
+                pending = capture("glove-pending", lambda image: selection_is(image, None))
+                live_glove = pending.crop(park)
             if entry.name.startswith("glove-hit-box-"):
-                box = int(entry.name.rsplit("-", 1)[1])
-                capture_review(table, evidence / f"desktop-preview-{box}.png", lambda im: selection_is(im, box))
+                number = int(entry.name[-1])
+                move(window, (5, 4))
+                preview = capture(f"glove-preview-{number}", lambda image: selection_is(image, number))
+                require(ImageChops.difference(live_glove, preview.crop(park)).getbbox() is None,
+                        "Previewing a Glove outcome changed the live stadium")
 
-        for seat, (game, window, table) in windows.items():
-            focus(window)
-            capture_review(table, evidence / f"desktop-{seat}-committed.png", lambda im: blue_pawn(im, (703, 275)))
+        for seat in ("sf", "ny"):
+            if seat not in windows:
+                for game, window, _ in windows.values():
+                    close(game, window)
+                windows = {seat: open_window(exits, seat, f"{seat}-desktop-committed")}
+            _, window, bounds = windows[seat]
+            xdotool("windowraise", window, "windowfocus", "--sync", window)
+            resolved = capture_when(bounds, evidence / f"{seat}-committed.png",
+                                    lambda image: no_choices(image) and pawn_at(image, 1))
+            check_park(resolved, park)
+            require(file_digest(save) == trace[-1].save_digest, "The resolved public view changed the save")
+        for game, window, _ in windows.values():
             close(game, window)
-
-
-def check_minimum_window(executable, assets, evidence):
-    save = evidence / "minimum-window-series.json"
-    shutil.copyfile(evidence / "ny-hand-position.json", save)
-    bounds = (0, 0, 1080, 720)
-    with launch(
-        executable, save, assets, evidence / "minimum-window.log", seat="ny", origin=(0, 0),
-    ) as (game, window, _):
-        xdotool("windowsize", "--sync", window, 1080, 720)
-        focus(window)
-        capture_when(bounds, evidence / "minimum-hand.png", lambda im: im.getpixel((1055, 700)) == PAPER)
-        before = save.read_bytes()
-        click(window, (268, 439))
-        focus(window)
-        capture_when(bounds, evidence / "minimum-hand-selected.png", lambda im: im.getpixel((400, 597)) == GOLD)
-        require(save.read_bytes() == before, "Inspecting Maris changed the save in the minimum window")
-        click(window, (710, 597))
-        wait_for(lambda: save.read_bytes() != before, "playing Maris in the 1080×720 window")
-        require(position(save)["clubs"][1]["in_play"][-1]["identity"] == "FA-067",
-                "The minimum window must play Maris")
-        close(game, window)
 
 
 def smoke(executable, assets, evidence):
@@ -293,34 +380,38 @@ def smoke(executable, assets, evidence):
     )
     (evidence / "starting-position.json").write_bytes(starting_bytes)
     agent_save = evidence / "agent-series.json"
-    desktop_save = evidence / "desktop-series.json"
     agent_save.write_bytes(starting_bytes)
-    desktop_save.write_bytes(starting_bytes)
     trace = []
     try:
         replay_managers(executable, assets, evidence, agent_save, trace)
     finally:
         (evidence / "controls.json").write_text(json.dumps([asdict(entry) for entry in trace], indent=2) + "\n")
     print("The two JSON-lines managers completed the game-two replay.", flush=True)
-    replay_desktop(executable, assets, evidence, desktop_save, trace)
-    require(desktop_save.read_bytes() == agent_save.read_bytes(), "X11 and JSON-lines saved different results")
-    check_minimum_window(executable, assets, evidence)
+    for size in SIZES:
+        directory = evidence / f"{size[0]}x{size[1]}"
+        directory.mkdir()
+        desktop_save = directory / "desktop-series.json"
+        desktop_save.write_bytes(starting_bytes)
+        replay_desktop(executable, assets, directory, desktop_save, trace, size)
+        require(desktop_save.read_bytes() == agent_save.read_bytes(), f"X11 at {size} saved a different result")
+        print(f"The full X11 replay at {size[0]} × {size[1]} matched the manager save byte for byte.", flush=True)
     require(file_digest(executable) == executable_digest, "The game executable changed during the replay")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, help="Path to the audited owner-local collection")
+    parser.add_argument("--executable", type=Path, help="Use a specific built executable")
     args = parser.parse_args()
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-game-two."))
     print(f"Native game-two evidence in {evidence}", flush=True)
     try:
-        check_display("scripts/native-buy-round --game-two", (OBSERVER_X + GAME_SIZE[0], GAME_SIZE[1]))
-        smoke(build(), args.assets, evidence)
+        check_display("scripts/native-buy-round --game-two", SIZES[-1])
+        executable = args.executable.resolve() if args.executable else build()
+        smoke(executable, args.assets, evidence)
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1
-    print("The native replay matched the JSON-lines save byte for byte. Maris played at 1080×720.")
     return 0
 
 

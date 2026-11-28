@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import re
-from struct import iter_unpack
 import subprocess
 import sys
 import tempfile
@@ -21,7 +20,6 @@ GAME_SIZE = (1280, 800)
 # Purchase order and completion use the ordinary launch at 96 DPI.
 SF_FIRST = (966, 641)
 ROUND_HISTORY = (1160, 52)
-PILE_CENTERS = {"Free Agent Deck": 800, "Lineup": 925, "Minor Leagues": 1176}
 
 
 def build():
@@ -201,24 +199,8 @@ def capture_when(table, path, ready):
             latest.save(path)
 
 
-def capture(table, path, *, piles=None):
-    def matches_piles(image):
-        if piles is None:
-            return True
-
-        # Sample dark brown print inside each back. The exposed field and its
-        # markings contain very little of this color at these three positions.
-        for name, center in PILE_CENTERS.items():
-            crop = image.crop((center - 12, 99, center + 12, 136))
-            dark_ink = sum(
-                red < 100 and red > green + 8 and green >= blue
-                for red, green, blue in iter_unpack("BBB", crop.tobytes())
-            )
-            if (dark_ink >= 60) != (name in piles):
-                return False
-        return True
-
-    capture_when(table, path, matches_piles)
+def capture(table, path):
+    capture_when(table, path, lambda image: True)
 
 
 def record(save):
