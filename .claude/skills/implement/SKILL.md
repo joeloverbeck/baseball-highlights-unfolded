@@ -10,9 +10,11 @@ If the user passes a ticket reference, fetch it from the issue tracker and state
 
 For visual work, start with filenames, diff stats, and targeted excerpts. Reserve tool output for the captures needed to verify the affected behavior.
 
+Before changing a native decision layout, identify the approved components and where they will be reused. For new layouts, follow the alternatives and selection workflow in `docs/foundation/design.md`.
+
 Call the Skill tool with "tdd" where possible, at pre-agreed seams.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end. For desktop control changes, run the applicable native smoke test after wiring the first usable path. Use the entry point and prerequisites in the README.
+Run typechecking regularly, single test files regularly, and the full test suite once at the end. For desktop control changes, use the README smoke command as soon as the path works. Check the changed controls and labels at the default and minimum supported window sizes before review.
 
 Once done, call the Skill tool with "code-review" to review the work.
 

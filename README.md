@@ -47,7 +47,11 @@ CI runs `cargo fmt --check`, the Buy Round rules and save tests with `cargo test
 
 Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with X11 capture support, and the audited owner-local card collection. It uses the normal desktop binary on an isolated display to exercise primary and secondary clicks, both signings and refills, close and resume, and the face-down piles and Dugouts. It prints the adapter and the temporary directory containing captures, logs, and the scratch save. Use `--assets DIRECTORY` for another copy of the collection or set `WGPU_ADAPTER_NAME` to select an available Vulkan adapter.
 
+Run `scripts/native-buy-round --game-two` for the tracked Foxx and Maris replay through two JSON-lines seats and two ordinary X11 windows. The command checks both Glove previews and compares the final saves byte for byte. It also exercises Maris's play at 1080×720. The printed evidence directory contains the control trace, captures, scratch saves and SHA-256 digests for the executable and starting position.
+
 Run `scripts/native-glove` with the same prerequisites to exercise both Glove commitments, switching previews, the NY observer and reopening the pending SF choice.
+
+If Xvfb reports `failed to bind listener` or `Cannot establish any listening sockets` inside an agent sandbox, retry the same smoke launcher with permission to access its isolated local X11 socket. Run it as your normal user. The sandbox can restrict socket access even when Xvfb is installed and available on PATH.
 
 ## Project documents
 

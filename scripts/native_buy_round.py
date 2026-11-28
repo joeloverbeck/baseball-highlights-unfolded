@@ -312,7 +312,10 @@ def smoke(executable, assets, evidence):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog="Use scripts/native-buy-round --game-two to replay the opening on both interfaces.",
+    )
     parser.add_argument("--assets", type=Path, help="Path to the audited owner-local collection")
     args = parser.parse_args()
     evidence = Path(tempfile.mkdtemp(prefix="baseball-native-buy-round."))
