@@ -4,5 +4,6 @@ mod series;
 
 pub use cards::{Card, CardId, Player};
 pub use series::{
-    Action, Decision, Event, Game, Observation, Offer, Refusal, Roster, Seat, Submission,
+    Action, BuyRoundFixture, Contribution, Decision, Event, Game, Observation, Offer, Refusal,
+    Revenue, Roster, Seat, Submission,
 };

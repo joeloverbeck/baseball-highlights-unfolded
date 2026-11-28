@@ -35,3 +35,25 @@ The pinned facilities cover the required pile geometry and transfer poses. Issue
 The Rust checks exercise the charge, placement, same-slot reveal, second-seat refresh, all six demotion choices, save continuation, private shuffle order and unchanged bytes after a refusal. The windowless Ubuntu Vulkan run activated all six offer inspections and all six demotion inspections through shared pointer controls. It signed Foxx, showed Maris to the already-open NY seat and resumed SF’s pending demotion. The ordinary Ubuntu window rendered the face-down piles on NVIDIA Vulkan, ignored a secondary click on the signing control, accepted a primary click, closed through X11, reopened the same position and demoted ST-004. The owner check covers physical input and readability on the owner’s display.
 
 Consulted PURP-3/5, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, PUB-1, FID-1–4, SIM-4, INT-1/2/4 and LONG-1.
+
+## Issue #6 implementation
+
+[Complete the Buy Round with either manager shopping first](https://github.com/joeloverbeck/baseball-highlights-unfolded/issues/6) resumes from the reviewed post-mini-game position. SF's six cards earn $6 and NY's six earn $7. SF chooses the first buyer. A separate tied-revenue fixture gives the choice to NY as the mini-game loser. The two buyers can finish with funds available or sign again after each required demotion. The second pass sends both remaining In Play piles to their face-up Dugouts.
+
+The pinned shared facilities still cover the round. The following normal paths were rechecked for the second buyer, resume and cleanup. The additional decisions, revenue evidence, lineup insertion order and public Dugout projection are Baseball rules. The existing shared pin requires no producer or sibling migration.
+
+| Repository | Inspected revision | Behavior used |
+| --- | --- | --- |
+| unfolded-tabletop | `443ffe135ac3a17cf97c2e1bbc39807ae5fd637c` | `seat::Game` and `ui_target` drive the same controls for either seat. `save::load` and `save::write` verify records and reject a competing writer under the replacement lock. `card::pile` renders committed counts and `CardMove` presents transfers. These facilities are unchanged from the Cargo pin. |
+| Cuba Libre | `ace2696b89e8ba62d373dcf524347b69bdcc7872` | `tabletop::piles::spawn_stack` shows committed thickness and a public top face through shared card primitives. Its COIN reveal rules stay in Cuba Libre. |
+| Arkham | `cf7d92df0433d8c4a2a36621c8e668bee22fb968` | `gathering_tabletop::draws::Playback` and the motion adapter map committed draw and recycle events onto shared trajectories. Baseball has the same shared transfer facilities for a single signing and its refill. |
+| Netrunner | `5727b703b2ef7ca5a3886b2874fe50b8d3ec3caa` | `tabletop::seat::Table::observe` projects public state and limits each seat to its own choices. Baseball follows the same producer interface and retains its own disclosure rules and decision payload. |
+| Mudsong | `9630c8c0bd4567cbaf91f7c14ce81b116f275641` | `seeded_randomness` exercises the shared generator across shuffle and draw. Baseball uses the pinned shuffle to reproduce hidden stacks and validate the committed round. |
+
+The Rust tests exercise both order choices, the loser’s right to choose on a revenue tie, pass with affordable offers, a competing writer, and a reopened second signing from the just-refilled slot. In the separate $11 NY position, the charges are $4 and $7, the slot reveals FA-067 then FA-068, and FA-067 ends above FA-065 on the face-down Lineup. A submitted action names the original card and its slot. A stale revision or mismatched card leaves the replacement in place.
+
+The native Ubuntu smoke exercised SF signing FA-065, resuming the pending demotion, passing with $2, and NY signing FA-067 for $7 to reveal FA-068. Both sides ended at 15 active players with five face-up Dugout cards and zero balance. Card coverage in the ledger applies to these Buy Round operations. Next-game play and physical-input and readability acceptance remain pending.
+
+Existing v1 saves retain the same series, physical card identities, Lineup order and committed decisions. An untouched v1 save opens at order selection. A pending demotion remains pending. A completed v1 demotion returns to SF’s shopping turn. FA-068 moves to the next prescribed refill position and the other hidden cards retain their relative order. Opening a v1 save leaves its bytes intact until the next successful choice writes v2. The prior record is retained by shared record replacement. The legacy probe exercised all three entry states with saves produced by the prior implementation.
+
+Consulted PURP-3/5/6, WORK-1–3/5/6, EVID-3–6, REP-1–3, AUTH-1–3, AGENT-3–5, OPS-1–7, FID-1–4, SIM-4, INT-1/2/4 and LONG-1.

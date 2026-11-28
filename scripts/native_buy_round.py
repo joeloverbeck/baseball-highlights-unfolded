@@ -19,12 +19,16 @@ from PIL import ImageGrab
 TITLE = "Baseball Highlights / Expert Buy Round"
 GAME_SIZE = (1280, 800)
 # Coordinates in the ordinary launch at 96 DPI. A layout change may move them.
-RIZZUTO_OFFER = (456, 282)
-FOXX_OFFER = (468, 408)
-SIGN_FOXX = (1109, 662)
-ST_004 = (246, 629)
-CONFIRM_DEMOTION = (1114, 609)
-PILE_CENTERS = {"Free Agent Deck": 800, "SF Lineup": 925, "SF Minor Leagues": 1176}
+SF_FIRST = (91, 287)
+RIZZUTO_OFFER = (493, 382)
+SLOT_FIVE = (493, 507)
+SIGN_FOXX = (1124, 659)
+SIGN_MARIS = (1124, 642)
+SECOND_IN_PLAY = (253, 689)
+CONFIRM_DEMOTION = (1124, 614)
+FINISH_BUYING = (195, 259)
+ROUND_HISTORY = (380, 286)
+PILE_CENTERS = {"Free Agent Deck": 800, "Lineup": 925, "Minor Leagues": 1176}
 
 
 def build():
@@ -77,8 +81,10 @@ def xdotool(*args, check=True):
 
 
 @contextmanager
-def launch(executable, save, assets, log):
+def launch(executable, save, assets, log, seat=None):
     command = [executable, "--save", str(save)]
+    if seat:
+        command += ["--seat", seat]
     if assets:
         command += ["--assets", str(assets)]
     env = os.environ.copy()
@@ -199,14 +205,17 @@ def require(condition, description):
 
 def smoke(executable, assets, evidence):
     save = evidence / "series.json"
-    piles = {"Free Agent Deck", "SF Lineup"}
+    piles = {"Free Agent Deck", "Lineup"}
     with launch(executable, save, assets, evidence / "first.log") as (game, window, table):
         before = position(save)
-        require(before["phase"] == "Shopping" and before["balance"] == 6, "Expected SF to start with $6")
+        require(before["phase"] == "Order" and before["balances"] == [6, 7],
+                "Expected an order decision with SF $6 and NY $7")
         capture(table, evidence / "opening.png", piles=piles)
+        click(window, SF_FIRST)
+        wait_for(lambda: position(save)["buyer"] == "san_francisco", "SF to buy first")
         click(window, RIZZUTO_OFFER)
         capture(table, evidence / "rizzuto.png")
-        click(window, FOXX_OFFER)
+        click(window, SLOT_FIVE)
         capture(table, evidence / "foxx.png")
         initial_bytes = save.read_bytes()
         click(window, SIGN_FOXX, button=3)
@@ -214,7 +223,7 @@ def smoke(executable, assets, evidence):
         click(window, SIGN_FOXX)
         wait_for(lambda: position(save)["phase"] == "Demotion", "Foxx to sign")
         after = position(save)
-        require(after["balance"] == 2 and after["row"][4]["identity"] == "FA-067",
+        require(after["balances"] == [2, 7] and after["row"][4]["identity"] == "FA-067",
                 "Expected $2 and Mickey Maris in slot 5")
         require(after["clubs"][0]["lineup"][-1]["identity"] == "FA-065", "Foxx did not top SF's Lineup")
         capture(table, evidence / "refill.png", piles=piles)
@@ -224,16 +233,47 @@ def smoke(executable, assets, evidence):
     with launch(executable, save, assets, evidence / "resumed.log") as (game, window, table):
         require(save.read_bytes() == pending_bytes, "The resumed save differs from the pending demotion")
         capture(table, evidence / "resumed.png", piles=piles)
-        click(window, ST_004)
+        click(window, SECOND_IN_PLAY)
         capture(table, evidence / "demotion.png")
         click(window, CONFIRM_DEMOTION)
-        wait_for(lambda: position(save)["phase"] == "Complete", "ST-004 to enter the Minor Leagues")
-        finished = position(save)
-        sf = finished["clubs"][0]
-        require(finished["series"] == before["series"], "Resumed a different series")
+        wait_for(lambda: position(save)["phase"] == "Shopping", "ST-004 to enter the Minor Leagues")
+        demoted = position(save)
+        sf = demoted["clubs"][0]
+        require(demoted["series"] == before["series"], "Resumed a different series")
         require(sf["minor_leagues"][-1]["identity"] == "ST-004", "The selected card was not demoted")
         require(len(sf["lineup"]) + len(sf["in_play"]) == 15, "SF did not return to 15 active players")
-        capture(table, evidence / "finished.png", piles=piles | {"SF Minor Leagues"})
+        capture(table, evidence / "sf-demoted.png", piles=piles | {"Minor Leagues"})
+        click(window, FINISH_BUYING)
+        wait_for(lambda: position(save)["buyer"] == "new_york", "NY to take over")
+        close(game, window)
+
+    with launch(executable, save, assets, evidence / "ny.log", seat="ny") as (game, window, table):
+        capture(table, evidence / "ny-opening.png", piles=piles)
+        click(window, SLOT_FIVE)
+        capture(table, evidence / "maris.png")
+        click(window, SIGN_MARIS)
+        wait_for(lambda: position(save)["phase"] == "Demotion", "Maris to sign")
+        signed = position(save)
+        require(signed["balances"] == [0, 0] and signed["row"][4]["identity"] == "FA-068",
+                "NY must spend $7 and reveal Babe Bench in slot 5")
+        require(signed["clubs"][1]["lineup"][-1]["identity"] == "FA-067",
+                "Maris did not top NY's Lineup")
+        click(window, SECOND_IN_PLAY)
+        click(window, CONFIRM_DEMOTION)
+        wait_for(lambda: position(save)["phase"] == "Shopping", "NY to finish its demotion")
+        click(window, FINISH_BUYING)
+        wait_for(lambda: position(save)["phase"] == "Complete", "both managers to finish")
+        complete = position(save)
+        require(complete["balances"] == [0, 0], "Revenue carried forward")
+        for club, expected in zip(complete["clubs"], ("ST-004", "ST-056")):
+            require(not club["in_play"], "In Play cards remained after cleanup")
+            require(len(club["dugout"]) == 5 and len(club["lineup"]) == 10,
+                    "Expected five cards in the Dugout and ten in the Lineup")
+            require([card["identity"] for card in club["minor_leagues"]] == [expected],
+                    f"Expected only {expected} in the Minor Leagues")
+        capture(table, evidence / "finished.png", piles=piles | {"Minor Leagues"})
+        click(window, ROUND_HISTORY)
+        capture(table, evidence / "history.png")
         close(game, window)
 
 
@@ -248,7 +288,7 @@ def main():
     except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1
-    print("Native signing, blocked secondary click, refill, restart, demotion and piles passed")
+    print("Native order, both signings and refills, restart, demotions and Dugout cleanup passed")
     return 0
 
 

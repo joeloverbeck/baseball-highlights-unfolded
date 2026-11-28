@@ -8,15 +8,17 @@ The first native increment opens the reviewed Expert Buy Round. See the [first p
 
 On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from the checkout. The game reads the audited collection from `~/Pictures/Baseball Highlights: 2045 Resources`. Use `-- --assets DIRECTORY` for another copy of that extraction. The game reports any missing or changed required face before opening the table.
 
-In the SF manager seat, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Press Space to finish any card motion. Close and relaunch with the same save to resume a pending demotion.
+SF earns $6 and NY earns $7. In the SF manager seat, choose **SF buys first** or **NY buys first**. To replay the reviewed round, choose SF, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Select **Finish buying** to pass the turn.
 
-The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` to start a separate series in a fresh file. Add `--seat ny` after `--` to open the NY desktop view. Two desktop windows can follow the same series when they use the same save. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output. NY observes the SF decision from the same save. The increment ends at SF’s demotion.
+Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey Maris for $7**. Babe Bench takes the slot. Choose NY’s demotion and select **Finish buying**. Both Dugouts display their remaining In Play cards face up, each roster has 15 active players, and any unspent revenue expires. **Round history** shows both managers’ choices. Press Space to finish any card motion.
+
+The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` with a fresh path to start at the purchase-order choice. Two desktop windows using the same save can follow each other’s turns. Close and relaunch to resume whichever choice is pending. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output.
 
 ## Repository checks
 
 CI runs `cargo fmt --check`, the Buy Round rules and save tests with `cargo test --locked --no-default-features`, and `cargo check --locked --all-targets` for the Ubuntu app. With Python 3.10+ and Pillow installed, run `python3 -B -m unittest discover -s tests -v` for the original-set ledger and design restore checks.
 
-Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with X11 capture support, and the audited owner-local card collection. It uses the normal desktop binary on an isolated display to exercise primary and secondary clicks, the public refill, close and resume, and the visible face-down piles. It prints the adapter and the temporary directory containing captures, logs, and the scratch save. Use `--assets DIRECTORY` for another copy of the collection or set `WGPU_ADAPTER_NAME` to select an available Vulkan adapter.
+Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with X11 capture support, and the audited owner-local card collection. It uses the normal desktop binary on an isolated display to exercise primary and secondary clicks, both signings and refills, close and resume, and the face-down piles and Dugouts. It prints the adapter and the temporary directory containing captures, logs, and the scratch save. Use `--assets DIRECTORY` for another copy of the collection or set `WGPU_ADAPTER_NAME` to select an available Vulkan adapter.
 
 ## Project documents
 

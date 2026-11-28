@@ -86,6 +86,7 @@ pub struct Player {
 
 const SINGLE: &[&str] = &["Single"];
 const DOUBLE: &[&str] = &["Double"];
+const SINGLE_DOUBLE: &[&str] = &["Single", "Double"];
 const SINGLES: &[&str] = &["Single", "Single"];
 const PICK_OFF: &str = "Pick Off (remove one runner)";
 const GLOVE: &str = "Glove (cancel one hit)";
@@ -101,10 +102,11 @@ impl Player {
     pub fn describe(card: Card) -> Option<Self> {
         let printed_face = card.identity.printed_face();
         let (name, revenue, immediate_action, threatened_hits) = match printed_face.serial() {
-            2 => ("Rookie Cyborg", 2, PICK_OFF, &[][..]),
-            4 => ("Rookie Natural", 2, "", SINGLE),
+            2 | 47 => ("Rookie Cyborg", 2, PICK_OFF, &[][..]),
+            4 | 49 => ("Rookie Natural", 2, "", SINGLE),
             5 | 50 => ("Rookie Natural", 1, GLOVE, &[][..]),
-            8 => ("Rookie Robot", 1, "", DOUBLE),
+            8 | 53 => ("Rookie Robot", 1, "", DOUBLE),
+            52 => ("Rookie Robot", 2, "", DOUBLE),
             11 => (
                 "Veteran Natural",
                 0,
@@ -139,16 +141,18 @@ impl Player {
             65 => ("Frankie Foxx", 2, GLOVE, DOUBLE),
             66 => ("Maury Aparicio", 1, DOUBLE_PLAY, SINGLE),
             67 => ("Mickey Maris", 0, GLOVE, &["Single", "Home run"][..]),
+            68 => ("Babe Bench", 1, GLOVE, SINGLE_DOUBLE),
+            69 => ("Mark Lopes", 3, "", SINGLES),
             _ => return None,
         };
         let speed = match printed_face.serial() {
-            58 | 65 => "Slow",
+            52 | 58 | 65 | 68 => "Slow",
             62 | 63 | 66 => "Fast",
             _ => "Average",
         };
         let pinch_hitter = matches!(
             printed_face.serial(),
-            2 | 5 | 14 | 50 | 58 | 59 | 62 | 65 | 66
+            2 | 5 | 14 | 47 | 50 | 58 | 59 | 62 | 65 | 66
         );
         Some(Self {
             card,
@@ -167,7 +171,7 @@ impl Player {
             61 | 67 => 7,
             62 | 65 => 4,
             63 | 64 => 6,
-            66 => 5,
+            66 | 68 | 69 => 5,
             _ => unreachable!("only Free Agents have a signing cost"),
         }
     }
