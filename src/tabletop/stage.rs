@@ -380,6 +380,9 @@ pub fn draw(
         field_scene(&mut commands, &stock, field);
         return;
     }
+    if view.next_game.is_some() {
+        return;
+    }
     let presented = view.buyer.unwrap_or(view.seat);
     let roster = view
         .rosters

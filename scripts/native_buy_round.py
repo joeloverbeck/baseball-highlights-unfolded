@@ -27,7 +27,7 @@ SIGN_MARIS = (1124, 642)
 SECOND_IN_PLAY = (253, 689)
 CONFIRM_DEMOTION = (1124, 614)
 FINISH_BUYING = (195, 259)
-ROUND_HISTORY = (380, 286)
+ROUND_HISTORY = (1160, 52)
 PILE_CENTERS = {"Free Agent Deck": 800, "Lineup": 925, "Minor Leagues": 1176}
 
 
@@ -311,9 +311,12 @@ def smoke(executable, assets, evidence):
                     "Expected five cards in the Dugout and ten in the Lineup")
             require([card["identity"] for card in club["minor_leagues"]] == [expected],
                     f"Expected only {expected} in the Minor Leagues")
-        capture(table, evidence / "finished.png", piles=piles | {"Minor Leagues"})
+        def completed_matchup(image):
+            return image.getpixel((51, 208)) == (36, 60, 64)
+
+        capture_when(table, evidence / "finished.png", completed_matchup)
         click(window, ROUND_HISTORY)
-        capture(table, evidence / "history.png")
+        capture_when(table, evidence / "history.png", lambda image: not completed_matchup(image))
         close(game, window)
 
 

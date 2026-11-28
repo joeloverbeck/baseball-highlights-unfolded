@@ -10,7 +10,7 @@ On Ubuntu with Rust 1.100 and a Vulkan adapter, run `cargo run --locked` from th
 
 SF earns $6 and NY earns $7. In the SF manager seat, choose **SF buys first** or **NY buys first**. To replay the reviewed round, choose SF, select **Frankie Foxx**, then **Sign Frankie Foxx for $4**. SF keeps $2 and Mickey Maris takes Foxx’s slot. Select an In Play player, then **Send to the Minor Leagues** to return SF to 15 active players. Select **Finish buying** to pass the turn.
 
-Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey Maris for $7**. Babe Bench takes the slot. Choose NY’s demotion and select **Finish buying**. Both Dugouts display their remaining In Play cards face up, each roster has 15 active players, and any unspent revenue expires. **Round history** shows both managers’ choices. Press Space to finish any card motion.
+Open the same save with `--seat ny`, select **Mickey Maris**, then **Sign Mickey Maris for $7**. Babe Bench takes the slot. Choose NY’s demotion and select **Finish buying**. On **Buy Round complete**, open either team’s Dugout to inspect the remaining In Play cards face up. Each roster has 15 active players, and any unspent revenue expires. **Round history** shows both managers’ choices. Press Space to finish any card motion.
 
 The default save is `baseball-highlights-unfolded/expert-buy-round.json` under `$XDG_STATE_HOME` or `~/.local/state`. Use `-- --save FILE` with a fresh path to start at the purchase-order choice. Two desktop windows using the same save can follow each other’s turns. Close and relaunch to resume whichever choice is pending. For an isolated agent seat, add `--agent-seat sf` or `--agent-seat ny` after `--`. The seat serves the shared JSON-lines protocol over standard input and output.
 
@@ -47,7 +47,7 @@ cargo run --locked -- --save /path/to/scratch/series.json --seat ny
 
 In SF choose **SF buys first**, then inspect **Peewee Rizzuto** and **Frankie Foxx**. Both cost $4. The details above the face give speed, revenue and PH. Sign Foxx and check that Mickey Maris fills slot 5 and SF has $2 left. Inspect **ST-004**, confirm **Send to the Minor Leagues**, then select **Finish buying**. In NY sign Maris, check that Babe Bench fills the slot, demote **ST-056**, and finish buying. Both active rosters return to 15.
 
-In SF select **Draw hands for game two**. NY hosts and leads the series 1–0. Select **ST-013**, then **Play Veteran Natural / ST-013**. In NY select **FA-067**, then **Play Mickey Maris / FA-067**. Maris cancels SF’s single and threatens a single and a home run. In SF select **FA-065**, then **Play Frankie Foxx / FA-065**. Preview both Glove targets. Cancelling box 1 gives NY one run and leaves the bases empty. Cancelling box 2 keeps the game score 0–0 and puts Maris on first as an Average runner. Select **Commit Glove / Cancel box 2** to see that runner in both windows, with Foxx’s double waiting at home. The review covers these opening plays from hand.
+In SF select the pennant **Start Game 2** control. NY hosts and leads the series 1–0. Select **ST-013**, then **Play Veteran Natural / ST-013**. In NY select **FA-067**, then **Play Mickey Maris / FA-067**. Maris cancels SF’s single and threatens a single and a home run. In SF select **FA-065**, then **Play Frankie Foxx / FA-065**. Preview both Glove targets. Cancelling box 1 gives NY one run and leaves the bases empty. Cancelling box 2 keeps the game score 0–0 and puts Maris on first as an Average runner. Select **Commit Glove / Cancel box 2** to see that runner in both windows, with Foxx’s double waiting at home. The review covers these opening plays from hand.
 
 ## Review the Glove decision
 
@@ -64,6 +64,8 @@ Run `scripts/native-buy-round` on Ubuntu with Xvfb, xauth, xdotool, Pillow with 
 Run `scripts/native-buy-round --order` to inspect the exact revenue faces from both manager seats and choose either first buyer. The check uses an isolated X11 display for the 1080 × 720 and 3840 × 2160 client sizes, then records the screenshots and seat transcript in the printed evidence directory.
 
 Run `scripts/native-buy-round --game-two` for the tracked Foxx and Maris replay through two JSON-lines seats and two ordinary X11 windows. The command checks both Glove previews, the save digest after each replayed click and the final saves byte for byte. It also exercises Maris's play at 1080×720. The printed evidence directory contains the control trace, captures, scratch saves and SHA-256 digests for the executable and starting position. Open its `sf-hand-position.json` from a scratch copy for additional card inspections.
+
+Run `scripts/native-buy-round --start-game` to inspect both public Dugouts from both seats and start game two. It verifies the modified opening hands and exercises the ordinary X11 window at 1080 × 720 and 3840 × 2160.
 
 Run `scripts/native-glove` with the same prerequisites to exercise both Glove commitments, switching previews, the NY observer and reopening the pending SF choice.
 

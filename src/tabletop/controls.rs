@@ -1,6 +1,6 @@
-use super::{FIELD, HEADER, Prints, Session, field, revenue};
+use super::{FIELD, HEADER, Prints, Session, between_games, field, revenue};
 use baseball_highlights_unfolded::{
-    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Submission,
+    Action, Card, Decision, Event, HitBox, Observation, Offer, Player, Seat, Submission,
 };
 use bevy::{
     picking::{events::PointerClick, hover::Hovered, pointer::PointerButton, prelude::Pickable},
@@ -23,6 +23,8 @@ pub(super) const FIELD_LABEL: Color = Color::srgb(0.81, 0.88, 0.77);
 pub(super) enum Selection {
     Offer { slot: u8, card: Card },
     PublicCard(Card),
+    Dugout(Seat),
+    DugoutCard { seat: Seat, card: Card },
     HandCard(Card),
     History,
     Glove(HitBox),
@@ -370,7 +372,7 @@ fn inspector(
     });
 }
 
-fn event_text(event: Event) -> String {
+pub(super) fn event_text(event: Event) -> String {
     match event {
         Event::OrderChosen { chooser, first } => format!(
             "{} chose {} to buy first.",
@@ -438,33 +440,6 @@ fn purchase_turn(book: &mut ChildSpawnerCommands, view: &Observation) {
                 );
             }
         });
-    } else {
-        book.spawn(Node {
-            align_items: AlignItems::Center,
-            ..row(12.)
-        })
-        .with_children(|turn| {
-            if view.decision == Some(Decision::StartGame) {
-                text(turn, "Buy Round complete", 19., CREAM);
-                short_button(
-                    turn,
-                    SeatName::Choice("start-game-two".into()),
-                    "Draw hands for game two".into(),
-                    Input::Submit(view.submission(Action::StartGame)),
-                    GOLD,
-                );
-            } else if let Some(manager) = view.acting_manager {
-                text(
-                    turn,
-                    format!(
-                        "Buy Round complete / Waiting for {} to draw",
-                        manager.abbreviation()
-                    ),
-                    19.,
-                    CREAM,
-                );
-            }
-        });
     }
 }
 
@@ -513,6 +488,10 @@ pub fn draw(
         Node { width: percent(100.), height: percent(100.), ..col(0.) },
         Pickable::IGNORE,
     )).with_children(|root| {
+        if let Some(next_game) = view.next_game {
+            between_games::draw(root, &view, next_game, &prints, ui.selection, ui.error.as_deref());
+            return;
+        }
         if view.first_buyer.is_none() {
             revenue::draw(root, &view, &prints, ui.selection, ui.error.as_deref());
             return;
@@ -609,6 +588,8 @@ impl seat::Game for AgentTable {
         };
         let revenue_inspection =
             revenue::inspected_contributor(&view, world.resource::<Interface>().selection);
+        let dugout_inspection =
+            between_games::inspection(&view, world.resource::<Interface>().selection);
         let observation = serde_json::to_value(&view).expect("public observation serializes");
         let viewport = viewport(world);
         let controls: Vec<_> = controls(world).into_iter().filter_map(|(entity, control)| {
@@ -622,7 +603,7 @@ impl seat::Game for AgentTable {
         }).collect();
         Observed {
             observation,
-            table: json!({ "controls": controls, "refresh_error": refresh_error, "revenue_inspection": revenue_inspection }),
+            table: json!({ "controls": controls, "refresh_error": refresh_error, "revenue_inspection": revenue_inspection, "dugout_inspection": dugout_inspection }),
         }
     }
 

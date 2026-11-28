@@ -9,6 +9,6 @@ pub use field::{
     Threat,
 };
 pub use series::{
-    Action, BuyRoundFixture, Contribution, Decision, Event, Game, Observation, Offer, Refusal,
-    Revenue, Roster, Seat, Standing, Submission,
+    Action, BuyRoundFixture, Contribution, Decision, Event, Game, NextGame, Observation, Offer,
+    Refusal, Revenue, Roster, Seat, Standing, Submission,
 };

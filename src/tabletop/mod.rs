@@ -1,3 +1,4 @@
+mod between_games;
 mod controls;
 mod field;
 mod revenue;
@@ -31,6 +32,7 @@ pub struct Art {
     back: image::DynamicImage,
     buy_park: image::DynamicImage,
     field_park: image::DynamicImage,
+    pennant: image::DynamicImage,
 }
 
 impl Art {
@@ -47,6 +49,7 @@ impl Art {
             back: collection.back()?,
             buy_park: park(include_bytes!("../../art/manager-review/park-0.png"))?,
             field_park: park(include_bytes!("../../art/manager-review/park-field.png"))?,
+            pennant: park(include_bytes!("../../art/manager-review/match/pennant.png"))?,
         })
     }
 }
@@ -57,6 +60,7 @@ struct Prints {
     back: Handle<Image>,
     buy_park: Handle<Image>,
     field_park: Handle<Image>,
+    pennant: Handle<Image>,
 }
 
 impl Prints {
@@ -73,6 +77,7 @@ fn install(app: &mut App, game: Game, seat: Seat, art: Art) {
         back: texture(art.back),
         buy_park: texture(art.buy_park),
         field_park: texture(art.field_park),
+        pennant: texture(art.pennant),
         faces: art
             .faces
             .into_iter()
