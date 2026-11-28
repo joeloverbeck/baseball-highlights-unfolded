@@ -3,11 +3,12 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt,
-    path::{Path, PathBuf},
+    fmt, fs,
+    io::{self, ErrorKind},
+    path::{self, Component, Path, PathBuf},
 };
 use unfolded_random::SeededRandom;
-use unfolded_record_replacement::save;
+use unfolded_record_replacement::{lock_path, previous_path, save};
 
 pub(crate) const SF_IN_PLAY: [u8; 6] = [2, 4, 5, 8, 11, 14];
 pub(crate) const NY_IN_PLAY: [u8; 6] = [50, 56, 57, 58, 59, 60];
@@ -102,6 +103,12 @@ impl fmt::Display for Refusal {
 }
 
 impl std::error::Error for Refusal {}
+
+impl From<save::Error> for Refusal {
+    fn from(error: save::Error) -> Self {
+        Self::Save(error.to_string())
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
@@ -738,6 +745,16 @@ impl SavedSeries {
         }
     }
 
+    fn require_review(&self, review: Option<GloveReview>) -> Result<(), Refusal> {
+        if self.setup.glove_review() != review {
+            return Err(Refusal::Save(
+                "This save belongs to a different review mode. Use the matching launch options."
+                    .into(),
+            ));
+        }
+        Ok(())
+    }
+
     fn revision(&self) -> u64 {
         // Keep revisions exact in JSON clients. Submissions also carry the series identity.
         let prefix = u64::from_str_radix(&self.series[..12], 16).expect("valid series identity");
@@ -783,6 +800,76 @@ impl save::Format for SeriesFormat {
     }
 }
 
+// The destination's directories and sidecars also need to leave the original
+// paths available, including when the source active file is missing.
+fn check_recovery_paths(original: &Path, destination: &Path) -> Result<(), save::Error> {
+    // Appending the lock suffix to a directory spelling can put the sidecar
+    // inside the directory before the shared writer rejects it as a save.
+    if destination.file_name().is_none() || lock_path(destination).parent() != destination.parent()
+    {
+        return Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "Recovery requires a destination file path.",
+        )
+        .into());
+    }
+    let original = path::absolute(original)?;
+    let destination = path::absolute(destination)?;
+    let (Some(source_dir), Some(source_name), Some(fresh_dir), Some(fresh_name)) = (
+        original.parent(),
+        original.file_name(),
+        destination.parent(),
+        destination.file_name(),
+    ) else {
+        return Ok(());
+    };
+    let original = source_dir.canonicalize()?.join(source_name);
+    let previous = previous_path(&original);
+    let check = |candidate: &Path| {
+        if candidate.starts_with(&original) || candidate.starts_with(&previous) {
+            return Err(save::Error::SameRecord);
+        }
+        Ok(())
+    };
+
+    // Follow existing directory aliases and account for each missing directory
+    // that the writer may create, even one followed by a parent component.
+    let mut directory = PathBuf::new();
+    for component in fresh_dir.components() {
+        if component == Component::ParentDir {
+            directory.pop();
+            continue;
+        }
+        directory.push(component);
+        check(&directory)?;
+        match directory.canonicalize() {
+            Ok(resolved) => {
+                check(&resolved)?;
+                directory = resolved;
+            }
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let fresh = directory.join(fresh_name);
+    let lock = lock_path(&fresh);
+    check(&fresh)?;
+    check(&lock)?;
+    check(&previous_path(&fresh))?;
+    // The shared writer opens or creates the lock. A dangling link at this
+    // path could create the source active file even with a distinct destination.
+    match fs::symlink_metadata(&lock) {
+        Ok(metadata) if metadata.is_symlink() => Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "The recovery destination lock is a symbolic link. Choose another save path.",
+        )
+        .into()),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
 pub struct Game {
     record: SavedSeries,
     path: PathBuf,
@@ -810,15 +897,30 @@ impl Game {
         Self::open_position(path.as_ref(), StartingSetup::Glove { fixture })
     }
 
+    /// Recover the original's previous decision into an unused destination.
+    /// A standalone Glove review needs its matching fixture.
+    pub fn recover(
+        original: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+        review: Option<GloveReview>,
+    ) -> Result<Self, Refusal> {
+        let original = original.as_ref();
+        let path = destination.as_ref();
+        check_recovery_paths(original, path)?;
+        let (record, baseline) = save::recover(&SeriesFormat, original, path, |record| {
+            record.require_review(review)
+        })?;
+        Ok(Self {
+            record,
+            path: path.to_owned(),
+            baseline,
+        })
+    }
+
     fn open_position(path: &Path, setup: StartingSetup) -> Result<Self, Refusal> {
-        let io = |error: save::Error| Refusal::Save(error.to_string());
-        let (record, baseline) = match save::load(&SeriesFormat, path).map_err(io)? {
+        let (record, baseline) = match save::load(&SeriesFormat, path)? {
             Some((record, baseline)) => {
-                if record.setup.glove_review() != setup.glove_review() {
-                    return Err(Refusal::Save(
-                        "This save belongs to a different review mode. Use the matching launch options.".into(),
-                    ));
-                }
+                record.require_review(setup.glove_review())?;
                 (record, baseline)
             }
             None => {
@@ -832,8 +934,7 @@ impl Game {
                     &mut baseline,
                     &record,
                     save::Write::Create,
-                )
-                .map_err(io)?;
+                )?;
                 (record, baseline)
             }
         };
@@ -906,7 +1007,7 @@ impl Game {
             &next,
             save::Write::Replace,
         )
-        .map_err(|error| Refusal::Save(error.to_string()))?;
+        .map_err(|error| Refusal::Save(format!("Could not save the decision. {error}")))?;
         self.record = next;
         Ok(())
     }

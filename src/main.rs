@@ -1,13 +1,14 @@
 mod tabletop;
 
 use baseball_highlights_unfolded::{Game, GloveReview, Seat, assets::Collection};
-use std::{env, fs, path::PathBuf, process::ExitCode};
+use std::{env, path::PathBuf, process::ExitCode};
 
-const USAGE: &str = "Usage: baseball-highlights-unfolded [--assets DIRECTORY] [--save FILE] [--review-glove] [--seat sf|ny | --agent-seat sf|ny]";
+const USAGE: &str = "Usage: baseball-highlights-unfolded [--assets DIRECTORY] [--save FILE] [--recover-from ORIGINAL] [--review-glove] [--seat sf|ny | --agent-seat sf|ny]";
 
 fn run() -> Result<(), String> {
     let mut assets = None;
     let mut save = None;
+    let mut recover_from = None;
     let mut agent = None;
     let mut desktop_seat = None;
     let mut review_glove = false;
@@ -16,6 +17,12 @@ fn run() -> Result<(), String> {
         match arg.to_str() {
             Some("--assets") => assets = Some(PathBuf::from(args.next().ok_or(USAGE)?)),
             Some("--save") => save = Some(PathBuf::from(args.next().ok_or(USAGE)?)),
+            Some("--recover-from") if recover_from.is_none() => {
+                recover_from = Some(PathBuf::from(
+                    args.next()
+                        .ok_or("--recover-from requires the original save path.")?,
+                ));
+            }
             Some("--review-glove") => review_glove = true,
             Some("--seat" | "--agent-seat") => {
                 if desktop_seat.is_some() || agent.is_some() {
@@ -33,11 +40,14 @@ fn run() -> Result<(), String> {
                 }
             }
             Some("--help" | "-h") => {
-                println!("{USAGE}");
+                println!("{USAGE}\nRecover ORIGINAL.previous into an unused --save FILE.");
                 return Ok(());
             }
             _ => return Err(USAGE.into()),
         }
+    }
+    if recover_from.is_some() && save.is_none() {
+        return Err("--recover-from requires --save FILE with an unused path.".into());
     }
     let home = || {
         env::var_os("HOME")
@@ -69,17 +79,22 @@ fn run() -> Result<(), String> {
     let collection = Collection::open(&assets)?;
     let requested_review = review_glove.then_some(GloveReview::Maris);
     let art = tabletop::Art::load(&collection, requested_review)?;
-    if let Some(parent) = save.parent().filter(|path| !path.as_os_str().is_empty()) {
-        fs::create_dir_all(parent).map_err(|error| format!("{}: {error}", parent.display()))?;
-    }
-    let game = if let Some(fixture) = requested_review {
-        Game::open_glove_review(save, fixture)
+    let game = if let Some(original) = recover_from {
+        Game::recover(&original, save, requested_review).map_err(|error| {
+            format!(
+                "Could not recover the previous committed record for {}. {error}",
+                original.display()
+            )
+        })?
     } else {
-        Game::open(save)
-    }
-    .map_err(|error| {
-        format!("{error} To start a fresh series, use --save FILE with an unused path.")
-    })?;
+        match requested_review {
+            Some(fixture) => Game::open_glove_review(save, fixture),
+            None => Game::open(save),
+        }
+        .map_err(|error| {
+            format!("{error} To start a fresh series, use --save FILE with an unused path.")
+        })?
+    };
     if let Some(seat) = agent {
         tabletop::serve(game, seat, art)
     } else {
